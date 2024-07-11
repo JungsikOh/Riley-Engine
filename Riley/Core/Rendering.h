@@ -8,6 +8,7 @@
 #include <d3d11.h>
 #include <d3dcompiler.h>
 #include <stdexcept>
+#include "spdlog\spdlog.h"
 
 namespace Riley {
 

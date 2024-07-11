@@ -22,6 +22,7 @@ class DXResource {
     DXResource()
         : m_resource(nullptr), m_srv(nullptr), m_uav(nullptr),
           m_isMapped(false) {}
+
     virtual ~DXResource() {
         SAFE_RELEASE(m_srv);
         SAFE_RELEASE(m_uav);
@@ -138,17 +139,26 @@ class DXResource {
         }
     }
 
-  protected:
-    bool InitShaderResourceView(D3D11_SHADER_RESOURCE_VIEW_DESC desc) {
-        if (m_srv == nullptr) {
-            auto result =
-                device.CreateShaderResourceView(m_resource, &desc, &m_srv);
-            if (!FAILED(result)) {
-                return true;
-            }
-        }
+    ID3D11ShaderResourceView* SRV(uint64 i = 0) const { return m_srv; }
+    ID3D11UnorderedAccessView* UAV(uint64 i = 0) const { return m_uav; }
 
-        return false;
+  protected:
+    HRESULT InitShaderResourceView(ID3D11Device* device,
+                                D3D11_SHADER_RESOURCE_VIEW_DESC* desc) {
+        if (m_srv == nullptr) {
+            HR(device->CreateShaderResourceView(m_resource, desc, &m_srv));
+            return S_OK;
+        }
+        return S_FALSE;
+    }
+
+    HRESULT InitUnorderedAccessView(ID3D11Device* device,
+                                 D3D11_UNORDERED_ACCESS_VIEW_DESC* desc) {
+        if (m_uav == nullptr) {
+            HR(device->CreateUnorderedAccessView(m_resource, desc, &m_uav));
+            return S_OK;
+        }
+        return S_FALSE;
     }
 
   protected:

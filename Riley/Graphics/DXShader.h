@@ -33,6 +33,6 @@ struct DXShaderDesc {
     std::string sourceFile = "";
     std::string entryPoint = "";
     std::vector<DXShaderMacro> macros;
-    uint64 flags = DXShaderCompilerFlagBit_NONE;
+    uint64 flags = DXShaderCompilerFlagBit::DXShaderCompilerFlgBit_NONE;
 };
 } // namespace Riley

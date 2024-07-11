@@ -50,6 +50,18 @@
     <ClCompile Include="Rendering\Component.cpp">
       <Filter>Rendering</Filter>
     </ClCompile>
+    <ClCompile Include="Graphics\DXRenderTarget.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\DXDepthStencilBuffer.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\DXStates.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
+    <ClCompile Include="Graphics\DXInputLayout.cpp">
+      <Filter>Graphics</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Component.h">
@@ -127,8 +139,32 @@
     <ClInclude Include="Rendering\Renderer.h">
       <Filter>Rendering</Filter>
     </ClInclude>
-    <ClInclude Include="Core\Logger.h">
-      <Filter>Core</Filter>
+    <ClInclude Include="Graphics\DXBuffer.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\DXFormat.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Utilities\EnumUtil.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\DXResourceCommon.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\DXConstantBuffer.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\DXRenderTarget.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\DXDepthStencilBuffer.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\DXStates.h">
+      <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\DXInputLayout.h">
+      <Filter>Graphics</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

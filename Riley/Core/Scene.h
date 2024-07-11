@@ -8,7 +8,7 @@ namespace Riley {
 
 class Scene {
   private:
-    std::list<std::vector<Entity>> m_entities;
+    std::list<Entity*> m_entities;
 
   public:
     std::string m_name;

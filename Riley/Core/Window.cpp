@@ -1,5 +1,7 @@
 #include "Window.h"
+#include "../Utilities/Timer.h"
 #include "Rendering.h"
+#include <conio.h>
 
 namespace Riley {
 
@@ -32,24 +34,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM w_param, LPARAM l_param) {
         this_window->BroadcastEvent(window_data);
     return result;
 }
-
-// LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
-//    LRESULT result = 0;
-//    switch (msg) {
-//    case WM_KEYDOWN: {
-//        if (wparam == VK_ESCAPE)
-//            DestroyWindow(hwnd);
-//        break;
-//    }
-//    case WM_DESTROY: {
-//        PostQuitMessage(0);
-//        break;
-//    }
-//    default:
-//        result = DefWindowProcW(hwnd, msg, wparam, lparam);
-//    }
-//    return result;
-//}
 
 Window::Window(WindowInit const& init) {
     hinstance = init.instance;
@@ -98,11 +82,20 @@ Window::Window(WindowInit const& init) {
 
     UpdateWindow(hwnd);
     SetFocus(hwnd);
+
+    // print Console Window
+    AllocConsole();
+    freopen("CONOUT$", "wt", stdout);
+
+    // Logger
+    RileyTimer timer;
+    spdlog::info("Window init complete {:f}s", timer.ElapsedInSeconds());
 }
 
 Window::~Window() {
     if (hwnd)
         DestroyWindow(hwnd);
+    FreeConsole();
 }
 
 uint32 Window::Width() const {
@@ -149,7 +142,8 @@ void Window::Quit(int32 exit_code) { PostQuitMessage(exit_code); }
 void* Window::Handle() const { return static_cast<void*>(hwnd); }
 bool Window::IsActive() const { return GetForegroundWindow() == hwnd; }
 
-// multicast delegate를 통해 정의한 WindowEvent 클래스의 등록된 콜백을 모두 호출한다.
+// multicast delegate를 통해 정의한 WindowEvent 클래스의 등록된 콜백을 모두
+// 호출한다.
 void Window::BroadcastEvent(WindowEventData const& data) {
     window_event.Broadcast(data);
 }

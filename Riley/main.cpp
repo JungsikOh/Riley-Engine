@@ -1,6 +1,8 @@
 #include "Core/Engine.h"
 #include "Core/Window.h"
 #include <assert.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog\spdlog.h>
 
 using namespace Riley;
 
@@ -16,6 +18,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance,
     window_init.maximize = false;
     Window window(window_init);
     g_Input.Initialize(&window);
+
 
     // Create D3D11 Device and Context
     ID3D11Device1* d3d11Device;
