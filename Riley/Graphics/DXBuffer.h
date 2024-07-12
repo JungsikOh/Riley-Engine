@@ -2,6 +2,7 @@
 #include "DXFormat.h"
 #include "DXResource.h"
 #include "DXResourceCommon.h"
+#include "../Core/CoreTypes.h"
 
 namespace Riley {
 // bufferDesc의 종류는 여러가지인데, 할당되는 공통속성이 존재하므로 desc 구조체
@@ -73,7 +74,7 @@ class DXBuffer : public DXResource {
 
     DXBuffer(DXBuffer const&) = delete;
     DXBuffer& operator=(DXBuffer const&) = delete;
-    ~DXBuffer() = default;
+    virtual ~DXBuffer() = default;
 
     // return ID3D11Buffer*
     ID3D11Buffer* GetNative() const {

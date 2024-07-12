@@ -32,7 +32,6 @@ class DXResource {
     ID3D11Resource* GetResource() const { return m_resource; }
     ID3D11ShaderResourceView* GetShaderResourceView() const { return m_srv; }
     ID3D11UnorderedAccessView* GetUnorderedAccessView() const { return m_uav; }
-    virtual DXRenderResourceType GetResourceType() const = 0;
 
     bool IsMapped() const { return m_isMapped; }
 
@@ -142,9 +141,15 @@ class DXResource {
     ID3D11ShaderResourceView* SRV(uint64 i = 0) const { return m_srv; }
     ID3D11UnorderedAccessView* UAV(uint64 i = 0) const { return m_uav; }
 
+    DXResource& operator=(const DXResource& r) {
+        m_resource = r.GetResource();
+        m_srv = r.GetShaderResourceView();
+        m_uav = r.GetUnorderedAccessView();
+    }
+
   protected:
     HRESULT InitShaderResourceView(ID3D11Device* device,
-                                D3D11_SHADER_RESOURCE_VIEW_DESC* desc) {
+                                   D3D11_SHADER_RESOURCE_VIEW_DESC* desc) {
         if (m_srv == nullptr) {
             HR(device->CreateShaderResourceView(m_resource, desc, &m_srv));
             return S_OK;
@@ -153,7 +158,7 @@ class DXResource {
     }
 
     HRESULT InitUnorderedAccessView(ID3D11Device* device,
-                                 D3D11_UNORDERED_ACCESS_VIEW_DESC* desc) {
+                                    D3D11_UNORDERED_ACCESS_VIEW_DESC* desc) {
         if (m_uav == nullptr) {
             HR(device->CreateUnorderedAccessView(m_resource, desc, &m_uav));
             return S_OK;

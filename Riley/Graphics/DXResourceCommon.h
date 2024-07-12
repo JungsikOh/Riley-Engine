@@ -1,7 +1,9 @@
 #pragma once
 #include "../Utilities/EnumUtil.h"
+#include "../Core/CoreTypes.h"
 
 namespace Riley {
+
 enum DXSubresourceType : uint8 {
     DXSubresourceType_SRV,
     DXSubresourceType_UAV,
@@ -47,6 +49,7 @@ enum class DXResourceUsage : uint8 {
     Dynamic,
     Staging,
 };
+
 inline constexpr D3D11_USAGE ConvertUsage(DXResourceUsage value) {
     switch (value) {
     case DXResourceUsage::Default:

@@ -23,9 +23,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp">
-      <Filter>Core</Filter>
-    </ClCompile>
     <ClCompile Include="Core\Transform.cpp">
       <Filter>Core</Filter>
     </ClCompile>
@@ -62,6 +59,10 @@
     <ClCompile Include="Graphics\DXInputLayout.cpp">
       <Filter>Graphics</Filter>
     </ClCompile>
+    <ClCompile Include="Rendering\Renderer.cpp">
+      <Filter>Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Component.h">
@@ -165,6 +166,9 @@
     </ClInclude>
     <ClInclude Include="Graphics\DXInputLayout.h">
       <Filter>Graphics</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\SceneViewport.h">
+      <Filter>Rendering</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

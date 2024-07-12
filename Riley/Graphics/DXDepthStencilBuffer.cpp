@@ -1,8 +1,8 @@
 #include "DXDepthStencilBuffer.h"
 
 namespace Riley {
-DXDepthStencilBuffer::DXDepthStencilBuffer(ID3D11Device* device, UINT width,
-                                           UINT height, bool isStencilEnable) {
+DXDepthStencilBuffer::DXDepthStencilBuffer(ID3D11Device* device, uint32 width,
+                                           uint32 height, bool isStencilEnable) {
     m_isStencilEnabled = isStencilEnable;
 
     D3D11_TEXTURE2D_DESC bufferDesc;
@@ -32,7 +32,8 @@ DXDepthStencilBuffer::DXDepthStencilBuffer(ID3D11Device* device, UINT width,
     dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
     dsvDesc.Texture2D.MipSlice = 0;
 
-    HR(device->CreateDepthStencilView(m_resource, &dsvDesc, &m_dsv));
+    HR(device->CreateDepthStencilView(
+        static_cast<ID3D11Texture2D*>(m_resource), &dsvDesc, &m_dsv));
 
     D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
     ZeroMemory(&srvDesc, sizeof(srvDesc));

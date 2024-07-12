@@ -1,4 +1,5 @@
 #pragma once
+#include "DXDepthStencilBuffer.h"
 #include "DXFormat.h"
 #include "DXResource.h"
 
@@ -8,7 +9,9 @@ class DXRenderTarget : public DXResource {
     DXRenderTarget() = default;
     DXRenderTarget(ID3D11Device* device, UINT width, UINT height,
                    DXFormat format = DXFormat::R8G8B8A8_UNORM,
-                   ID3D11DepthStencilView* dsv = nullptr);
+                   DXDepthStencilBuffer* buffer = nullptr);
+    DXRenderTarget(ID3D11Device* device, ID3D11RenderTargetView* rtv,
+                   DXDepthStencilBuffer* buffer = nullptr);
 
     virtual ~DXRenderTarget();
 
@@ -18,10 +21,10 @@ class DXRenderTarget : public DXResource {
     ID3D11Texture2D* GetTexture() const {
         return reinterpret_cast<ID3D11Texture2D*>(m_resource);
     }
-    ID3D11RenderTargetView* GetRTV() const { return m_rtv; }
+    ID3D11RenderTargetView* GetRTV() { return m_rtv; }
 
-    void SetDepthStencilView(ID3D11DepthStencilView* dsv) {
-        m_dsv = dsv;
+    void SetDepthStencilBuffer(DXDepthStencilBuffer* buffer) {
+        m_depthStencilBuffer = buffer;
     }
 
     void BindRenderTargetView(ID3D11DeviceContext* context);
@@ -29,7 +32,8 @@ class DXRenderTarget : public DXResource {
 
   private:
     ID3D11RenderTargetView* m_rtv;
-    ID3D11DepthStencilView* m_dsv; // It is deleted by DXDepthStencilBuffer
+    DXDepthStencilBuffer*
+        m_depthStencilBuffer; // It is deleted by DXDepthStencilBuffer
 
     UINT m_width;
     UINT m_height;

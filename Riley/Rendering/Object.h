@@ -48,4 +48,5 @@ struct Mesh {
     void Draw(ID3D11DeviceContext* _context,
               D3D11_PRIMITIVE_TOPOLOGY override_topology) const;
 };
+
 } // namespace Riley

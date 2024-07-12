@@ -147,6 +147,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Rendering\Camera.cpp" />
     <ClCompile Include="Rendering\Component.cpp" />
+    <ClCompile Include="Rendering\Renderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Component.h" />
@@ -176,6 +177,7 @@
     <ClInclude Include="Graphics\DXResource.h" />
     <ClInclude Include="Graphics\DXShader.h" />
     <ClInclude Include="Rendering\Renderer.h" />
+    <ClInclude Include="Rendering\SceneViewport.h" />
     <ClInclude Include="Utilities\ConcurrentQueue.h" />
     <ClInclude Include="Utilities\EnumUtil.h" />
     <ClInclude Include="Utilities\Event.h" />

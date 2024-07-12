@@ -21,7 +21,7 @@ template <typename CBuffer> class DXConstantBuffer : public DXBuffer {
 
 template <typename CBuffer>
 DXConstantBuffer<CBuffer>::DXConstantBuffer(ID3D11Device* device,
-                                            CBuffer const& initialdata,
+                                            CBuffer const& initData,
                                             bool dynamic /*= true*/)
     : dynamic{dynamic} {
     DXBufferDesc desc{};
@@ -69,14 +69,7 @@ DXConstantBuffer<CBuffer>::DXConstantBuffer(ID3D11Device* device,
     bufferDesc.MiscFlags = ParseMiscFlags(desc.miscFlags);
     bufferDesc.StructureByteStride = desc.stride;
 
-    D3D11_SUBRESOURCE_DATA init{};
-    if (initData != nullptr) {
-        init.pSysMem = initData;
-        init.SysMemPitch = (uint32)desc.size;
-        init.SysMemSlicePitch = 0;
-    }
-
-    device->CreateBuffer(&bufferDesc, &init,
+    device->CreateBuffer(&bufferDesc, nullptr,
                          reinterpret_cast<ID3D11Buffer**>(&m_resource));
 }
 

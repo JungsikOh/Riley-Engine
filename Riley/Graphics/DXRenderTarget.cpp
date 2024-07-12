@@ -2,9 +2,10 @@
 
 namespace Riley {
 DXRenderTarget::DXRenderTarget(ID3D11Device* device, UINT width, UINT height,
-                               DXFormat format, ID3D11DepthStencilView* dsv)
-    : m_width(width), m_height(height), m_format(format), m_dsv(dsv) {
-    
+                               DXFormat format, DXDepthStencilBuffer* buffer)
+    : m_width(width), m_height(height), m_format(format),
+      m_depthStencilBuffer(buffer) {
+
     D3D11_TEXTURE2D_DESC texDesc;
     ZeroMemory(&texDesc, sizeof(texDesc));
     texDesc.Width = m_width;
@@ -32,13 +33,32 @@ DXRenderTarget::DXRenderTarget(ID3D11Device* device, UINT width, UINT height,
         reinterpret_cast<ID3D11Texture2D*>(&m_resource), &rtvDesc, &m_rtv));
 }
 
+DXRenderTarget::DXRenderTarget(ID3D11Device* device,
+                               ID3D11RenderTargetView* rtv,
+                               DXDepthStencilBuffer* buffer) : m_rtv(rtv), m_depthStencilBuffer(buffer) {
+    ID3D11Resource* rtvResource = nullptr;
+    m_rtv->GetResource(&rtvResource);
+    if (rtvResource != nullptr) {
+        ID3D11Texture2D* tex = static_cast<ID3D11Texture2D*>(rtvResource);
+
+        D3D11_TEXTURE2D_DESC desc{};
+        ZeroMemory(&desc, sizeof(desc));
+        tex->GetDesc(&desc);
+        m_width = desc.Width;
+        m_height = desc.Height;
+        m_format = ConvertDXGIFormat(desc.Format);
+
+        SAFE_RELEASE(tex);
+    } else
+        m_rtv = nullptr;
+}
+
 DXRenderTarget::~DXRenderTarget() {
     SAFE_RELEASE(m_rtv);
-    SAFE_RELEASE(m_dsv);
 }
 
 void DXRenderTarget::BindRenderTargetView(ID3D11DeviceContext* context) {
-    context->OMSetRenderTargets(1, &m_rtv, m_dsv);
+    context->OMSetRenderTargets(1, &m_rtv, m_depthStencilBuffer->GetDSV());
 }
 
 void DXRenderTarget::Clear(ID3D11DeviceContext* context,

@@ -88,8 +88,8 @@ Window::Window(WindowInit const& init) {
     freopen("CONOUT$", "wt", stdout);
 
     // Logger
-    RileyTimer timer;
     spdlog::info("Window init complete {:f}s", timer.ElapsedInSeconds());
+    timer.Mark();
 }
 
 Window::~Window() {
