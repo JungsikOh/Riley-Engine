@@ -50,6 +50,7 @@ static DXBufferDesc IndexBufferDesc(uint64 index_count, bool small_indices) {
  */
 class DXBuffer : public DXResource {
   public:
+    DXBuffer() = default;
     DXBuffer(ID3D11Device* _device, DXBufferDesc const& _desc,
              void const* initData = nullptr)
         : m_desc(_desc) {

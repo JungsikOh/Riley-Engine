@@ -146,7 +146,9 @@
     <ClCompile Include="Graphics\DXStates.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Rendering\Camera.cpp" />
-    <ClCompile Include="Rendering\Component.cpp" />
+    <ClCompile Include="Rendering\Model.cpp" />
+    <ClCompile Include="Rendering\ModelImporter.cpp" />
+    <ClCompile Include="Rendering\Object.cpp" />
     <ClCompile Include="Rendering\Renderer.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -170,10 +172,13 @@
     <ClInclude Include="Graphics\DXRenderTarget.h" />
     <ClInclude Include="Graphics\DXResourceCommon.h" />
     <ClInclude Include="Graphics\DXStates.h" />
+    <ClInclude Include="Math\ComputeVectors.h" />
     <ClInclude Include="Math\MathTypes.h" />
     <ClInclude Include="Rendering\Camera.h" />
-    <ClInclude Include="Rendering\CBuffer.h" />
-    <ClInclude Include="Rendering\Component.h" />
+    <ClInclude Include="Rendering\ConstantBuffers.h" />
+    <ClInclude Include="Rendering\Model.h" />
+    <ClInclude Include="Rendering\ModelImporter.h" />
+    <ClInclude Include="Rendering\Object.h" />
     <ClInclude Include="Graphics\DXResource.h" />
     <ClInclude Include="Graphics\DXShader.h" />
     <ClInclude Include="Rendering\Renderer.h" />

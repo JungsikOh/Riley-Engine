@@ -12,7 +12,6 @@ class Entity;
 class Component {
   public:
     std::string m_name;
-    Event m_OnDestroyed;
     Entity* m_entity;
     Transform* m_transform;
 
@@ -25,11 +24,11 @@ class Component {
     virtual void SetEntity(Entity* entity) = 0;
     virtual Entity* GetEntity() = 0;
 
-    // virtual ~Component() { OnDestroyed() ; };
+    virtual ~Component() {};
     virtual void Update(const float& deltaTime) = 0;
-#ifndef NEDITOR
-    virtual void OnEditor() = 0;
-#endif
+//#ifndef NEDITOR
+//    virtual void OnEditor() = 0;
+//#endif
 };
 
 } // namespace Riley

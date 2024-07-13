@@ -1,5 +1,6 @@
 #pragma once
 #include "../Core/ECS.h"
+#include "../Graphics/DXBuffer.h"
 #include <memory>
 
 namespace Riley {
@@ -8,6 +9,14 @@ struct Vertex {
     Vector3 normal;
     Vector2 texcoord;
     Vector3 tangent;
+};
+
+struct ComplexVertex {
+    Vector3 position;
+    Vector3 normal;
+    Vector2 texcoord;
+    Vector3 tangent;
+    Vector3 bitangent;
 };
 
 struct Material {
@@ -23,9 +32,13 @@ struct Material {
 };
 
 struct Mesh {
-    std::shared_ptr<ID3D11Buffer*> vertexBuffer = nullptr;
-    std::shared_ptr<ID3D11Buffer*> indexBuffer = nullptr;
-    std::shared_ptr<ID3D11Buffer*> instanceBuffer = nullptr;
+    // buffer desc
+    DXBufferDesc vertexBufferDesc;
+    DXBufferDesc indexBufferDesc;
+
+    ID3D11Buffer* vertexBuffer = nullptr;
+    ID3D11Buffer* indexBuffer = nullptr;
+    ID3D11Buffer* instanceBuffer = nullptr;
 
     // vertex buffer and index buffer
     uint32 vertexCount = 0;
@@ -47,6 +60,7 @@ struct Mesh {
     void Draw(ID3D11DeviceContext* _context) const;
     void Draw(ID3D11DeviceContext* _context,
               D3D11_PRIMITIVE_TOPOLOGY override_topology) const;
+    void DeInit();
 };
 
 } // namespace Riley

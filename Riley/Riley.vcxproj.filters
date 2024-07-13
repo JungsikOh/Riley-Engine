@@ -44,7 +44,7 @@
     <ClCompile Include="Rendering\Camera.cpp">
       <Filter>Rendering</Filter>
     </ClCompile>
-    <ClCompile Include="Rendering\Component.cpp">
+    <ClCompile Include="Rendering\Object.cpp">
       <Filter>Rendering</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\DXRenderTarget.cpp">
@@ -63,6 +63,12 @@
       <Filter>Rendering</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Rendering\Model.cpp">
+      <Filter>Rendering</Filter>
+    </ClCompile>
+    <ClCompile Include="Rendering\ModelImporter.cpp">
+      <Filter>Rendering</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Component.h">
@@ -125,10 +131,10 @@
     <ClInclude Include="Rendering\Camera.h">
       <Filter>Rendering</Filter>
     </ClInclude>
-    <ClInclude Include="Rendering\Component.h">
+    <ClInclude Include="Rendering\Object.h">
       <Filter>Rendering</Filter>
     </ClInclude>
-    <ClInclude Include="Rendering\CBuffer.h">
+    <ClInclude Include="Rendering\ConstantBuffers.h">
       <Filter>Rendering</Filter>
     </ClInclude>
     <ClInclude Include="Graphics\DXShader.h">
@@ -169,6 +175,15 @@
     </ClInclude>
     <ClInclude Include="Rendering\SceneViewport.h">
       <Filter>Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\Model.h">
+      <Filter>Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\ModelImporter.h">
+      <Filter>Rendering</Filter>
+    </ClInclude>
+    <ClInclude Include="Math\ComputeVectors.h">
+      <Filter>Math</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
