@@ -3,9 +3,9 @@
 namespace Riley {
 Model::Model(ID3D11Device* device, std::string name, ObjectConsts& meshConsts,
              MaterialConsts& materialConsts)
-    : m_name(name), m_meshConstsCPU(meshConsts),
-      m_materialConstsCPU(materialConsts) {
+    : m_meshConstsCPU(meshConsts), m_materialConstsCPU(materialConsts) {
 
+    m_name = name;
     m_meshConstsGPU =
         new DXConstantBuffer<ObjectConsts>(device, &m_meshConstsCPU);
     m_materialConstsGPU =
@@ -15,8 +15,10 @@ Model::Model(ID3D11Device* device, std::string name, ObjectConsts& meshConsts,
 /**
  * @brief Material is prduced by Defalt Setting
  */
-Model::Model(ID3D11Device* device, std::string name, Transform& transform)
-    : m_name(name) {
+Model::Model(ID3D11Device* device, std::string name, Transform& transform) {
+
+    m_name = name;
+    m_transform = transform;
     m_meshConstsCPU.worldRow = transform.GetMatrix().Transpose();
     m_meshConstsCPU.worldInvTransposeRow =
         transform.GetMatrix().Invert().Transpose();

@@ -120,6 +120,7 @@ static void BindIndexBuffer(ID3D11DeviceContext* context, DXBuffer* ib,
     context->IASetIndexBuffer(ib->GetNative(),
                               ConvertDXFormat(ib->GetDesc().format), offset);
 }
+
 static void BindVertexBuffer(ID3D11DeviceContext* context, DXBuffer* vb,
                              uint32 slot = 0, uint32 offset = 0) {
     ID3D11Buffer* const vbs[] = {vb->GetNative()};

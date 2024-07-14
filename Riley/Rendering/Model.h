@@ -18,29 +18,25 @@ class Model : public Component {
     Model(ID3D11Device* device, std::string name, Transform& transform);
     virtual ~Model();
 
-    virtual void SetEntity(Entity* entity) = 0;
-    virtual Entity* GetEntity() = 0;
+    virtual void SetEntity(Entity* entity){};
+    virtual Entity* GetEntity(){};
 
-    void Update(ID3D11Device* device, ID3D11DeviceContext* context, Transform& transform);
-    void Update(ID3D11Device* device, ID3D11DeviceContext* context,
+    virtual void Update(const float& dt){};
+    virtual void Update(ID3D11Device* device, ID3D11DeviceContext* context, Transform& transform);
+    virtual void Update(ID3D11Device* device, ID3D11DeviceContext* context,
                         Matrix& matrix);
 
     void SetMeshList(const std::vector<Mesh>& meshes) { m_meshes = meshes; }
-    void SetMaterialList(const Material& material) { m_material = material; }
 
     std::vector<Mesh> GetMeshList() const { return m_meshes; }
-    Material GetMaterialList() const { return m_material; }
     std::string GetName() const { return m_name; }
 
   private:
-    std::string m_name;
-
     ObjectConsts m_meshConstsCPU;
     MaterialConsts m_materialConstsCPU;
     DXConstantBuffer<ObjectConsts>* m_meshConstsGPU;
     DXConstantBuffer<MaterialConsts>* m_materialConstsGPU;
 
     std::vector<Mesh> m_meshes;
-    Material m_material;
 };
 } // namespace Riley

@@ -21,7 +21,8 @@ class ModelImporter {
     ModelImporter() = default;
     ~ModelImporter() = default;
 
-    std::vector<Mesh> LoadSquare(const float& scale = 1.0f, const Vector2& texScale = Vector2(1.0f));
-    std::vector<Mesh> LoadBox(const float& scale = 1.0f, bool invertNormal = false);
+    Model LoadSquare(ID3D11Device* device, const float& scale = 1.0f,
+                                 const Vector2& texScale = Vector2(1.0f));
+    Model LoadBox(const float& scale = 1.0f, bool invertNormal = false);
 };
 } // namespace Riley

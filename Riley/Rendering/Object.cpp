@@ -8,22 +8,18 @@ void Mesh::Draw(ID3D11DeviceContext* context,
                 D3D11_PRIMITIVE_TOPOLOGY topology) const {
 
     context->IASetPrimitiveTopology(topology);
-    context->IASetVertexBuffers(0, 1, &vertexBuffer, &vertexBufferDesc.stride,
-                                0);
+    BindVertexBuffer(context, vertexBuffer);
 
     if (indexBuffer != nullptr) {
-        DXGI_FORMAT dxgiFormat = ConvertDXFormat(indexBufferDesc.format);
-        context->IASetIndexBuffer(indexBuffer, dxgiFormat, 0);
+        BindIndexBuffer(context, indexBuffer);
         if (instanceBuffer != nullptr) {
-            context->IASetVertexBuffers(1, 1, &instanceBuffer,
-                                        &vertexBufferDesc.stride, 0);
+            BindVertexBuffer(context, instanceBuffer, 1, 0);
         }
         context->DrawIndexedInstanced(indexCount, instanceCount, startIndexLoc,
                                       baseVertexLoc, startInstanceLoc);
     } else {
         if (instanceBuffer != nullptr) {
-            context->IASetVertexBuffers(1, 1, &instanceBuffer,
-                                        &vertexBufferDesc.stride, 0);
+            BindVertexBuffer(context, instanceBuffer, 1, 0);
         }
         context->DrawInstanced(vertexCount, instanceCount, startVertexLoc,
                                startInstanceLoc);
@@ -31,8 +27,8 @@ void Mesh::Draw(ID3D11DeviceContext* context,
 }
 
 void Mesh::DeInit() {
-    SAFE_RELEASE(vertexBuffer);
-    SAFE_RELEASE(indexBuffer);
-    SAFE_RELEASE(instanceBuffer);
+    SAFE_DELETE(vertexBuffer);
+    SAFE_DELETE(indexBuffer);
+    SAFE_DELETE(instanceBuffer);
 }
 } // namespace Riley

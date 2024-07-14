@@ -9,6 +9,7 @@ struct Vertex {
     Vector3 normal;
     Vector2 texcoord;
     Vector3 tangent;
+    Vector3 bitangent;
 };
 
 struct ComplexVertex {
@@ -32,13 +33,9 @@ struct Material {
 };
 
 struct Mesh {
-    // buffer desc
-    DXBufferDesc vertexBufferDesc;
-    DXBufferDesc indexBufferDesc;
-
-    ID3D11Buffer* vertexBuffer = nullptr;
-    ID3D11Buffer* indexBuffer = nullptr;
-    ID3D11Buffer* instanceBuffer = nullptr;
+    DXBuffer* vertexBuffer = nullptr;
+    DXBuffer* indexBuffer = nullptr;
+    DXBuffer* instanceBuffer = nullptr;
 
     // vertex buffer and index buffer
     uint32 vertexCount = 0;
