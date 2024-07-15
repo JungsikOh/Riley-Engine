@@ -27,14 +27,9 @@ class DXInputLayout {
     DXInputLayout(ID3D11Device* device, DXShaderBytecode const& vs_blob,
                   DXInputLayoutDesc const& desc);
 
-    std::vector<D3D11_INPUT_ELEMENT_DESC> GetElementDescs() const {
-        return m_elementDescs;
-    }
-
     operator ID3D11InputLayout*() const { return m_inputLayout; }
 
   private:
     ID3D11InputLayout* m_inputLayout;
-    std::vector<D3D11_INPUT_ELEMENT_DESC> m_elementDescs;
 };
 } // namespace Riley

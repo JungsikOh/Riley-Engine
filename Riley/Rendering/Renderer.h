@@ -5,7 +5,11 @@
 #include "../Graphics/DXConstantBuffer.h"
 #include "../Graphics/DXDepthStencilBuffer.h"
 #include "../Graphics/DXRenderTarget.h"
+#include "Camera.h"
+#include "ConstantBuffers.h"
+#include "Model.h"
 #include "SceneViewport.h"
+#include "ShaderManager.h"
 #include <memory>
 #include <optional>
 
@@ -39,6 +43,7 @@ class Renderer {
     void OnResize(uint32 width, uint32 height);
     void OnLeftMouseClicked();
 
+    Model test;
 
   private:
     uint32 m_width, m_height;
@@ -57,11 +62,25 @@ class Renderer {
     SceneViewport m_currentSceneViewport;
     float m_currentDeltaTime;
 
+    ID3D11RasterizerState* solidRS;
+    ID3D11DepthStencilState* solidDSS;
+
+    // cbuffers
+    FrameBufferConsts frameBufferCPU;
+    DXConstantBuffer<FrameBufferConsts>* frameBufferGPU = nullptr;
+    ObjectConsts objectConstsCPU;
+    DXConstantBuffer<ObjectConsts>* objectConstsGPU = nullptr;
+    MaterialConsts materialConstsCPU;
+    DXConstantBuffer<MaterialConsts>* materialConstsGPU = nullptr;
+
   private:
     void InitDirectX(); // init swapChain and backbuffer
     void CreateBuffers();
     void CreateSamplers();
     void CreateRenderStates();
+
+    void BindGlobals();
+    void PassSolid();
 };
 
 } // namespace Riley

@@ -32,9 +32,6 @@ Model::Model(ID3D11Device* device, std::string name, Transform& transform) {
 Model::~Model() {
     SAFE_DELETE(m_meshConstsGPU);
     SAFE_DELETE(m_materialConstsGPU);
-    for (auto& m : m_meshes) {
-        m.DeInit();
-    }
 }
 
 void Model::Update(ID3D11Device* device, ID3D11DeviceContext* context,

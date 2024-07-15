@@ -1,4 +1,5 @@
 #include "DXInputLayout.h"
+#include "DXShaderCompiler.h"
 
 namespace Riley {
 static inline void
@@ -37,18 +38,19 @@ ConvertInputLayout(DXInputLayoutDesc const& input_layout,
 DXInputLayout::DXInputLayout(ID3D11Device* device,
                              DXShaderBytecode const& vs_blob,
                              DXInputLayoutDesc const& desc) {
-    ConvertInputLayout(desc, m_elementDescs);
-    HR(device->CreateInputLayout(
-        m_elementDescs.data(), (uint32)m_elementDescs.size(),
+    std::vector<D3D11_INPUT_ELEMENT_DESC> d3d11_desc{};
+    ConvertInputLayout(desc, d3d11_desc);
+    HR(device->CreateInputLayout(d3d11_desc.data(), (uint32)d3d11_desc.size(),
         vs_blob.GetPointer(), vs_blob.GetLength(), &m_inputLayout));
 }
 
 DXInputLayout::DXInputLayout(ID3D11Device* device,
                              DXShaderBytecode const& vs_blob) {
     DXInputLayoutDesc desc;
-    ConvertInputLayout(desc, m_elementDescs);
-    HR(device->CreateInputLayout(
-        m_elementDescs.data(), (uint32)m_elementDescs.size(),
+    DXShaderCompiler::FillInputLayoutDesc(vs_blob, desc);
+    std::vector<D3D11_INPUT_ELEMENT_DESC> d3d11_desc{};
+    ConvertInputLayout(desc, d3d11_desc);
+    HR(device->CreateInputLayout(d3d11_desc.data(), (uint32)d3d11_desc.size(),
         vs_blob.GetPointer(), vs_blob.GetLength(), &m_inputLayout));
 }
 

@@ -20,8 +20,8 @@ class Component {
         : m_name(std::string(typeid(*this).name())) {}
     Component(const std::string& _name) : m_name(_name) {}
 
-    virtual void SetEntity(Entity* entity) = 0;
-    virtual Entity* GetEntity() = 0;
+    //virtual void SetEntity(Entity* entity) = 0;
+    //virtual Entity* GetEntity() = 0;
 
     virtual ~Component() {};
     virtual void Update(const float& deltaTime) = 0;

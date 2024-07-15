@@ -104,7 +104,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;NOMINMAX;_SILENCE_ALL_CXX20_DEPRECATION_WARNINGS;_SILENCE_CXX23_ALIGNED_STORAGE_DEPRECATION_WARNING</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Riley\;$(SolutionDir)ThirdParty\ImGui;$(SolutionDir)ThirdParty\SimpleMath;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Riley\;$(SolutionDir)ThirdParty\ImGui;$(SolutionDir)ThirdParty\SimpleMath;$(SolutionDir)ThirdParty\cereal;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UseStandardPreprocessor>false</UseStandardPreprocessor>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -116,6 +116,9 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>d3d11.lib;d3dcompiler.lib;dxgi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <FxCompile>
+      <ShaderModel>5.0</ShaderModel>
+    </FxCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -137,12 +140,15 @@
     <ClCompile Include="Core\Engine.cpp" />
     <ClCompile Include="Core\Entity.cpp" />
     <ClCompile Include="Core\Input.cpp" />
+    <ClCompile Include="Core\Paths.cpp" />
     <ClCompile Include="Core\Scene.cpp" />
     <ClCompile Include="Core\Transform.cpp" />
     <ClCompile Include="Core\Window.cpp" />
     <ClCompile Include="Graphics\DXDepthStencilBuffer.cpp" />
     <ClCompile Include="Graphics\DXInputLayout.cpp" />
     <ClCompile Include="Graphics\DXRenderTarget.cpp" />
+    <ClCompile Include="Graphics\DXShaderCompiler.cpp" />
+    <ClCompile Include="Graphics\DXShaderProgram.cpp" />
     <ClCompile Include="Graphics\DXStates.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Rendering\Camera.cpp" />
@@ -150,6 +156,8 @@
     <ClCompile Include="Rendering\ModelImporter.cpp" />
     <ClCompile Include="Rendering\Object.cpp" />
     <ClCompile Include="Rendering\Renderer.cpp" />
+    <ClCompile Include="Rendering\ShaderManager.cpp" />
+    <ClCompile Include="Utilities\StringUtil.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Component.h" />
@@ -158,6 +166,7 @@
     <ClInclude Include="Core\Engine.h" />
     <ClInclude Include="Core\Entity.h" />
     <ClInclude Include="Core\Input.h" />
+    <ClInclude Include="Core\Paths.h" />
     <ClInclude Include="Core\Rendering.h" />
     <ClInclude Include="Core\Scene.h" />
     <ClInclude Include="Core\Transform.h" />
@@ -171,6 +180,8 @@
     <ClInclude Include="Graphics\DXInputLayout.h" />
     <ClInclude Include="Graphics\DXRenderTarget.h" />
     <ClInclude Include="Graphics\DXResourceCommon.h" />
+    <ClInclude Include="Graphics\DXShaderCompiler.h" />
+    <ClInclude Include="Graphics\DXShaderProgram.h" />
     <ClInclude Include="Graphics\DXStates.h" />
     <ClInclude Include="Math\ComputeVectors.h" />
     <ClInclude Include="Math\MathTypes.h" />
@@ -183,16 +194,33 @@
     <ClInclude Include="Graphics\DXShader.h" />
     <ClInclude Include="Rendering\Renderer.h" />
     <ClInclude Include="Rendering\SceneViewport.h" />
+    <ClInclude Include="Rendering\ShaderManager.h" />
     <ClInclude Include="Utilities\ConcurrentQueue.h" />
     <ClInclude Include="Utilities\EnumUtil.h" />
     <ClInclude Include="Utilities\Event.h" />
     <ClInclude Include="Utilities\Delegate.h" />
+    <ClInclude Include="Utilities\FileUtil.h" />
+    <ClInclude Include="Utilities\HashUtil.h" />
     <ClInclude Include="Utilities\LinkedList.h" />
     <ClInclude Include="Utilities\Singleton.h" />
+    <ClInclude Include="Utilities\StringUtil.h" />
     <ClInclude Include="Utilities\Timer.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include=".clang-format" />
+    <None Include="Resources\Shaders\Common.hlsli" />
+    <None Include="Resources\Shaders\CommonData.hlsli" />
+  </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="Resources\Shaders\Solid.hlsl">
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Pixel</ShaderType>
+      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
+      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">5.0</ShaderModel>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

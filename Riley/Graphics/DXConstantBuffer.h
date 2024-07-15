@@ -13,7 +13,7 @@ template <typename CBuffer> class DXConstantBuffer : public DXBuffer {
                      bool dynamic = true);
 
     void Bind(ID3D11DeviceContext* context, DXShaderStage stage,
-              uint32 slot) const;
+              uint32 slot);
 
   private:
     bool dynamic;
@@ -75,7 +75,7 @@ DXConstantBuffer<CBuffer>::DXConstantBuffer(ID3D11Device* device,
 
 template <typename CBuffer>
 void DXConstantBuffer<CBuffer>::Bind(ID3D11DeviceContext* context,
-                                     DXShaderStage stage, uint32 slot) const {
+                                     DXShaderStage stage, uint32 slot) {
     switch (stage) {
     case DXShaderStage::VS:
         context->VSSetConstantBuffers(

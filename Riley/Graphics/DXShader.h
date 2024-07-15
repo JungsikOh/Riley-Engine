@@ -23,9 +23,9 @@ struct DXShaderBytecode {
 };
 
 enum DXShaderCompilerFlagBit {
-    DXShaderCompilerFlgBit_NONE = 0,
-    DXShaderCompilerFlgBit_DEBUG = 1 << 0,
-    DXShaderCompilerFlgBit_DisableOptimization = 1 << 1,
+    DXShaderCompilerFlagBit_NONE = 0,
+    DXShaderCompilerFlagBit_DEBUG = 1 << 0,
+    DXShaderCompilerFlagBit_DisableOptimization = 1 << 1,
 };
 
 struct DXShaderDesc {
@@ -33,6 +33,6 @@ struct DXShaderDesc {
     std::string sourceFile = "";
     std::string entryPoint = "";
     std::vector<DXShaderMacro> macros;
-    uint64 flags = DXShaderCompilerFlagBit::DXShaderCompilerFlgBit_NONE;
+    uint64 flags = DXShaderCompilerFlagBit_NONE;
 };
 } // namespace Riley

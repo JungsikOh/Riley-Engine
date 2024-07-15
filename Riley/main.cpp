@@ -28,6 +28,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     // Main Loop
     while (window.Loop()) {
+        renderer->Update(timer.MarkInSeconds());
         renderer->Render();
         renderer->Present(true);
     }

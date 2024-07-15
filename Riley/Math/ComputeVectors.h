@@ -5,13 +5,16 @@
 
 namespace Riley {
 static void ComputeAndSetTangets(_In_ std::vector<uint32> const indices,
-                           _In_ std::vector<Vector3>& const positions,
-                           _In_ std::vector<Vector3>& const normals,
-                           _In_ std::vector<Vector2>& const texcoords,
-                           _Out_ std::vector<Vector3>& tangents,
-                           _Out_ std::vector<Vector3>& bitangents) {
+                                 _In_ std::vector<Vector3>& const positions,
+                                 _In_ std::vector<Vector3>& const normals,
+                                 _In_ std::vector<Vector2>& const texcoords,
+                                 _Out_ std::vector<Vector3>& tangents,
+                                 _Out_ std::vector<Vector3>& bitangents) {
+    std::vector<Vector3> _tangents(positions.size(), Vector3(0.0f));
+    std::vector<Vector3> _bitangents(positions.size(), Vector3(0.0f));
+    std::vector<float> _weights(positions.size(), 0.0f);
 
-    for (uint32 i = 0; i <= positions.size() - 3; i += 3) {
+    for (uint32 i = 0; i <= indices.size() - 3; i += 3) {
         uint32 i0 = indices[i + 0];
         uint32 i1 = indices[i + 1];
         uint32 i2 = indices[i + 2];
@@ -42,25 +45,42 @@ static void ComputeAndSetTangets(_In_ std::vector<uint32> const indices,
         _bitangent.y = (x2 * e1.y + x1 * e2.y) * r;
         _bitangent.z = (x2 * e1.z + x1 * e2.z) * r;
 
-        for (int j = 0; j < 3; j++) {
+        _tangents[i0] += _tangent;
+        _tangents[i1] += _tangent;
+        _tangents[i2] += _tangent;
+        _bitangents[i0] += _bitangent;
+        _bitangents[i1] += _bitangent;
+        _bitangents[i2] += _bitangent;
+        _weights[i0] += 1.0f;
+        _weights[i1] += 1.0f;
+        _weights[i2] += 1.0f;
+    }
+
+    for (uint32 i = 0; i < positions.size(); ++i) {
+        if (_weights[i] > 0.0f) {
+            Vector3 _tangent = _tangents[i] / _weights[i];
+            _tangent.Normalize();
             tangents.push_back(_tangent);
+
+            Vector3 _bitangent = _bitangents[i] / _weights[i];
+            _bitangent.Normalize();
             bitangents.push_back(_bitangent);
         }
     }
 }
 
 static void ComputeAndSetNormals(_In_ std::vector<uint32> const indices,
-                           _In_ std::vector<Vector3>& const positions,
-                           _In_ std::vector<Vector2>& const texcoords,
-                           _Out_ std::vector<Vector3>& normals) {
+                                 _In_ std::vector<Vector3>& const positions,
+                                 _In_ std::vector<Vector2>& const texcoords,
+                                 _Out_ std::vector<Vector3>& normals) {
     std::vector<Vector3> _normals(positions.size(), Vector3(0.0f));
     std::vector<float> _weights(positions.size(), 0.0f);
 
-    for (uint32 i = 0; i <= positions.size() - 3; i += 3) {
+    for (uint32 i = 0; i <= indices.size() - 3; i += 3) {
         uint32 i0 = indices[i + 0];
         uint32 i1 = indices[i + 1];
         uint32 i2 = indices[i + 2];
-        
+
         Vector3 v0 = positions[i0];
         Vector3 v1 = positions[i1];
         Vector3 v2 = positions[i2];

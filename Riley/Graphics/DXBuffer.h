@@ -79,7 +79,7 @@ class DXBuffer : public DXResource {
 
     // return ID3D11Buffer*
     ID3D11Buffer* GetNative() const {
-        return reinterpret_cast<ID3D11Buffer*>(m_resource);
+        return static_cast<ID3D11Buffer*>(m_resource);
     }
 
     // return m_desc.size / m_desc.stride
@@ -102,9 +102,9 @@ class DXBuffer : public DXResource {
 
             memcpy(ms.pData, srcData, dataSize); // data บนป็
             context->Unmap(m_resource, 0);
-        } else
+        } /*else
             context->UpdateSubresource(m_resource, NULL, nullptr, srcData, NULL,
-                                       NULL);
+                                       NULL);*/
     }
 
     template <typename T> void Update(T const& src_data) {

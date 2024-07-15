@@ -3,13 +3,11 @@
 #include "spdlog\spdlog.h"
 
 namespace Riley {
-Model ModelImporter::LoadSquare(ID3D11Device* device,
+Mesh ModelImporter::LoadSquare(ID3D11Device* device,
                                             const float& scale,
                                             const Vector2& texScale) {
-    Mesh mesh;
 
     std::vector<Vertex> vertices;
-    Vertex v;
     std::vector<Vector3> positions;
     std::vector<Vector3> colors;
     std::vector<Vector3> normals;
@@ -42,7 +40,7 @@ Model ModelImporter::LoadSquare(ID3D11Device* device,
     ComputeAndSetTangets(indices, positions, normals, texcoords, tangents,
                          bitangents);
 
-    for (uint32 i = 0; i < positions.size(); ++i) {
+    for (int i = 0; i < positions.size(); ++i) {
         Vertex v;
         v.position = positions[i];
         v.normal = normals[i];
@@ -53,29 +51,18 @@ Model ModelImporter::LoadSquare(ID3D11Device* device,
         vertices.push_back(v);
     }
 
-    std::vector<Mesh> meshes;
     Mesh m;
-    DXBuffer vb(device, VertexBufferDesc(vertices.size(), sizeof(vertices)),
-                vertices.data());
-    DXBuffer ib(device, IndexBufferDesc(indices.size(), false), indices.data());
+    DXBuffer* vb = new DXBuffer(
+        device, VertexBufferDesc(vertices.size(), sizeof(vertices)),
+        vertices.data());
+    DXBuffer* ib = new DXBuffer(device, IndexBufferDesc(indices.size(), false),
+                                indices.data());
 
-    for (uint32 i = 0; i < vertices.size(); ++i) {
-        m.vertexBuffer = &vb;
-        m.indexBuffer = &ib;
-        m.vertexCount = (uint32)vertices.size();
-        m.indexCount = (uint32)indices.size();
-        meshes.push_back(m);
-    }
+    m.vertexBuffer = vb;
+    m.indexBuffer = ib;
+    m.vertexCount = (uint32)vertices.size();
+    m.indexCount = (uint32)indices.size();
 
-    ObjectConsts obj;
-    obj.worldRow = Matrix::CreateTranslation(Vector3(1.0f)).Transpose();
-    obj.worldInvTransposeRow = obj.worldRow.Invert();
-
-    MaterialConsts materialConst;
-    materialConst.ambient = Vector3(0.2f, 0.2f, 0.8f);
-
-    Model model(device, "Squere", obj, materialConst);
-
-    return model;
+    return m;
 }
 } // namespace Riley
