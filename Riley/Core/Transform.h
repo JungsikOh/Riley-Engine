@@ -17,9 +17,9 @@ class Transform {
 
   public:
     Transform() : m_matrix(Matrix()), m_scale(Vector3(1.0f)){};
-    Transform(const Vector3& pos, const Vector3& _euler,
+    Transform(const Vector3& pos, const Quaternion& _euler,
               const Vector3& _scale = Vector3(1.0f))
-        : m_position(pos), m_quaternion(Quaternion::CreateFromYawPitchRoll(_euler)), m_scale(_scale) {
+        : m_position(pos), m_quaternion(_euler), m_scale(_scale) {
         UpdateTransform();
     }
 

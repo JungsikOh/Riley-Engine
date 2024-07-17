@@ -3,6 +3,7 @@
 #include "../Graphics/DXShaderCompiler.h"
 #include "../Graphics/DXShaderProgram.h"
 #include "../Graphics/DXStates.h"
+#include "../Math/ComputeVectors.h"
 #include "../Math/MathTypes.h"
 #include "ModelImporter.h"
 #include "spdlog\spdlog.h"
@@ -16,12 +17,17 @@ Renderer::Renderer(Window* window, uint32 width, uint32 height)
     ShaderManager::Initialize(m_device);
 
     ModelImporter mi;
-    test.SetMeshList(mi.LoadSquare(m_device, 0.3f));
+    m_mesh = mi.LoadSquare(*m_device, 0.3f);
+
     objectConstsCPU.worldRow =
         Matrix::CreateTranslation(Vector3(0.3f, 0.2f, 0.0f)).Transpose();
     objectConstsCPU.worldInvTransposeRow = objectConstsCPU.worldRow.Invert();
-    objectConstsGPU = new DXConstantBuffer<ObjectConsts>(m_device);
-    objectConstsGPU->Update(m_context, &objectConstsCPU,
+    objectConstsGPU =
+        new DXConstantBuffer<ObjectConsts>(m_device, objectConstsCPU, true);
+
+    objectConstsCPU.worldRow =
+        Matrix::CreateTranslation(Vector3(0.7f, 0.2f, 0.0f)).Transpose();
+    objectConstsGPU->Update(m_context, objectConstsCPU,
                             sizeof(objectConstsCPU));
 
     CameraParameters cp;
@@ -29,11 +35,13 @@ Renderer::Renderer(Window* window, uint32 width, uint32 height)
     cp.aspectRatio = 16.0f / 9.0f;
     cp.nearPlane = 0.05f;
     cp.farPlane = 50.0f;
-    cp.transform =
-        Transform(Vector3(0.0f, 2.0f, -1.0f), Vector3(0.0f, 0.0f, 0.0f));
+    cp.transform = Transform(Vector3(0.5f, 0.0f, -1.0f),
+                             Quaternion(Quaternion::CreateFromAxisAngle(
+                                 Vector3(-1.0f, 0.0f, 0.0f), 0.0f)));
     m_camera = new Camera(cp);
 
-    frameBufferGPU = new DXConstantBuffer<FrameBufferConsts>(m_device);
+    frameBufferGPU =
+        new DXConstantBuffer<FrameBufferConsts>(m_device, frameBufferCPU);
 
     SetSceneViewport(m_window->Width(), m_window->Height());
 
@@ -44,7 +52,7 @@ Renderer::Renderer(Window* window, uint32 width, uint32 height)
     rastDesc.CullMode = D3D11_CULL_MODE::D3D11_CULL_BACK;
     rastDesc.FrontCounterClockwise = false;
     rastDesc.DepthClipEnable = true;
-    rastDesc.MultisampleEnable = true;
+    rastDesc.MultisampleEnable = false;
     HR(m_device->CreateRasterizerState(&rastDesc, &solidRS));
 
     D3D11_DEPTH_STENCIL_DESC dsDesc;
@@ -83,6 +91,7 @@ Renderer::~Renderer() {
 
 void Renderer::Update(float dt) {
     m_currentDeltaTime = dt;
+    m_camera->Tick(dt);
     Tick(m_camera);
 }
 
@@ -103,6 +112,8 @@ void Renderer::Render() {
     m_backBufferRTV->Clear(m_context, clearColor);
     m_currentSceneViewport.Bind(m_context);
     m_backBufferRTV->BindRenderTargetView(m_context);
+    m_context->RSSetState(solidRS);
+    m_context->OMSetDepthStencilState(solidDSS, 0);
     PassSolid();
 }
 
@@ -120,19 +131,19 @@ void Renderer::InitDirectX() {
     sd.BufferDesc.Height = m_window->Height();
     sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
     sd.BufferCount = 2;
-    sd.BufferDesc.RefreshRate.Numerator = 120;
+    sd.BufferDesc.RefreshRate.Numerator = 60;
     sd.BufferDesc.RefreshRate.Denominator = 1;
     sd.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT | DXGI_USAGE_SHADER_INPUT;
     sd.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
     sd.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
     sd.SampleDesc.Count = 1;
     sd.SampleDesc.Quality = 0;
-    sd.OutputWindow = (HWND)m_window->Handle();
+    sd.OutputWindow = static_cast<HWND>(m_window->Handle());
     sd.Windowed = TRUE;
     sd.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
     sd.Flags = 0;
 
-    uint32 swapChainCreateFlags = 0;
+    UINT swapChainCreateFlags = 0;
 #if defined(_DEBUG)
     swapChainCreateFlags |= D3D11_CREATE_DEVICE_DEBUG;
 #endif
@@ -149,8 +160,7 @@ void Renderer::InitDirectX() {
 
     ID3D11Texture2D* backBuffer = nullptr;
     ID3D11RenderTargetView* rtv = nullptr;
-    HR(m_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D),
-                              (void**)&backBuffer));
+    HR(m_swapChain->GetBuffer(0, IID_PPV_ARGS(&backBuffer)));
     HR(m_device->CreateRenderTargetView(backBuffer, nullptr, &rtv));
 
     m_backBufferDepthStencil = new DXDepthStencilBuffer(
@@ -166,7 +176,7 @@ void Renderer::OnResize(uint32 width, uint32 height) {
     // 버퍼 추가 시 함수 만들 것.
 }
 
-void Renderer::Tick(Camera const* camera) {
+void Renderer::Tick(Camera* camera) {
     BindGlobals();
 
     m_camera = camera;
@@ -180,29 +190,31 @@ void Renderer::Tick(Camera const* camera) {
     frameBufferCPU.cameraJitterX = jitterX;
     frameBufferCPU.cameraJitterY = jitterY;
     frameBufferCPU.cameraPosition =
-        Vector4(m_camera->GetTransform().GetPosition());
-    frameBufferCPU.viewRow = m_camera->GetView().Transpose();
-    frameBufferCPU.projRow = m_camera->GetProj().Transpose();
-    frameBufferCPU.viewProjRow = m_camera->GetViewProj().Transpose();
-    frameBufferCPU.invViewRow = m_camera->GetView().Invert().Transpose();
-    frameBufferCPU.invProjRow = m_camera->GetProj().Invert().Transpose();
-    frameBufferCPU.invViewProjRow =
-        m_camera->GetViewProj().Invert().Transpose();
+        Vector4(m_camera->GetTransform().GetPosition().x,
+                m_camera->GetTransform().GetPosition().y,
+                m_camera->GetTransform().GetPosition().z, 1.0f);
+    frameBufferCPU.view = m_camera->GetView();
+    frameBufferCPU.proj = m_camera->GetProj();
+    frameBufferCPU.viewProj = m_camera->GetViewProj();
+    frameBufferCPU.invView = m_camera->GetView().Invert();
+    frameBufferCPU.invProj = m_camera->GetProj().Invert();
+    frameBufferCPU.invViewProj = m_camera->GetViewProj().Invert();
     frameBufferCPU.screenResolutionX = m_currentSceneViewport.GetWidth();
     frameBufferCPU.screenResolutionY = m_currentSceneViewport.GetHeight();
 
-    frameBufferGPU->Update(m_context, &frameBufferCPU, sizeof(frameBufferCPU));
+    frameBufferGPU->Update(m_context, frameBufferCPU, sizeof(frameBufferCPU));
+    frameBufferGPU->Bind(m_context, DXShaderStage::VS, 0);
 
     // Set for next frame
-    frameBufferCPU.prevViewRow = m_camera->GetView().Transpose();
-    frameBufferCPU.prevProjRow = m_camera->GetProj().Transpose();
-    frameBufferCPU.prevViewProjRow = m_camera->GetViewProj().Transpose();
+    frameBufferCPU.prevView = m_camera->GetView();
+    frameBufferCPU.prevProj = m_camera->GetProj();
+    frameBufferCPU.prevViewProj = m_camera->GetViewProj();
     ++frameIdx;
 }
 
 void Renderer::BindGlobals() {
     static bool called = false;
-    if (called) {
+    if (!called) {
         frameBufferGPU->Bind(m_context, DXShaderStage::VS, 0);
         objectConstsGPU->Bind(m_context, DXShaderStage::VS, 1);
         called = true;
@@ -211,8 +223,6 @@ void Renderer::BindGlobals() {
 
 void Renderer::PassSolid() {
     ShaderManager::GetShaderProgram(ShaderProgram::Solid)->Bind(m_context);
-    m_context->RSSetState(solidRS);
-    m_context->OMSetDepthStencilState(solidDSS, 1);
-    test.GetMeshList().Draw(m_context);
+    m_mesh.Draw(m_context);
 }
 } // namespace Riley

@@ -1,8 +1,8 @@
 #pragma once
+#include "../Core/CoreTypes.h"
 #include "DXFormat.h"
 #include "DXResource.h"
 #include "DXResourceCommon.h"
-#include "../Core/CoreTypes.h"
 
 namespace Riley {
 // bufferDesc의 종류는 여러가지인데, 할당되는 공통속성이 존재하므로 desc 구조체
@@ -51,10 +51,11 @@ static DXBufferDesc IndexBufferDesc(uint64 index_count, bool small_indices) {
 class DXBuffer : public DXResource {
   public:
     DXBuffer() = default;
-    DXBuffer(ID3D11Device* _device, DXBufferDesc const& _desc,
+    DXBuffer(ID3D11Device& _device, DXBufferDesc const& _desc,
              void const* initData = nullptr)
         : m_desc(_desc) {
         D3D11_BUFFER_DESC desc{};
+        ZeroMemory(&desc, sizeof(desc));
         desc.ByteWidth = (uint32)_desc.size;
         desc.Usage = ConvertUsage(_desc.resourceUsage);
         desc.BindFlags = ParseBindFlags(_desc.bindFlags);
@@ -68,9 +69,8 @@ class DXBuffer : public DXResource {
             init.SysMemPitch = (uint32)_desc.size;
             init.SysMemSlicePitch = 0;
         }
-        HR(_device->CreateBuffer(
-            &desc, initData == nullptr ? nullptr : &init,
-            reinterpret_cast<ID3D11Buffer**>(&m_resource)));
+        HR(_device.CreateBuffer(&desc, initData == nullptr ? nullptr : &init,
+                                reinterpret_cast<ID3D11Buffer**>(&m_resource)));
     }
 
     DXBuffer(DXBuffer const&) = delete;
@@ -79,7 +79,7 @@ class DXBuffer : public DXResource {
 
     // return ID3D11Buffer*
     ID3D11Buffer* GetNative() const {
-        return static_cast<ID3D11Buffer*>(m_resource);
+        return reinterpret_cast<ID3D11Buffer*>(m_resource);
     }
 
     // return m_desc.size / m_desc.stride
@@ -92,40 +92,34 @@ class DXBuffer : public DXResource {
     DXBufferDesc const& GetDesc() const { return m_desc; }
 
     // if buffer Usage is Dynamic, Update the Buffer by srcData.
-    void Update(ID3D11DeviceContext* context, void const* srcData,
+    template <typename T_DATA>
+    void Update(ID3D11DeviceContext* context, const T_DATA& srcData,
                 uint64 dataSize) {
         if (m_desc.resourceUsage == DXResourceUsage::Dynamic) {
-            D3D11_MAPPED_SUBRESOURCE ms{};
-            ZeroMemory(&ms, sizeof(D3D11_MAPPED_SUBRESOURCE));
-            HR(context->Map(m_resource, NULL, D3D11_MAP_WRITE_DISCARD, NULL,
-                            &ms));
-
-            memcpy(ms.pData, srcData, dataSize); // data 복사
-            context->Unmap(m_resource, 0);
-        } /*else
-            context->UpdateSubresource(m_resource, NULL, nullptr, srcData, NULL,
-                                       NULL);*/
+            memcpy(Map(context), &srcData, dataSize); // data 복사
+            UnMap(context);
+        }
     }
 
     template <typename T> void Update(T const& src_data) {
         Update(&src_data, sizeof(T));
     }
 
-  private:
+  protected:
     DXBufferDesc m_desc;
 };
 
 static void BindIndexBuffer(ID3D11DeviceContext* context, DXBuffer* ib,
                             uint32 offset = 0) {
     context->IASetIndexBuffer(ib->GetNative(),
-                              ConvertDXFormat(ib->GetDesc().format), offset);
+                             ConvertDXFormat(ib->GetDesc().format), offset);
 }
 
 static void BindVertexBuffer(ID3D11DeviceContext* context, DXBuffer* vb,
                              uint32 slot = 0, uint32 offset = 0) {
-    ID3D11Buffer* const vbs[] = {vb->GetNative()};
-    uint32 strides[] = {vb->GetDesc().stride};
-    context->IASetVertexBuffers(slot, 1u, vbs, strides, &offset);
+    ID3D11Buffer* const vbs = vb->GetNative();
+    uint32 strides = vb->GetDesc().stride;
+    context->IASetVertexBuffers(slot, 1, &vbs, &strides, &offset);
 }
 
 static void BindNullVertexBuffer(ID3D11DeviceContext* context) {

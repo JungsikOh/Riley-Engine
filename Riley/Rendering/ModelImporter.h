@@ -21,7 +21,7 @@ class ModelImporter {
     ModelImporter() = default;
     ~ModelImporter() = default;
 
-    Mesh LoadSquare(ID3D11Device* device,
+    Mesh LoadSquare(ID3D11Device& device,
                                  const float& scale = 1.0f,
                                  const Vector2& texScale = Vector2(1.0f));
     Model LoadBox(const float& scale = 1.0f, bool invertNormal = false);

@@ -35,6 +35,7 @@ namespace Riley {
 
 // Shader 설정을 도울 std::unordered_map 정의
 namespace {
+
 ID3D11Device* device;
 
 std::unordered_map<ShaderId, std::unique_ptr<DXVertexShader>> vsShaderMap;
@@ -67,6 +68,8 @@ constexpr std::string GetEntryPoint(ShaderId shader) {
         return "SolidVS";
     case PS_Solid:
         return "SolidPS";
+    default:
+        return "main";
     }
 }
 
@@ -97,8 +100,8 @@ void CompileShader(ShaderId shader, bool firstCompile = false) {
         break;
     case DXShaderStage::PS:
         if (firstCompile)
-            psShaderMap[shader] =
-                std::make_unique<DXPixelShader>(device, output.shader_bytecode);
+            psShaderMap[shader] = std::make_unique<DXPixelShader>(
+                device, output.shader_bytecode);
         else
             psShaderMap[shader]->Recreate(output.shader_bytecode);
         break;
@@ -138,7 +141,7 @@ void CompileAllShaders() {
     std::for_each(std::execution::seq, std::begin(shaders), std::end(shaders),
                   [](UnderlyingType s) { CompileShader((ShaderId)s, true); });
     CreateAllPrograms();
-    spdlog::info("Copilation done in %f seconds!", t.ElapsedInSeconds());
+    spdlog::info("Copilation done in {:f} seconds!", t.ElapsedInSeconds());
 }
 } // namespace
 

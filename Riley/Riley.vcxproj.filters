@@ -230,9 +230,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include=".clang-format" />
-    <None Include="Resources\Shaders\CommonData.hlsli">
-      <Filter>Resources\Shaders</Filter>
-    </None>
     <None Include="Resources\Shaders\Common.hlsli">
       <Filter>Resources\Shaders</Filter>
     </None>

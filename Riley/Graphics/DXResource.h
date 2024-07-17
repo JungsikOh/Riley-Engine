@@ -35,10 +35,10 @@ class DXResource {
 
     bool IsMapped() const { return m_isMapped; }
 
-    void* Map(ID3D11DeviceContext& context) {
+    void* Map(ID3D11DeviceContext* context) {
         D3D11_MAPPED_SUBRESOURCE ms;
         auto result =
-            context.Map(m_resource, 0, D3D11_MAP_WRITE_DISCARD, 0, &ms);
+            context->Map(m_resource, 0, D3D11_MAP_WRITE_DISCARD, 0, &ms);
         if (HR(result)) {
             m_isMapped = true;
             return ms.pData;
@@ -46,9 +46,9 @@ class DXResource {
         return nullptr;
     }
 
-    bool UnMap(ID3D11DeviceContext& context) {
+    bool UnMap(ID3D11DeviceContext* context) {
         if (IsMapped()) {
-            context.Unmap(m_resource, 0);
+            context->Unmap(m_resource, 0);
             m_isMapped = false;
             return true;
         }
@@ -56,32 +56,32 @@ class DXResource {
     }
 
     template <typename ResourceType>
-    ResourceType* Map(ID3D11DeviceContext& context) {
+    ResourceType* Map(ID3D11DeviceContext* context) {
         return reinterpret_cast<ResourceType*>(Map(context));
     }
 
-    bool BindShaderResourceView(ID3D11DeviceContext& context,
+    bool BindShaderResourceView(ID3D11DeviceContext* context,
                                 unsigned int bindSlot,
                                 DXShaderStage bindShader) {
         if (m_srv != nullptr) {
             switch (bindShader) {
             case DXShaderStage::VS:
-                context.VSSetShaderResources(bindSlot, 1, &m_srv);
+                context->VSSetShaderResources(bindSlot, 1, &m_srv);
                 break;
             case DXShaderStage::PS:
-                context.PSSetShaderResources(bindSlot, 1, &m_srv);
+                context->PSSetShaderResources(bindSlot, 1, &m_srv);
                 break;
             case DXShaderStage::HS:
-                context.HSSetShaderResources(bindSlot, 1, &m_srv);
+                context->HSSetShaderResources(bindSlot, 1, &m_srv);
                 break;
             case DXShaderStage::DS:
-                context.DSSetShaderResources(bindSlot, 1, &m_srv);
+                context->DSSetShaderResources(bindSlot, 1, &m_srv);
                 break;
             case DXShaderStage::GS:
-                context.GSSetShaderResources(bindSlot, 1, &m_srv);
+                context->GSSetShaderResources(bindSlot, 1, &m_srv);
                 break;
             case DXShaderStage::CS:
-                context.CSSetShaderResources(bindSlot, 1, &m_srv);
+                context->CSSetShaderResources(bindSlot, 1, &m_srv);
                 break;
             default:
                 break;
@@ -91,29 +91,29 @@ class DXResource {
         return false;
     }
 
-    void UnBindShaderResourceView(ID3D11DeviceContext& context,
+    void UnBindShaderResourceView(ID3D11DeviceContext* context,
                                   unsigned int boundSlot,
                                   DXShaderStage boundShader) {
         if (m_srv != nullptr) {
             ID3D11ShaderResourceView* nullSRV = nullptr;
             switch (boundShader) {
             case DXShaderStage::VS:
-                context.VSSetShaderResources(boundSlot, 1, &nullSRV);
+                context->VSSetShaderResources(boundSlot, 1, &nullSRV);
                 break;
             case DXShaderStage::PS:
-                context.PSSetShaderResources(boundSlot, 1, &nullSRV);
+                context->PSSetShaderResources(boundSlot, 1, &nullSRV);
                 break;
             case DXShaderStage::HS:
-                context.HSSetShaderResources(boundSlot, 1, &nullSRV);
+                context->HSSetShaderResources(boundSlot, 1, &nullSRV);
                 break;
             case DXShaderStage::DS:
-                context.DSSetShaderResources(boundSlot, 1, &nullSRV);
+                context->DSSetShaderResources(boundSlot, 1, &nullSRV);
                 break;
             case DXShaderStage::GS:
-                context.GSSetShaderResources(boundSlot, 1, &nullSRV);
+                context->GSSetShaderResources(boundSlot, 1, &nullSRV);
                 break;
             case DXShaderStage::CS:
-                context.CSSetShaderResources(boundSlot, 1, &nullSRV);
+                context->CSSetShaderResources(boundSlot, 1, &nullSRV);
                 break;
             default:
                 break;
@@ -121,20 +121,21 @@ class DXResource {
         }
     }
 
-    bool BindUnorderedAccessView(ID3D11DeviceContext& context,
+    bool BindUnorderedAccessView(ID3D11DeviceContext* context,
                                  unsigned int bindSlot) {
         if (m_uav != nullptr) {
-            context.CSSetUnorderedAccessViews(bindSlot, 1, &m_uav, nullptr);
+            context->CSSetUnorderedAccessViews(bindSlot, 1, &m_uav, nullptr);
             return true;
         }
         return false;
     }
 
-    void UnbindUnorderedAccessView(ID3D11DeviceContext& context,
+    void UnbindUnorderedAccessView(ID3D11DeviceContext* context,
                                    unsigned int boundSlot) {
         if (m_uav != nullptr) {
             ID3D11UnorderedAccessView* nullView = nullptr;
-            context.CSSetUnorderedAccessViews(boundSlot, 1, &nullView, nullptr);
+            context->CSSetUnorderedAccessViews(boundSlot, 1, &nullView,
+                                               nullptr);
         }
     }
 

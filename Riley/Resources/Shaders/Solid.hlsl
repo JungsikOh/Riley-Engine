@@ -1,5 +1,4 @@
 #include "Common.hlsli"
-#include "CommonData.hlsli"
 
 struct VSInput
 {
@@ -38,8 +37,14 @@ PSInput SolidVS(VSInput input)
     return output;
 }
 
-
-float4 SolidPS(PSInput input) : SV_TARGET
+struct PSOutput
 {
-	return float4(1.0f, 1.0f, 1.0f, 1.0f);
+    float4 pixelColor : SV_Target;
+};
+
+PSOutput SolidPS(PSInput input)
+{
+    PSOutput output;
+    output.pixelColor = float4(0.2, 0.3, 0.9, 1.0);
+    return output;
 }

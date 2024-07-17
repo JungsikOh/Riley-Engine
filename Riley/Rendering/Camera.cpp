@@ -7,12 +7,13 @@ Camera::Camera(CameraParameters const& desc)
     : transform{desc.transform}, fov{desc.fov}, aspectRatio{desc.aspectRatio},
       nearPlane{desc.nearPlane}, farPlane{desc.farPlane},
       sensitivity{desc.sensitivity} {
-    SetViewMat();
-    SetProjMat(fov, aspectRatio, nearPlane, farPlane);
+    SetviewRow();
+    SetprojRow(fov, aspectRatio, nearPlane, farPlane);
 }
 
 void Camera::Tick(float dt) {
     Input& input = g_Input;
+    input.Tick();
     if (input.GetKey(KeyCode::Space))
         return;
 
@@ -38,10 +39,10 @@ void Camera::Tick(float dt) {
         pitch = (int64)dy;
         yaw = (int64)dx;
     }
-    UpdateViewMat();
+    UpdateviewRow();
 }
 
-void Camera::UpdateViewMat() { SetViewMat(); }
+void Camera::UpdateviewRow() { SetviewRow(); }
 
 void Camera::OnResize(uint32 w, uint32 h) {
     SetAspectRatio(static_cast<float>(w) / h);
@@ -49,16 +50,16 @@ void Camera::OnResize(uint32 w, uint32 h) {
 
 void Camera::SetAspectRatio(float ar) {
     aspectRatio = ar;
-    SetProjMat(fov, aspectRatio, nearPlane, farPlane);
+    SetprojRow(fov, aspectRatio, nearPlane, farPlane);
 }
 void Camera::SetFov(float _fov) {
     fov = _fov;
-    SetProjMat(fov, aspectRatio, nearPlane, farPlane);
+    SetprojRow(fov, aspectRatio, nearPlane, farPlane);
 }
 void Camera::SetNearAndFar(float n, float f) {
     nearPlane = n;
     farPlane = f;
-    SetProjMat(fov, aspectRatio, nearPlane, farPlane);
+    SetprojRow(fov, aspectRatio, nearPlane, farPlane);
 }
 
 void Camera::SetTransform(Transform const& t) { transform = t; }
@@ -67,18 +68,21 @@ void Camera::MoveFoward(float dt) {
     Vector3 oldPos = transform.GetPosition();
     Vector3 newPos = oldPos + dt * speedFactor * transform.GetForward();
     transform.SetPosition(newPos);
+    UpdateviewRow();
 }
 
 void Camera::MoveRight(float dt) {
     Vector3 oldPos = transform.GetPosition();
     Vector3 newPos = oldPos + dt * speedFactor * transform.GetRight();
     transform.SetPosition(newPos);
+    UpdateviewRow();
 }
 
 void Camera::MoveUp(float dt) {
     Vector3 oldPos = transform.GetPosition();
     Vector3 newPos = oldPos + dt * speedFactor * transform.GetUp();
     transform.SetPosition(newPos);
+    UpdateviewRow();
 }
 
 void Camera::RotatePitch(int64 dy) {
@@ -86,20 +90,23 @@ void Camera::RotatePitch(int64 dy) {
         transform.GetRight(),
         sensitivity * DirectX::XMConvertToRadians((float)dy));
     transform.SetPosition(Vector3::Transform(transform.GetPosition(), rotate));
+    UpdateviewRow();
 }
 
 void Camera::RotateYaw(int64 dx) {
     Matrix rotate = Matrix::CreateRotationY(
         sensitivity * DirectX::XMConvertToRadians((float)dx));
     transform.SetPosition(Vector3::Transform(transform.GetPosition(), rotate));
+    UpdateviewRow();
 }
 
-void Camera::SetProjMat(float fov, float aspect, float zn, float zf) {
-    projMat = DirectX::XMMatrixPerspectiveFovLH(fov, aspect, zn, zf);
+void Camera::SetprojRow(float fov, float aspect, float zn, float zf) {
+    projRow = DirectX::XMMatrixPerspectiveFovLH(DirectX::XMConvertToRadians(fov), aspect,
+                                                zn, zf);
 }
 
-void Camera::SetViewMat() {
-    viewMat = DirectX::XMMatrixLookToLH(
+void Camera::SetviewRow() {
+    viewRow = DirectX::XMMatrixLookToLH(
         transform.GetPosition(), transform.GetForward(), transform.GetUp());
 }
 

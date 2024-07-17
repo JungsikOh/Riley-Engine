@@ -15,9 +15,8 @@ struct CameraParameters {
 
 class Camera {
   private:
-    Matrix viewMat;
-    Matrix projMat;
-    Matrix viewProjMat;
+    Matrix viewRow;
+    Matrix projRow;
 
     Transform transform;
     float aspectRatio;
@@ -35,7 +34,7 @@ class Camera {
     Camera() = default;
     explicit Camera(CameraParameters const&);
 
-    void UpdateViewMat();
+    void UpdateviewRow();
     void OnResize(uint32 w, uint32 h);
     void Tick(float dt);
 
@@ -43,22 +42,29 @@ class Camera {
     void SetNearAndFar(float n, float f);
     void SetAspectRatio(float ar);
     void SetFov(float _fov);
-    void SetProjMat(float fov, float aspect, float zn, float zf);
-    void SetViewMat();
+    void SetprojRow(float fov, float aspect, float zn, float zf);
+    void SetviewRow();
 
     const float& GetNear() const { return nearPlane; }
     const float& GetFar() const { return farPlane; }
     const float& GetFov() const { return fov; }
     const float& GetAspectRatio() const { return aspectRatio; }
-    const BoundingFrustum& GetFrustum() const {
+    const BoundingFrustum& GetFrustum() {
         BoundingFrustum frustum(GetProj());
-        frustum.Transform(frustum, viewMat.Invert());
+        frustum.Transform(frustum, viewRow.Invert());
         return frustum;
     }
-    const Matrix& GetViewProj() const { return viewProjMat; }
-    const Matrix& GetProj() const { return projMat; }
-    const Matrix& GetView() const { return viewMat; }
-    const Transform& GetTransform() const { return transform; }
+    const Matrix& GetViewProj() {
+        Matrix viewProj = (viewRow * projRow).Transpose();
+        return viewProj;
+    }
+    const Matrix& GetProj() { 
+        Matrix proj = projRow.Transpose();
+        return proj; }
+    const Matrix& GetView() {
+        Matrix view = viewRow.Transpose();
+        return view; }
+    const Transform& GetTransform() { return transform; }
 
   public:
     void MoveFoward(float dt);

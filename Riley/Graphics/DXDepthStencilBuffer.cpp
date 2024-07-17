@@ -33,7 +33,7 @@ DXDepthStencilBuffer::DXDepthStencilBuffer(ID3D11Device* device, uint32 width,
     dsvDesc.Texture2D.MipSlice = 0;
 
     HR(device->CreateDepthStencilView(
-        static_cast<ID3D11Texture2D*>(m_resource), &dsvDesc, &m_dsv));
+        reinterpret_cast<ID3D11Texture2D*>(m_resource), &dsvDesc, &m_dsv));
 
     D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
     ZeroMemory(&srvDesc, sizeof(srvDesc));

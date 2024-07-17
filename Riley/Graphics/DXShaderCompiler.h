@@ -11,8 +11,6 @@ struct DXShaderCompileOutput {
 struct DXInputLayoutDesc;
 namespace DXShaderCompiler {
 bool CompileShader(DXShaderDesc const& input, DXShaderCompileOutput& output);
-void GetBytecodeFromCompiledShader(char const* filename,
-                                   DXShaderBytecode& blob);
 void FillInputLayoutDesc(DXShaderBytecode const& blob,
                          DXInputLayoutDesc& input_desc);
 } // namespace DXShaderCompiler

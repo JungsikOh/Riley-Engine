@@ -5,17 +5,17 @@
 namespace Riley {
 
 struct FrameBufferConsts {
-    Matrix viewRow;
-    Matrix projRow;
-    Matrix viewProjRow;
+    Matrix view;
+    Matrix proj;
+    Matrix viewProj;
     
-    Matrix invViewRow;
-    Matrix invProjRow;
-    Matrix invViewProjRow;
+    Matrix invView;
+    Matrix invProj;
+    Matrix invViewProj;
 
-    Matrix prevViewRow;
-    Matrix prevProjRow;
-    Matrix prevViewProjRow;
+    Matrix prevView;
+    Matrix prevProj;
+    Matrix prevViewProj;
 
     Vector4 globalAmbient;
     Vector4 cameraPosition;

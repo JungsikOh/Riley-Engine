@@ -30,6 +30,8 @@ class DXShader {
 };
 
 // fianl : 추가 상속을 차단하기 위한 키워드
+// & 로 넘겨주는 이유는 device를 포인터로 넘겨주게되면 포인터 주소가 변경되는데, 이 주소를 DXShader의 device로 등록을 해버리게 된다.
+// 그렇게 되면서 
 // Vertex Shader
 class DXVertexShader final : public DXShader {
   public:
@@ -37,7 +39,7 @@ class DXVertexShader final : public DXShader {
     DXVertexShader(ID3D11Device* device, DXShaderBytecode const& blob);
     virtual void Recreate(DXShaderBytecode const& blob);
 
-    operator ID3D11VertexShader*() const { return vs; }
+    operator ID3D11VertexShader*() { return vs; }
 
   private:
     ID3D11VertexShader* vs = nullptr;
@@ -50,7 +52,7 @@ class DXPixelShader final : public DXShader {
     DXPixelShader(ID3D11Device* device, DXShaderBytecode const& blob);
     virtual void Recreate(DXShaderBytecode const& blob);
 
-    operator ID3D11PixelShader*() const { return ps; }
+    operator ID3D11PixelShader*() { return ps; }
 
   private:
     ID3D11PixelShader* ps = nullptr;

@@ -9,11 +9,10 @@ template <typename CBuffer> class DXConstantBuffer : public DXBuffer {
 
   public:
     DXConstantBuffer(ID3D11Device* device, bool dynamic = true);
-    DXConstantBuffer(ID3D11Device* device, CBuffer const& initData,
+    DXConstantBuffer(ID3D11Device* device, const CBuffer& initData,
                      bool dynamic = true);
 
-    void Bind(ID3D11DeviceContext* context, DXShaderStage stage,
-              uint32 slot);
+    void Bind(ID3D11DeviceContext* context, DXShaderStage stage, uint32 slot);
 
   private:
     bool dynamic;
@@ -21,17 +20,22 @@ template <typename CBuffer> class DXConstantBuffer : public DXBuffer {
 
 template <typename CBuffer>
 DXConstantBuffer<CBuffer>::DXConstantBuffer(ID3D11Device* device,
-                                            CBuffer const& initData,
+                                            const CBuffer& initData,
                                             bool dynamic /*= true*/)
     : dynamic{dynamic} {
+    static_assert((sizeof(CBuffer) % 16) == 0,
+                  "Constant Buffer size must be 16-byte aligned");
+
     DXBufferDesc desc{};
     desc.resourceUsage =
         dynamic ? DXResourceUsage::Dynamic : DXResourceUsage::Default;
-    desc.size = GetCBufferSize(sizeof(CBuffer));
+    desc.size = sizeof(initData);
     desc.bindFlags = DXBindFlag::ConstantBuffer;
     desc.cpuAccess = dynamic ? DXCpuAccess::Write : DXCpuAccess::None;
+    m_desc = desc;
 
     D3D11_BUFFER_DESC bufferDesc{};
+    ZeroMemory(&bufferDesc, sizeof(bufferDesc));
     bufferDesc.ByteWidth = (uint32)desc.size;
     bufferDesc.Usage = ConvertUsage(desc.resourceUsage);
     bufferDesc.BindFlags = ParseBindFlags(desc.bindFlags);
@@ -40,14 +44,12 @@ DXConstantBuffer<CBuffer>::DXConstantBuffer(ID3D11Device* device,
     bufferDesc.StructureByteStride = desc.stride;
 
     D3D11_SUBRESOURCE_DATA init{};
-    if (initData != nullptr) {
-        init.pSysMem = initData;
-        init.SysMemPitch = (uint32)desc.size;
-        init.SysMemSlicePitch = 0;
-    }
+    ZeroMemory(&init, sizeof(init));
+    init.pSysMem = &initData;
+    init.SysMemPitch = 0;
+    init.SysMemSlicePitch = 0;
 
-    device->CreateBuffer(&bufferDesc, &init,
-                         reinterpret_cast<ID3D11Buffer**>(&m_resource));
+    HR(device->CreateBuffer(&bufferDesc, &init, reinterpret_cast<ID3D11Buffer**>(&m_resource)));
 }
 
 template <typename CBuffer>
@@ -60,6 +62,7 @@ DXConstantBuffer<CBuffer>::DXConstantBuffer(ID3D11Device* device,
     desc.size = GetCBufferSize(sizeof(CBuffer));
     desc.bindFlags = DXBindFlag::ConstantBuffer;
     desc.cpuAccess = dynamic ? DXCpuAccess::Write : DXCpuAccess::None;
+    m_desc = desc;
 
     D3D11_BUFFER_DESC bufferDesc{};
     bufferDesc.ByteWidth = (uint32)desc.size;
@@ -69,8 +72,8 @@ DXConstantBuffer<CBuffer>::DXConstantBuffer(ID3D11Device* device,
     bufferDesc.MiscFlags = ParseMiscFlags(desc.miscFlags);
     bufferDesc.StructureByteStride = desc.stride;
 
-    device->CreateBuffer(&bufferDesc, nullptr,
-                         reinterpret_cast<ID3D11Buffer**>(&m_resource));
+    HR(device->CreateBuffer(&bufferDesc, nullptr,
+                            reinterpret_cast<ID3D11Buffer**>(&m_resource)));
 }
 
 template <typename CBuffer>

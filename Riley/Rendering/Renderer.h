@@ -28,7 +28,7 @@ class Renderer {
     Renderer(Window* window, uint32 width, uint32 height);
     ~Renderer();
 
-    void Tick(Camera const*);
+    void Tick(Camera*);
     void Update(float dt);
 
     void SetSceneViewport(const float& width, const float& height,
@@ -56,9 +56,11 @@ class Renderer {
     DXDepthStencilBuffer* m_backBufferDepthStencil;
     Window* m_window;
 
+    Mesh m_mesh;
+
     /* App Level */
     Scene* m_scene;
-    Camera const* m_camera;
+    Camera* m_camera;
     SceneViewport m_currentSceneViewport;
     float m_currentDeltaTime;
 

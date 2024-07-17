@@ -3,17 +3,17 @@
 
 cbuffer FrameBufferConsts : register(b0)
 {
-    Matrix viewRow;
-    Matrix projRow;
-    Matrix viewProjRow;
+    matrix viewRow;
+    matrix projRow;
+    matrix viewProjRow;
     
-    Matrix invViewRow;
-    Matrix invProjRow;
-    Matrix invViewProjRow;
+    matrix invViewRow;
+    matrix invProjRow;
+    matrix invViewProjRow;
 
-    Matrix prevViewRow;
-    Matrix prevProjRow;
-    Matrix prevViewProjRow;
+    matrix prevViewRow;
+    matrix prevProjRow;
+    matrix prevViewProjRow;
 
     float4 globalAmbient;
     float4 cameraPosition;

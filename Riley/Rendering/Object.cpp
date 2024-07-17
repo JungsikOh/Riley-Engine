@@ -8,7 +8,7 @@ void Mesh::Draw(ID3D11DeviceContext* context,
                 D3D11_PRIMITIVE_TOPOLOGY topology) const {
 
     context->IASetPrimitiveTopology(topology);
-    BindVertexBuffer(context, vertexBuffer);
+    BindVertexBuffer(context, vertexBuffer, 0, 0);
 
     if (indexBuffer != nullptr) {
         BindIndexBuffer(context, indexBuffer);

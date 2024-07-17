@@ -35,11 +35,12 @@ DXRenderTarget::DXRenderTarget(ID3D11Device* device, UINT width, UINT height,
 
 DXRenderTarget::DXRenderTarget(ID3D11Device* device,
                                ID3D11RenderTargetView* rtv,
-                               DXDepthStencilBuffer* buffer) : m_rtv(rtv), m_depthStencilBuffer(buffer) {
+                               DXDepthStencilBuffer* buffer)
+    : m_rtv(rtv), m_depthStencilBuffer(buffer) {
     ID3D11Resource* rtvResource = nullptr;
     m_rtv->GetResource(&rtvResource);
     if (rtvResource != nullptr) {
-        ID3D11Texture2D* tex = static_cast<ID3D11Texture2D*>(rtvResource);
+        ID3D11Texture2D* tex = reinterpret_cast<ID3D11Texture2D*>(rtvResource);
 
         D3D11_TEXTURE2D_DESC desc{};
         ZeroMemory(&desc, sizeof(desc));
@@ -53,9 +54,7 @@ DXRenderTarget::DXRenderTarget(ID3D11Device* device,
         m_rtv = nullptr;
 }
 
-DXRenderTarget::~DXRenderTarget() {
-    SAFE_RELEASE(m_rtv);
-}
+DXRenderTarget::~DXRenderTarget() { SAFE_RELEASE(m_rtv); }
 
 void DXRenderTarget::BindRenderTargetView(ID3D11DeviceContext* context) {
     context->OMSetRenderTargets(1, &m_rtv, m_depthStencilBuffer->GetDSV());

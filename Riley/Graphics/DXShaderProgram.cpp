@@ -1,4 +1,5 @@
 #include "DXShaderProgram.h"
+#include <memory>
 
 namespace Riley {
 DXVertexShader::DXVertexShader(ID3D11Device* device,
@@ -18,8 +19,8 @@ void DXVertexShader::Recreate(DXShaderBytecode const& blob) {
 DXPixelShader::DXPixelShader(ID3D11Device* device, DXShaderBytecode const& blob)
     : DXShader(device, blob, DXShaderStage::PS) {
     DXShaderBytecode const& psBlob = GetBytecode();
-    HR(device->CreatePixelShader(psBlob.GetPointer(), psBlob.GetLength(),
-                                 nullptr, &ps));
+    HR(m_device->CreatePixelShader(psBlob.GetPointer(), psBlob.GetLength(),
+                                   nullptr, &ps));
 }
 
 void DXPixelShader::Recreate(DXShaderBytecode const& blob) {
@@ -27,13 +28,13 @@ void DXPixelShader::Recreate(DXShaderBytecode const& blob) {
     HR(m_device->CreatePixelShader(blob.GetPointer(), blob.GetLength(), nullptr,
                                    &ps));
 }
-
-DXDomainShader::DXDomainShader(ID3D11Device* device,
+/*
+DXDomainShader::DXDomainShader(ID3D11Device& device,
                                DXShaderBytecode const& blob)
     : DXShader(device, blob, DXShaderStage::DS) {
     DXShaderBytecode const& dsBlob = GetBytecode();
-    HR(device->CreateDomainShader(dsBlob.GetPointer(), dsBlob.GetLength(),
-                                  nullptr, &ds));
+    HR(m_device->CreateDomainShader(dsBlob.GetPointer(), dsBlob.GetLength(),
+                                    nullptr, &ds));
 }
 
 void DXDomainShader::Recreate(DXShaderBytecode const& blob) {
@@ -42,11 +43,11 @@ void DXDomainShader::Recreate(DXShaderBytecode const& blob) {
                                     nullptr, &ds));
 }
 
-DXHullShader::DXHullShader(ID3D11Device* device, DXShaderBytecode const& blob)
+DXHullShader::DXHullShader(ID3D11Device& device, DXShaderBytecode const& blob)
     : DXShader(device, blob, DXShaderStage::HS) {
     DXShaderBytecode const& hsBlob = GetBytecode();
-    HR(device->CreateHullShader(hsBlob.GetPointer(), hsBlob.GetLength(),
-                                nullptr, &hs));
+    HR(m_device->CreateHullShader(hsBlob.GetPointer(), hsBlob.GetLength(),
+                                  nullptr, &hs));
 }
 
 void DXHullShader::Recreate(DXShaderBytecode const& blob) {
@@ -55,12 +56,12 @@ void DXHullShader::Recreate(DXShaderBytecode const& blob) {
                                   &hs));
 }
 
-DXGeometryShader::DXGeometryShader(ID3D11Device* device,
+DXGeometryShader::DXGeometryShader(ID3D11Device& device,
                                    DXShaderBytecode const& blob)
     : DXShader(device, blob, DXShaderStage::GS) {
     DXShaderBytecode const& gsBlob = GetBytecode();
-    HR(device->CreateGeometryShader(gsBlob.GetPointer(), gsBlob.GetLength(),
-                                    nullptr, &gs));
+    HR(m_device->CreateGeometryShader(gsBlob.GetPointer(), gsBlob.GetLength(),
+                                      nullptr, &gs));
 }
 
 void DXGeometryShader::Recreate(DXShaderBytecode const& blob) {
@@ -69,12 +70,12 @@ void DXGeometryShader::Recreate(DXShaderBytecode const& blob) {
                                       nullptr, &gs));
 }
 
-DXComputeShader::DXComputeShader(ID3D11Device* device,
+DXComputeShader::DXComputeShader(ID3D11Device& device,
                                  DXShaderBytecode const& blob)
     : DXShader(device, blob, DXShaderStage::CS) {
     DXShaderBytecode const& csBlob = GetBytecode();
-    HR(device->CreateComputeShader(csBlob.GetPointer(), csBlob.GetLength(),
-                                   nullptr, &cs));
+    HR(m_device->CreateComputeShader(csBlob.GetPointer(), csBlob.GetLength(),
+                                     nullptr, &cs));
 }
 
 void DXComputeShader::Recreate(DXShaderBytecode const& blob) {
@@ -82,6 +83,7 @@ void DXComputeShader::Recreate(DXShaderBytecode const& blob) {
     HR(m_device->CreateComputeShader(blob.GetPointer(), blob.GetLength(),
                                      nullptr, &cs));
 }
+*/
 
 DXGraphicsShaderProgram&
 DXGraphicsShaderProgram::SetVertexShader(DXVertexShader* _vs) {

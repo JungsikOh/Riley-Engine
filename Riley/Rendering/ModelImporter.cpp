@@ -3,9 +3,8 @@
 #include "spdlog\spdlog.h"
 
 namespace Riley {
-Mesh ModelImporter::LoadSquare(ID3D11Device* device,
-                                            const float& scale,
-                                            const Vector2& texScale) {
+Mesh ModelImporter::LoadSquare(ID3D11Device& device, const float& scale,
+                               const Vector2& texScale) {
 
     std::vector<Vertex> vertices;
     std::vector<Vector3> positions;
@@ -53,7 +52,7 @@ Mesh ModelImporter::LoadSquare(ID3D11Device* device,
 
     Mesh m;
     DXBuffer* vb = new DXBuffer(
-        device, VertexBufferDesc(vertices.size(), sizeof(vertices)),
+        device, VertexBufferDesc(vertices.size(), (uint32)sizeof(Vertex)),
         vertices.data());
     DXBuffer* ib = new DXBuffer(device, IndexBufferDesc(indices.size(), false),
                                 indices.data());
