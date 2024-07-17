@@ -13,7 +13,6 @@ Camera::Camera(CameraParameters const& desc)
 
 void Camera::Tick(float dt) {
     Input& input = g_Input;
-    input.Tick();
     if (input.GetKey(KeyCode::Space))
         return;
 

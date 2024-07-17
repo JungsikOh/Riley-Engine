@@ -1,6 +1,5 @@
 #include "Core/Engine.h"
 #include "Core/Window.h"
-#include "Rendering/Renderer.h"
 #include <assert.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog\spdlog.h>
@@ -21,16 +20,22 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     std::string window_title = std::string("Riley");
     window_init.title = window_title.c_str();
     window_init.maximize = false;
+
     Window window(window_init);
     g_Input.Initialize(&window);
 
-    Renderer* renderer = new Renderer(&window, window.Width(), window.Height());
+    EngineInit engineInit{};
+    engineInit.vsync = true;
+    engineInit.window = &window;
+
+    Engine engine(engineInit);
+    window.GetWindowEvent().Add([&](WindowEventData const& msg_data) {
+        engine.OnWindowEvent(msg_data);
+    });
 
     // Main Loop
     while (window.Loop()) {
-        renderer->Update(timer.MarkInSeconds());
-        renderer->Render();
-        renderer->Present(true);
+        engine.Run();
     }
 
     return 0;

@@ -12,6 +12,9 @@ class DXDepthStencilBuffer : public DXResource {
     ID3D11DepthStencilView* GetDSV() { return m_dsv; }
     void Clear(ID3D11DeviceContext* context, float depth, uint8 stencil);
 
+    uint32 m_width;
+    uint32 m_height;
+
   private:
     ID3D11DepthStencilView* m_dsv;
     bool m_isStencilEnabled;

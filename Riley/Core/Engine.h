@@ -1,11 +1,15 @@
 #pragma once
+#include "../Utilities/Delegate.h"
 #include "Input.h"
 #include <memory>
 #include <optional>
 
 namespace Riley {
-struct WindowEventData;
 
+class Renderer;
+class Camera;
+
+struct WindowEventData;
 struct EngineInit {
     bool vsync = false;
     Window* window = nullptr;
@@ -15,7 +19,6 @@ class Engine {
     friend class Editor;
 
   public:
-    // = delete를 통해서 복사할당을 하는 것을 사전조치
     explicit Engine(EngineInit const&);
     Engine(Engine const&) = delete;
     Engine(Engine&&) = delete;
@@ -30,6 +33,8 @@ class Engine {
 
   private:
     Window* window = nullptr;
+    Renderer* renderer = nullptr;
+    Camera* camera = nullptr;
 
     bool vsync;
     bool editor_active = true;

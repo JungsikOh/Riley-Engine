@@ -25,13 +25,14 @@ class Input;
 
 class Renderer {
   public:
-    Renderer(Window* window, uint32 width, uint32 height);
+    Renderer() = default;
+    Renderer(Window* window, Camera* camera, uint32 width, uint32 height);
     ~Renderer();
 
     void Tick(Camera*);
     void Update(float dt);
 
-    void SetSceneViewport(const float& width, const float& height,
+    void SetSceneViewport(const float& width = 0.0f, const float& height = 0.0f,
                           const float& minDepth = 0.0f,
                           const float& maxDepth = 1.0f,
                           const float& topLeftX = 0.0f,
@@ -64,8 +65,8 @@ class Renderer {
     SceneViewport m_currentSceneViewport;
     float m_currentDeltaTime;
 
-    ID3D11RasterizerState* solidRS;
-    ID3D11DepthStencilState* solidDSS;
+    DXRasterizerState* m_solidRS;
+    DXDepthStencilState* m_solidDSS;
 
     // cbuffers
     FrameBufferConsts frameBufferCPU;
@@ -76,7 +77,8 @@ class Renderer {
     DXConstantBuffer<MaterialConsts>* materialConstsGPU = nullptr;
 
   private:
-    void InitDirectX(); // init swapChain and backbuffer
+    void CreateSwapChainAndDevice();
+    void CreateBackBufferResources();
     void CreateBuffers();
     void CreateSamplers();
     void CreateRenderStates();

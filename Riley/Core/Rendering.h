@@ -51,12 +51,12 @@ inline bool HR(HRESULT hr) {
 //    }
 //}
 //
-//template <typename Type> static void SAFE_DELETE(Type& pointer) {
-//    if (pointer != nullptr) {
-//        delete pointer;
-//        pointer = nullptr;
-//    }
-//}
+template <typename Type> static void Safe_Delete(Type& pointer) {
+    if (pointer != nullptr) {
+        delete pointer;
+        pointer = nullptr;
+    }
+}
 //
 //template <typename Type> static void SAFE_DELETE_ARRAY(Type& pointer) {
 //    if (pointer != nullptr) {

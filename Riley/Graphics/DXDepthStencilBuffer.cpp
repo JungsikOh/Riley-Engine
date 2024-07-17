@@ -43,6 +43,9 @@ DXDepthStencilBuffer::DXDepthStencilBuffer(ID3D11Device* device, uint32 width,
     srvDesc.Texture2D.MipLevels = 1;
 
     HR(InitShaderResourceView(device, &srvDesc));
+
+    m_width = width;
+    m_height = height;
 }
 
 void DXDepthStencilBuffer::Clear(ID3D11DeviceContext* context, float depth,

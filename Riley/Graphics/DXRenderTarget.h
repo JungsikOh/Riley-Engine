@@ -28,6 +28,7 @@ class DXRenderTarget : public DXResource {
     }
 
     void BindRenderTargetView(ID3D11DeviceContext* context);
+    void UnBindRenderTargetView(ID3D11DeviceContext* context);
     void Clear(ID3D11DeviceContext* context, const float* clearColor);
 
   private:

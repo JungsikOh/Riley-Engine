@@ -1,5 +1,6 @@
 #include "Input.h"
 #include "Window.h"
+#include <iostream>
 #include <windowsx.h>
 
 namespace Riley {
@@ -133,9 +134,10 @@ void Input::OnWindowEvent(WindowEventData const& data) {
                                                         (uint32)data.height);
             break;
         case WM_SIZE:
-            if (!resizing)
+            if (!resizing) {
                 input_events.window_resized_event.Broadcast(
                     (uint32)data.width, (uint32)data.height);
+            }
             break;
         case WM_MOUSEWHEEL:
             input_events.scroll_mouse_event.Broadcast(

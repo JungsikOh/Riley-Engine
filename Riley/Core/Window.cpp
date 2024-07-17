@@ -2,6 +2,7 @@
 #include "../Utilities/Timer.h"
 #include "Rendering.h"
 #include <conio.h>
+#include <iostream>
 
 namespace Riley {
 
@@ -140,7 +141,13 @@ bool Window::Loop() {
 void Window::Quit(int32 exit_code) { PostQuitMessage(exit_code); }
 
 void* Window::Handle() const { return static_cast<void*>(hwnd); }
-bool Window::IsActive() const { return GetForegroundWindow() == hwnd; }
+bool Window::IsActive() const { 
+    if (GetForegroundWindow() == hwnd) {
+        //std::cout << "clicked Window" << std::endl;
+        return GetForegroundWindow() == hwnd; 
+    }
+    return GetForegroundWindow() == hwnd; 
+}
 
 // multicast delegate를 통해 정의한 WindowEvent 클래스의 등록된 콜백을 모두
 // 호출한다.

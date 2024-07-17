@@ -6,11 +6,6 @@
 
 namespace Riley {
 
-
-#ifndef CEDITOR
-void Transform::OnEditor() {}
-#endif
-
 void Transform::UpdateTransform() {
     Matrix scale = Matrix::CreateScale(GetScale());
     Matrix rotation = Matrix::CreateFromQuaternion(GetQuaternion());

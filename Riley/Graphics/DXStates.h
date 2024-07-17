@@ -1,5 +1,6 @@
 #pragma once
 #include <d3d11.h>
+#include "DXShader.h"
 
 namespace Riley {
 enum class DXPrimitiveTopology : uint8 {
@@ -57,6 +58,7 @@ enum class DXDepthWriteMask : uint8 {
     Zero,
     All,
 };
+
 enum class DXStencilOp : uint8 {
     Keep,
     Zero,
@@ -67,6 +69,7 @@ enum class DXStencilOp : uint8 {
     Incr,
     Decr,
 };
+
 enum class DXBlend : uint8 {
     Zero,
     One,
@@ -86,6 +89,7 @@ enum class DXBlend : uint8 {
     Src1Alpha,
     InvSrc1Alpha,
 };
+
 enum class DXBlendOp : uint8 {
     Add,
     Subtract,
@@ -93,15 +97,18 @@ enum class DXBlendOp : uint8 {
     Min,
     Max,
 };
+
 enum class DXFillMode : uint8 {
     Wireframe,
     Solid,
 };
+
 enum class DXCullMode : uint8 {
     None,
     Front,
     Back,
 };
+
 enum class DXColorWrite : uint8 {
     Disable = 0,
     EnableRed = 1 << 0,
@@ -124,6 +131,7 @@ struct DXRasterizerStateDesc {
     bool conservative_rasterization_enable = false;
     uint32 forced_sample_count = 0;
 };
+
 struct DXDepthStencilStateDesc {
     bool depth_enable = true;
     DXDepthWriteMask depth_write_mask = DXDepthWriteMask::All;
@@ -140,6 +148,7 @@ struct DXDepthStencilStateDesc {
     DXDepthStencilOp front_face{};
     DXDepthStencilOp back_face{};
 };
+
 struct DXBlendStateDesc {
     bool alpha_to_coverage_enable = false;
     bool independent_blend_enable = false;
@@ -156,9 +165,17 @@ struct DXBlendStateDesc {
     DXRenderTargetBlendState render_target[8];
 };
 
+//////////////////////////
+// State Class //
+//////////////////////////
+
 class DXRasterizerState {
   public:
     DXRasterizerState(ID3D11Device* device, DXRasterizerStateDesc const& desc);
+
+    void Bind(ID3D11DeviceContext* context) {
+        context->RSSetState(rasterizerState);
+    }
 
   private:
     ID3D11RasterizerState* rasterizerState;
@@ -168,11 +185,14 @@ class DXRasterizerState {
 };
 
 class DXDepthStencilState {
-    friend class DXCommandContext;
 
   public:
     DXDepthStencilState(ID3D11Device* device,
                         DXDepthStencilStateDesc const& desc);
+
+    void Bind(ID3D11DeviceContext* context, uint8 stencilRef) {
+        context->OMSetDepthStencilState(depthStencilState, stencilRef);
+    }
 
   private:
     ID3D11DepthStencilState* depthStencilState;
@@ -182,10 +202,14 @@ class DXDepthStencilState {
 };
 
 class DXBlendState {
-    friend class DXCommandContext;
 
   public:
     DXBlendState(ID3D11Device* device, DXBlendStateDesc const& desc);
+
+    void Bind(ID3D11DeviceContext* context, const float* blendFactor,
+              uint32 sampleMask = 0xffffff) {
+        context->OMSetBlendState(blendState, blendFactor, sampleMask);
+    }
 
   private:
     ID3D11BlendState* blendState;
@@ -255,6 +279,19 @@ struct DXSamplerDesc {
 class DXSampler {
   public:
     DXSampler(ID3D11Device* device, DXSamplerDesc const& desc);
+
+    void Bind(ID3D11DeviceContext* context, uint32 slot, DXShaderStage const& stage) {
+        switch (stage) {
+        case DXShaderStage::VS:
+            context->VSSetSamplers(slot, 1, &sampler);
+            break;
+        case DXShaderStage::PS:
+            context->PSSetSamplers(slot, 1, &sampler);
+            break;
+        default:
+            assert(false && "Unsupported Blend Shader Stage!");
+        }
+    }
 
     operator ID3D11SamplerState* const() const { return sampler; }
 
