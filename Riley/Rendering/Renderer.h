@@ -1,5 +1,4 @@
 #pragma once
-#include "../Core/ECS.h"
 #include "../Core/Window.h"
 #include "../Graphics/DXBuffer.h"
 #include "../Graphics/DXConstantBuffer.h"
@@ -7,11 +6,11 @@
 #include "../Graphics/DXRenderTarget.h"
 #include "Camera.h"
 #include "ConstantBuffers.h"
-#include "Model.h"
 #include "SceneViewport.h"
 #include "ShaderManager.h"
 #include <memory>
 #include <optional>
+#include <entt.hpp>
 
 namespace Riley {
 
@@ -26,7 +25,9 @@ class Input;
 class Renderer {
   public:
     Renderer() = default;
-    Renderer(Window* window, Camera* camera, uint32 width, uint32 height);
+    Renderer(Window* window, entt::registry& reg, ID3D11Device* device, ID3D11DeviceContext* context,
+             IDXGISwapChain* swapChain, Camera* camera, uint32 width,
+             uint32 height);
     ~Renderer();
 
     void Tick(Camera*);
@@ -37,14 +38,11 @@ class Renderer {
                           const float& maxDepth = 1.0f,
                           const float& topLeftX = 0.0f,
                           const float& topLeftY = 0.0f);
-    void SetScene(Scene const* scene);
     void Render();
     void Present(bool vsync);
 
     void OnResize(uint32 width, uint32 height);
     void OnLeftMouseClicked();
-
-    Model test;
 
   private:
     uint32 m_width, m_height;
@@ -57,10 +55,8 @@ class Renderer {
     DXDepthStencilBuffer* m_backBufferDepthStencil;
     Window* m_window;
 
-    Mesh m_mesh;
-
     /* App Level */
-    Scene* m_scene;
+    entt::registry& m_reg;
     Camera* m_camera;
     SceneViewport m_currentSceneViewport;
     float m_currentDeltaTime;
@@ -77,7 +73,6 @@ class Renderer {
     DXConstantBuffer<MaterialConsts>* materialConstsGPU = nullptr;
 
   private:
-    void CreateSwapChainAndDevice();
     void CreateBackBufferResources();
     void CreateBuffers();
     void CreateSamplers();

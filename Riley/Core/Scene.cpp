@@ -1,77 +1,45 @@
 #include "Scene.h"
-#include "Entity.h"
+#include "../Math/MathTypes.h"
 
+// entt::entity == uint32
 namespace Riley {
 
-Scene::~Scene() { Unload(); }
+static void DoMath(const Matrix& transform) {}
 
-void Scene::Update(const float& dt) {
-    for (auto& entity : m_entities)
-        entity->Update(dt);
-}
+Scene::Scene() {
 
-static Entity* currEntity = nullptr;
+    struct MeshComponent {
+        Matrix Transform;
+        operator Matrix&() { return Transform; }
+        operator const Matrix&() const { return Transform; }
+    };
 
-Entity* Scene::GetCurrentEntity() { return currEntity; }
+    struct TransformComponent {
+        Matrix Transform;
+        TransformComponent() = default;
+        TransformComponent(const TransformComponent&) = default;
+        TransformComponent(const Matrix& transform) : Transform(transform) {}
 
-static void AddComponent() {
-    if (!currEntity)
-        return;
+        operator Matrix&() { return Transform; }
+        operator const Matrix&() const { return Transform; }
+    };
 
-    TestComponent* _component = new TestComponent();
-    currEntity->AddComponent((Component*)_component);
-    _component->SetEntity(currEntity);
-}
+    entt::entity entity = m_registry.create();
+    auto& transform = m_registry.emplace<TransformComponent>(entity, Matrix());
 
-Entity* Scene::FindEntityByName(const std::string& name) {
-    for (auto& entity : m_entities) {
-        if (entity->m_name == name)
-            return entity;
+    auto view = m_registry.view<TransformComponent>();
+    for (auto e : view) {
+        auto& transform = view.get<TransformComponent>(e);
+        TransformComponent& transform2 =
+            m_registry.get<TransformComponent>(e);
     }
-}
 
-void Scene::Unload() {
-    for (auto& entity : m_entities) {
-        entity->~Entity();
+    auto group = m_registry.group<TransformComponent>(entt::get<MeshComponent>);
+    for (auto e : group) {
+        auto [transform, mesh] =
+            group.get<TransformComponent, MeshComponent>(e);
     }
-    m_entities.clear();
-}
-
-void Scene::AddEntity(Entity* entity) { m_entities.push_back(entity); }
-void Scene::RemoveEntity(Entity* entity) { m_entities.remove(entity); }
-
-namespace SceneManager {
-
-std::list<Scene*> scenes;
-Scene* currentScene;
-
-Scene* GetCurrentScene() { return currentScene; }
-
-void AddScene(Scene* scene) { scenes.push_back(scene); }
-void LoadNewScene() {
-    scenes.push_back(new Scene());
-    currentScene = scenes.back();
-}
-void LoadScene(uint8 index) {
-    if (currentScene) {
-        currentScene->Unload();
-    }
-    auto iter = scenes.begin();
-    for (uint8 i = 0; index < i; i++, ++iter);
-    currentScene = *iter;
-    currentScene->Load();
-}
-
-void LoadScene(const std::string& name) {
-    auto iter = scenes.begin();
-    for (auto& scene : scenes) {
-        if (scene->m_name == name) {
-            currentScene = scene;
-            scene->Load();
-            break;
-        }
-    }
-}
-} // namespace SceneManager
+};
+Scene::~Scene(){};
 
 } // namespace Riley

@@ -51,7 +51,7 @@ static DXBufferDesc IndexBufferDesc(uint64 index_count, bool small_indices) {
 class DXBuffer : public DXResource {
   public:
     DXBuffer() = default;
-    DXBuffer(ID3D11Device& _device, DXBufferDesc const& _desc,
+    DXBuffer(ID3D11Device* _device, DXBufferDesc const& _desc,
              void const* initData = nullptr)
         : m_desc(_desc) {
         D3D11_BUFFER_DESC desc{};
@@ -69,7 +69,7 @@ class DXBuffer : public DXResource {
             init.SysMemPitch = (uint32)_desc.size;
             init.SysMemSlicePitch = 0;
         }
-        HR(_device.CreateBuffer(&desc, initData == nullptr ? nullptr : &init,
+        HR(_device->CreateBuffer(&desc, initData == nullptr ? nullptr : &init,
                                 reinterpret_cast<ID3D11Buffer**>(&m_resource)));
     }
 

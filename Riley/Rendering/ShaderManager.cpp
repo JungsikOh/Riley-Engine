@@ -1,5 +1,4 @@
 #include "ShaderManager.h"
-#include "../Core/ECS.h"
 #include "../Core/Rendering.h"
 #include "../Graphics/DXShaderCompiler.h"
 #include "../Graphics/DXShaderProgram.h"

@@ -1,5 +1,4 @@
 #pragma once
-#include "../Core/Transform.h"
 #include "../Math/MathTypes.h"
 
 namespace Riley {
@@ -10,7 +9,8 @@ struct CameraParameters {
     float fov;
     float speed;
     float sensitivity;
-    Transform transform;
+    Vector3 position;
+    Vector3 lootAt;
 };
 
 class Camera {
@@ -18,7 +18,10 @@ class Camera {
     Matrix viewRow;
     Matrix projRow;
 
-    Transform transform;
+    Vector3 position;
+    Vector3 rightVector = Vector3(1.0f, 0.0f, 0.0f);
+    Vector3 upVector = Vector3(0.0f, 1.0f, 0.0f);
+    Vector3 lookVector = Vector3(0.0f, 0.0f, 1.0f);
     float aspectRatio;
     float fov;
     float nearPlane;
@@ -27,7 +30,7 @@ class Camera {
     float pitch;
     float yaw;
 
-    float speedFactor = 3.0f;
+    float speedFactor = 1.0f;
     float sensitivity = 20.0f;
 
   public:
@@ -38,17 +41,22 @@ class Camera {
     void OnResize(uint32 w, uint32 h);
     void Tick(float dt);
 
-    void SetTransform(Transform const& _transform);
+    void SetPosition(Vector3 const& pos);
     void SetNearAndFar(float n, float f);
     void SetAspectRatio(float ar);
     void SetFov(float _fov);
     void SetprojRow(float fov, float aspect, float zn, float zf);
     void SetviewRow();
 
-    const float& GetNear() const { return nearPlane; }
-    const float& GetFar() const { return farPlane; }
-    const float& GetFov() const { return fov; }
-    const float& GetAspectRatio() const { return aspectRatio; }
+    Vector3 Position() const { return position; }
+    Vector3 Up() const { return upVector; }
+    Vector3 Right() const { return rightVector; }
+    Vector3 Forward() const { return lookVector; }
+
+    const float& Near() const { return nearPlane; }
+    const float& Far() const { return farPlane; }
+    const float& Fov() const { return fov; }
+    const float& AspectRatio() const { return aspectRatio; }
     const BoundingFrustum& GetFrustum() {
         BoundingFrustum frustum(GetProj());
         frustum.Transform(frustum, viewRow.Invert());
@@ -58,13 +66,14 @@ class Camera {
         Matrix viewProj = (viewRow * projRow).Transpose();
         return viewProj;
     }
-    const Matrix& GetProj() { 
+    const Matrix& GetProj() {
         Matrix proj = projRow.Transpose();
-        return proj; }
+        return proj;
+    }
     const Matrix& GetView() {
         Matrix view = viewRow.Transpose();
-        return view; }
-    const Transform& GetTransform() { return transform; }
+        return view;
+    }
 
   public:
     void MoveFoward(float dt);

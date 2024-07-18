@@ -1,7 +1,11 @@
 #pragma once
-#include "../Core/ECS.h"
 #include "../Graphics/DXBuffer.h"
+#include "../Graphics/DXShaderProgram.h"
+#include "../Rendering/ShaderManager.h"
 #include <memory>
+#include <entt.hpp>
+
+#define COMPONENT
 
 namespace Riley {
 struct Vertex {
@@ -20,7 +24,12 @@ struct ComplexVertex {
     Vector3 bitangent;
 };
 
-struct Material {
+struct COMPONENT Transform {
+    Matrix startingTransform = Matrix::Identity;
+    Matrix currentTransform = Matrix::Identity;
+};
+
+struct COMPONENT Material {
     float albedoFactor = 1.0f;
     float metallicFactor = 1.0f;
     float roughnessFactor = 1.0f;
@@ -30,12 +39,13 @@ struct Material {
     bool doubleSided = false;
 
     Vector3 diffuse = Vector3(1, 1, 1);
+    ShaderProgram shader = ShaderProgram::UnKnown;
 };
 
-struct Mesh {
-    DXBuffer* vertexBuffer = nullptr;
-    DXBuffer* indexBuffer = nullptr;
-    DXBuffer* instanceBuffer = nullptr;
+struct COMPONENT Mesh {
+    std::shared_ptr<DXBuffer> vertexBuffer = nullptr;
+    std::shared_ptr<DXBuffer> indexBuffer = nullptr;
+    std::shared_ptr<DXBuffer> instanceBuffer = nullptr;
 
     // vertex buffer and index buffer
     uint32 vertexCount = 0;
@@ -57,7 +67,6 @@ struct Mesh {
     void Draw(ID3D11DeviceContext* _context) const;
     void Draw(ID3D11DeviceContext* _context,
               D3D11_PRIMITIVE_TOPOLOGY override_topology) const;
-    void DeInit();
 };
 
 } // namespace Riley

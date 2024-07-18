@@ -48,8 +48,8 @@ struct LightConsts {
 };
 
 struct ObjectConsts {
-    Matrix worldRow;
-    Matrix worldInvTransposeRow;
+    Matrix world;
+    Matrix worldInvTranspose;
 };
 
 struct MaterialConsts {

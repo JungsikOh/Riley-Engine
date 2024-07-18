@@ -1,12 +1,11 @@
 #pragma once
 #include "../Core/CoreTypes.h"
-#include "../Core/ECS.h"
 #include "../Core/Rendering.h"
 #include "../Math/MathTypes.h"
-#include "Object.h"
-#include "Model.h"
-#include <array>
+#include "Components.h"
+#include <entt.hpp>
 #include <optional>
+#include <vector>
 
 /** About std::optional
  * https://occamsrazr.net/tt/317
@@ -19,11 +18,15 @@ namespace Riley {
 class ModelImporter {
   public:
     ModelImporter() = default;
+    ModelImporter(ID3D11Device* device, entt::registry& reg);
     ~ModelImporter() = default;
 
-    Mesh LoadSquare(ID3D11Device& device,
-                                 const float& scale = 1.0f,
-                                 const Vector2& texScale = Vector2(1.0f));
-    Model LoadBox(const float& scale = 1.0f, bool invertNormal = false);
+    std::vector<entt::entity>
+    LoadSquare(const Vector3& pos, const float& scale = 1.0f,
+               const Vector2& texScale = Vector2(1.0f));
+
+  private:
+    entt::registry& m_registry;
+    ID3D11Device* m_device;
 };
 } // namespace Riley

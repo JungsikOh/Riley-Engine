@@ -1,8 +1,11 @@
 #pragma once
+#include "../Rendering/ModelImporter.h"
 #include "../Utilities/Delegate.h"
 #include "Input.h"
+#include <iostream>
 #include <memory>
 #include <optional>
+#include <entt.hpp>
 
 namespace Riley {
 
@@ -27,14 +30,23 @@ class Engine {
     ~Engine();
 
     void OnWindowEvent(WindowEventData const&);
+    void CreateSwapChainAndDevice();
 
     void Run();
     void Present();
 
   private:
+    /* Low Level APIs */
+    ID3D11Device* m_device = nullptr;
+    ID3D11DeviceContext* m_context = nullptr;
+    IDXGISwapChain* m_swapChain = nullptr;
+
+    entt::registry m_registry;
+
     Window* window = nullptr;
     Renderer* renderer = nullptr;
     Camera* camera = nullptr;
+    ModelImporter* modelImporter = nullptr;
 
     bool vsync;
     bool editor_active = true;

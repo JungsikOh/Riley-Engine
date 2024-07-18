@@ -29,15 +29,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Core\Transform.cpp">
-      <Filter>Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\Scene.cpp">
-      <Filter>Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Core\Entity.cpp">
-      <Filter>Core</Filter>
-    </ClCompile>
     <ClCompile Include="Core\Window.cpp">
       <Filter>Core</Filter>
     </ClCompile>
@@ -50,7 +41,7 @@
     <ClCompile Include="Rendering\Camera.cpp">
       <Filter>Rendering</Filter>
     </ClCompile>
-    <ClCompile Include="Rendering\Object.cpp">
+    <ClCompile Include="Rendering\Components.cpp">
       <Filter>Rendering</Filter>
     </ClCompile>
     <ClCompile Include="Graphics\DXRenderTarget.cpp">
@@ -69,9 +60,6 @@
       <Filter>Rendering</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Rendering\Model.cpp">
-      <Filter>Rendering</Filter>
-    </ClCompile>
     <ClCompile Include="Rendering\ModelImporter.cpp">
       <Filter>Rendering</Filter>
     </ClCompile>
@@ -92,22 +80,10 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Core\Component.h">
-      <Filter>Core</Filter>
-    </ClInclude>
     <ClInclude Include="Core\CoreTypes.h">
       <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="Core\Entity.h">
-      <Filter>Core</Filter>
-    </ClInclude>
     <ClInclude Include="Core\Rendering.h">
-      <Filter>Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Scene.h">
-      <Filter>Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\Transform.h">
       <Filter>Core</Filter>
     </ClInclude>
     <ClInclude Include="Utilities\Event.h">
@@ -124,9 +100,6 @@
     </ClInclude>
     <ClInclude Include="Editor\Editor.h">
       <Filter>Editor</Filter>
-    </ClInclude>
-    <ClInclude Include="Core\ECS.h">
-      <Filter>Core</Filter>
     </ClInclude>
     <ClInclude Include="Core\Windows.h">
       <Filter>Core</Filter>
@@ -152,7 +125,7 @@
     <ClInclude Include="Rendering\Camera.h">
       <Filter>Rendering</Filter>
     </ClInclude>
-    <ClInclude Include="Rendering\Object.h">
+    <ClInclude Include="Rendering\Components.h">
       <Filter>Rendering</Filter>
     </ClInclude>
     <ClInclude Include="Rendering\ConstantBuffers.h">
@@ -195,9 +168,6 @@
       <Filter>Graphics</Filter>
     </ClInclude>
     <ClInclude Include="Rendering\SceneViewport.h">
-      <Filter>Rendering</Filter>
-    </ClInclude>
-    <ClInclude Include="Rendering\Model.h">
       <Filter>Rendering</Filter>
     </ClInclude>
     <ClInclude Include="Rendering\ModelImporter.h">

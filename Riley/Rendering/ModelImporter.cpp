@@ -1,12 +1,17 @@
 #include "ModelImporter.h"
 #include "../Math/ComputeVectors.h"
 #include "spdlog\spdlog.h"
+#include <unordered_map>
 
 namespace Riley {
-Mesh ModelImporter::LoadSquare(ID3D11Device& device, const float& scale,
-                               const Vector2& texScale) {
 
-    std::vector<Vertex> vertices;
+ModelImporter::ModelImporter(ID3D11Device* device, entt::registry& reg)
+    : m_device(device), m_registry(reg) {}
+
+std::vector<entt::entity> ModelImporter::LoadSquare(const Vector3& pos,
+                                                    const float& scale,
+                                                    const Vector2& texScale) {
+
     std::vector<Vector3> positions;
     std::vector<Vector3> colors;
     std::vector<Vector3> normals;
@@ -34,6 +39,8 @@ Mesh ModelImporter::LoadSquare(ID3D11Device& device, const float& scale,
     texcoords.push_back(Vector2(1.0f, 1.0f));
     texcoords.push_back(Vector2(0.0f, 1.0f));
 
+    std::vector<entt::entity> entities{};
+    std::vector<Vertex> vertices;
     std::vector<uint32> indices{0, 1, 2, 0, 2, 3};
 
     ComputeAndSetTangets(indices, positions, normals, texcoords, tangents,
@@ -50,18 +57,30 @@ Mesh ModelImporter::LoadSquare(ID3D11Device& device, const float& scale,
         vertices.push_back(v);
     }
 
-    Mesh m;
-    DXBuffer* vb = new DXBuffer(
-        device, VertexBufferDesc(vertices.size(), (uint32)sizeof(Vertex)),
-        vertices.data());
-    DXBuffer* ib = new DXBuffer(device, IndexBufferDesc(indices.size(), false),
-                                indices.data());
+    entt::entity entity = m_registry.create();
+    Mesh mesh{};
+    mesh.vertexBuffer = std::make_shared<DXBuffer>(
+        m_device, VertexBufferDesc(vertices.size(), sizeof(Vertex)), vertices.data());
+    mesh.indexBuffer = std::make_shared<DXBuffer>(
+        m_device, IndexBufferDesc(indices.size(), false), indices.data());
+    mesh.vertexCount = static_cast<uint32>(vertices.size());
+    mesh.indexCount = static_cast<uint32>(indices.size());
 
-    m.vertexBuffer = vb;
-    m.indexBuffer = ib;
-    m.vertexCount = (uint32)vertices.size();
-    m.indexCount = (uint32)indices.size();
+    m_registry.emplace<Mesh>(entity, mesh);
 
-    return m;
+    Material material{};
+    material.shader = ShaderProgram::Solid;
+
+    m_registry.emplace<Material>(entity, material);
+
+    Transform transform{};
+    transform.startingTransform =
+        Matrix::CreateScale(scale) * Matrix::CreateTranslation(pos);
+    transform.currentTransform =
+        Matrix::CreateScale(scale) * Matrix::CreateTranslation(pos);
+
+    m_registry.emplace<Transform>(entity, transform);
+
+    return std::vector{entity};
 }
 } // namespace Riley

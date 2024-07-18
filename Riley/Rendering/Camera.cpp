@@ -4,7 +4,8 @@
 
 namespace Riley {
 Camera::Camera(CameraParameters const& desc)
-    : transform{desc.transform}, fov{desc.fov}, aspectRatio{desc.aspectRatio},
+    : position{desc.position}, lookVector{desc.lootAt}, fov{desc.fov},
+      aspectRatio{desc.aspectRatio},
       nearPlane{desc.nearPlane}, farPlane{desc.farPlane},
       sensitivity{desc.sensitivity} {
     SetviewRow();
@@ -17,9 +18,9 @@ void Camera::Tick(float dt) {
         return;
 
     if (input.GetKey(KeyCode::ShiftLeft))
-        speedFactor *= 5.0f;
+        speedFactor += 0.5f;
     if (input.GetKey(KeyCode::ShiftRight))
-        speedFactor *= 0.2f;
+        speedFactor *= 0.8f;
     if (input.GetKey(KeyCode::W))
         MoveFoward(dt);
     if (input.GetKey(KeyCode::S))
@@ -41,7 +42,14 @@ void Camera::Tick(float dt) {
     UpdateviewRow();
 }
 
-void Camera::UpdateviewRow() { SetviewRow(); }
+void Camera::UpdateviewRow() { 
+    lookVector.Normalize();
+    upVector = lookVector.Cross(rightVector);
+    upVector.Normalize();
+    rightVector = upVector.Cross(lookVector);
+    rightVector.Normalize();
+    SetviewRow();
+}
 
 void Camera::OnResize(uint32 w, uint32 h) {
     SetAspectRatio(static_cast<float>(w) / h);
@@ -61,41 +69,44 @@ void Camera::SetNearAndFar(float n, float f) {
     SetprojRow(fov, aspectRatio, nearPlane, farPlane);
 }
 
-void Camera::SetTransform(Transform const& t) { transform = t; }
+void Camera::SetPosition(Vector3 const& pos) { position = pos; }
 
 void Camera::MoveFoward(float dt) {
-    Vector3 oldPos = transform.GetPosition();
-    Vector3 newPos = oldPos + dt * speedFactor * transform.GetForward();
-    transform.SetPosition(newPos);
+    Vector3 oldPos = position;
+    Vector3 newPos = oldPos + dt * speedFactor * lookVector;
+    SetPosition(newPos);
     UpdateviewRow();
 }
 
 void Camera::MoveRight(float dt) {
-    Vector3 oldPos = transform.GetPosition();
-    Vector3 newPos = oldPos + dt * speedFactor * transform.GetRight();
-    transform.SetPosition(newPos);
+    Vector3 oldPos = position;
+    Vector3 newPos = oldPos + dt * speedFactor * rightVector;
+    SetPosition(newPos);
     UpdateviewRow();
 }
 
 void Camera::MoveUp(float dt) {
-    Vector3 oldPos = transform.GetPosition();
-    Vector3 newPos = oldPos + dt * speedFactor * transform.GetUp();
-    transform.SetPosition(newPos);
+    Vector3 oldPos = position;
+    Vector3 newPos = oldPos + dt * speedFactor * upVector;
+    SetPosition(newPos);
     UpdateviewRow();
 }
 
 void Camera::RotatePitch(int64 dy) {
     Matrix rotate = Matrix::CreateFromAxisAngle(
-        transform.GetRight(),
+        rightVector,
         sensitivity * DirectX::XMConvertToRadians((float)dy));
-    transform.SetPosition(Vector3::Transform(transform.GetPosition(), rotate));
+    upVector = Vector3::TransformNormal(upVector, rotate);
+    lookVector = Vector3::TransformNormal(lookVector, rotate);
     UpdateviewRow();
 }
 
 void Camera::RotateYaw(int64 dx) {
     Matrix rotate = Matrix::CreateRotationY(
         sensitivity * DirectX::XMConvertToRadians((float)dx));
-    transform.SetPosition(Vector3::Transform(transform.GetPosition(), rotate));
+    rightVector = Vector3::TransformNormal(rightVector, rotate);
+    upVector = Vector3::TransformNormal(upVector, rotate);
+    lookVector = Vector3::TransformNormal(lookVector, rotate);
     UpdateviewRow();
 }
 
@@ -105,8 +116,7 @@ void Camera::SetprojRow(float fov, float aspect, float zn, float zf) {
 }
 
 void Camera::SetviewRow() {
-    viewRow = DirectX::XMMatrixLookToLH(
-        transform.GetPosition(), transform.GetForward(), transform.GetUp());
+    viewRow = DirectX::XMMatrixLookToLH(position, lookVector, upVector);
 }
 
 } // namespace Riley

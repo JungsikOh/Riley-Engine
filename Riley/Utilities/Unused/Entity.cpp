@@ -1,6 +1,7 @@
 #include "Entity.h"
 
 namespace Riley {
+
 Entity::~Entity() {
     m_OnDestory();
     m_components.Iterate([](Component* comp) { comp->~Component(); });

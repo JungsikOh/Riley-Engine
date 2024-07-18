@@ -45,8 +45,8 @@ DXRenderTarget::DXRenderTarget(ID3D11Device* device,
         D3D11_TEXTURE2D_DESC desc{};
         ZeroMemory(&desc, sizeof(desc));
         tex->GetDesc(&desc);
-        m_width = buffer->m_width;
-        m_height = buffer->m_height;
+        m_width = desc.Width;
+        m_height = desc.Height;
         m_format = ConvertDXGIFormat(desc.Format);
 
         SAFE_RELEASE(tex);

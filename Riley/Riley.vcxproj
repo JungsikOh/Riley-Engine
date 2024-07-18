@@ -104,7 +104,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;NOMINMAX;_SILENCE_ALL_CXX20_DEPRECATION_WARNINGS;_SILENCE_CXX23_ALIGNED_STORAGE_DEPRECATION_WARNING</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Riley\;$(SolutionDir)ThirdParty\ImGui;$(SolutionDir)ThirdParty\SimpleMath;$(SolutionDir)ThirdParty\cereal;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)Riley\;$(SolutionDir)ThirdParty\ImGui;$(SolutionDir)ThirdParty\SimpleMath;$(SolutionDir)ThirdParty\cereal;$(SolutionDir)ThirdParty\entt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UseStandardPreprocessor>false</UseStandardPreprocessor>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -138,11 +138,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Core\Engine.cpp" />
-    <ClCompile Include="Core\Entity.cpp" />
     <ClCompile Include="Core\Input.cpp" />
     <ClCompile Include="Core\Paths.cpp" />
-    <ClCompile Include="Core\Scene.cpp" />
-    <ClCompile Include="Core\Transform.cpp" />
     <ClCompile Include="Core\Window.cpp" />
     <ClCompile Include="Graphics\DXDepthStencilBuffer.cpp" />
     <ClCompile Include="Graphics\DXInputLayout.cpp" />
@@ -152,24 +149,18 @@
     <ClCompile Include="Graphics\DXStates.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Rendering\Camera.cpp" />
-    <ClCompile Include="Rendering\Model.cpp" />
     <ClCompile Include="Rendering\ModelImporter.cpp" />
-    <ClCompile Include="Rendering\Object.cpp" />
+    <ClCompile Include="Rendering\Components.cpp" />
     <ClCompile Include="Rendering\Renderer.cpp" />
     <ClCompile Include="Rendering\ShaderManager.cpp" />
     <ClCompile Include="Utilities\StringUtil.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Core\Component.h" />
     <ClInclude Include="Core\CoreTypes.h" />
-    <ClInclude Include="Core\ECS.h" />
     <ClInclude Include="Core\Engine.h" />
-    <ClInclude Include="Core\Entity.h" />
     <ClInclude Include="Core\Input.h" />
     <ClInclude Include="Core\Paths.h" />
     <ClInclude Include="Core\Rendering.h" />
-    <ClInclude Include="Core\Scene.h" />
-    <ClInclude Include="Core\Transform.h" />
     <ClInclude Include="Core\Window.h" />
     <ClInclude Include="Core\Windows.h" />
     <ClInclude Include="Editor\Editor.h" />
@@ -187,9 +178,8 @@
     <ClInclude Include="Math\MathTypes.h" />
     <ClInclude Include="Rendering\Camera.h" />
     <ClInclude Include="Rendering\ConstantBuffers.h" />
-    <ClInclude Include="Rendering\Model.h" />
     <ClInclude Include="Rendering\ModelImporter.h" />
-    <ClInclude Include="Rendering\Object.h" />
+    <ClInclude Include="Rendering\Components.h" />
     <ClInclude Include="Graphics\DXResource.h" />
     <ClInclude Include="Graphics\DXShader.h" />
     <ClInclude Include="Rendering\Renderer.h" />

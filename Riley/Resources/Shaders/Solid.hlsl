@@ -45,6 +45,6 @@ struct PSOutput
 PSOutput SolidPS(PSInput input)
 {
     PSOutput output;
-    output.pixelColor = float4(0.2, 0.3, 0.9, 1.0);
+    output.pixelColor = float4(diffuse, 1.0);
     return output;
 }

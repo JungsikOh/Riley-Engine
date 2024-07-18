@@ -37,19 +37,19 @@ cbuffer ObjectConsts : register(b1)
 };
 
 
-//cbuffer MaterialConsts : register(b2)
-//{
-//    float3 ambient;
-//    float _padding1;
-//    float3 diffuse;
-//    float alphaCutoff;
-//    float3 specular;
-//    float shininess;
+cbuffer MaterialConsts : register(b0)
+{
+    float3 ambient;
+    float _padding1;
+    float3 diffuse;
+    float alphaCutoff;
+    float3 specular;
+    float shininess;
 
-//    float albedoFactor;
-//    float metallicFactor;
-//    float roughnessFactor;
-//    float emissiveFactor;
-//};
+    float albedoFactor;
+    float metallicFactor;
+    float roughnessFactor;
+    float emissiveFactor;
+};
 
 #endif

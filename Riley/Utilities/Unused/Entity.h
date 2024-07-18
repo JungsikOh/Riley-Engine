@@ -15,13 +15,11 @@ class Entity {
   public:
     std::string m_name;
     Event m_OnDestory;
-    std::unique_ptr<Transform> m_transform;
     LinkedList<Component> m_components;
 
   public:
     Entity()
-        : m_name(std::string("Entity")),
-          m_transform(std::make_unique<Transform>()){};
+        : m_name(std::string("Entity")){};
     Entity(const std::string& _name) { m_name = _name; };
     ~Entity();
 
