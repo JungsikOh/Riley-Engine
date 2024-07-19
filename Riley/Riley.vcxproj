@@ -169,6 +169,7 @@
     <ClInclude Include="Graphics\DXDepthStencilBuffer.h" />
     <ClInclude Include="Graphics\DXFormat.h" />
     <ClInclude Include="Graphics\DXInputLayout.h" />
+    <ClInclude Include="Graphics\DXRenderPass.h" />
     <ClInclude Include="Graphics\DXRenderTarget.h" />
     <ClInclude Include="Graphics\DXResourceCommon.h" />
     <ClInclude Include="Graphics\DXShaderCompiler.h" />
@@ -199,6 +200,8 @@
   <ItemGroup>
     <None Include=".clang-format" />
     <None Include="Resources\Shaders\Common.hlsli" />
+    <None Include="Resources\Shaders\ConstantData.hlsli" />
+    <None Include="Resources\Shaders\LightUtil.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Resources\Shaders\Solid.hlsl">

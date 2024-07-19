@@ -8,7 +8,7 @@ struct FrameBufferConsts {
     Matrix view;
     Matrix proj;
     Matrix viewProj;
-    
+
     Matrix invView;
     Matrix invProj;
     Matrix invViewProj;
@@ -64,6 +64,22 @@ struct MaterialConsts {
     float metallicFactor;
     float roughnessFactor;
     float emissiveFactor;
+};
+
+struct ShadowConsts {
+    Matrix lightviewprojection;
+    Matrix lightview;
+    Matrix shadow_matrices[4];
+
+    float split0;
+    float split1;
+    float split2;
+    float split3;
+    
+    float softness;
+    int32 shadow_map_size;
+    int32 visualize;
+    float _padding1;
 };
 
 } // namespace Riley

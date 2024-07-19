@@ -1,55 +1,29 @@
 #ifndef _COMMON_
 #define _COMMON_
 
+#include "ConstantData.hlsli"
+
+#define DIRECTIONAL_LIGHT 0
+#define POINT_LIGHT 1
+#define SPOT_LIGHT 2
+
 cbuffer FrameBufferConsts : register(b0)
 {
-    matrix viewRow;
-    matrix projRow;
-    matrix viewProjRow;
-    
-    matrix invViewRow;
-    matrix invProjRow;
-    matrix invViewProjRow;
-
-    matrix prevViewRow;
-    matrix prevProjRow;
-    matrix prevViewProjRow;
-
-    float4 globalAmbient;
-    float4 cameraPosition;
-    float4 cameraFoward;
-
-    float cameraNear;
-    float cameraFar;
-    float cameraJitterX;
-    float cameraJitterY;
-
-    float screenResolutionX;
-    float screenResolutionY;
-    float mouseNormalizedCoordsX;
-    float mouseNormalizedCoordsY;
+    FrameData frameData;
 }
 
-cbuffer ObjectConsts : register(b1)
+cbuffer LightConsts : register(b2)
 {
-    matrix worldRow;
-    matrix worldInvTransposeRow;
+    LightData lightData;
+}
+
+cbuffer MeshConsts : register(b1)
+{
+    MeshData meshData;
 };
 
-
-cbuffer MaterialConsts : register(b0)
+cbuffer MaterialConsts : register(b1)
 {
-    float3 ambient;
-    float _padding1;
-    float3 diffuse;
-    float alphaCutoff;
-    float3 specular;
-    float shininess;
-
-    float albedoFactor;
-    float metallicFactor;
-    float roughnessFactor;
-    float emissiveFactor;
+    MaterialData materialData;
 };
-
 #endif

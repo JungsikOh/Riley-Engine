@@ -3,9 +3,15 @@
 namespace Riley {
 struct DXShaderProgram;
 
-enum ShaderId : uint8 { VS_Solid, PS_Solid, ShaderIdCount };
+enum ShaderId : uint8 { 
+	VS_Solid, 
+	VS_Phong, 
+	PS_Solid, 
+	PS_Phong, 
+	ShaderIdCount 
+};
 
-enum class ShaderProgram : uint8 { Solid, Solid2, UnKnown };
+enum class ShaderProgram : uint8 { Solid, ForwardPhong, UnKnown };
 
 enum class LightType : int32 { Directional, Point, Spot };
 

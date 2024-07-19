@@ -3,6 +3,7 @@
 #include "../Rendering/Renderer.h"
 #include "../Rendering/ShaderManager.h"
 #include "../Utilities/Timer.h"
+#include "../Rendering/Components.h"
 #include "Input.h"
 #include "Window.h"
 #include <iostream>
@@ -30,11 +31,13 @@ static const CameraParameters ParseCameraParam() {
 
 Engine::Engine(EngineInit const& init)
     : window(init.window), vsync{init.vsync} {
-    
+
     CreateSwapChainAndDevice();
     CameraParameters cp = ParseCameraParam();
     camera = new Camera(cp);
-    renderer = new Renderer(window, m_registry, m_device, m_context, m_swapChain, camera, window->Width(), window->Height());
+    renderer =
+        new Renderer(window, m_registry, m_device, m_context, m_swapChain,
+                     camera, window->Width(), window->Height());
     modelImporter = new ModelImporter(m_device, m_registry);
 
     InputEvents& inputEvents = g_Input.GetInputEvents();
@@ -47,6 +50,19 @@ Engine::Engine(EngineInit const& init)
 
     // testing Add entity
     modelImporter->LoadSquare(Vector3(0.3f, 0.2f, 0.0f), 0.2f);
+    modelImporter->LoadBox(Vector3(-0.3f, -0.1f, 0.0f), 0.4f);
+
+    Light light;
+    light.position = Vector4(0.5f, 0.2f, 0.5f, 1.0f);
+    light.color = Vector4(1.0f, 1.0f, 1.0f, 0.0f);
+    light.direction = Vector4(0.0f, -1.0f, 0.0f, 0.0f);
+    light.type = LightType::Point;
+    modelImporter->LoadLight(light, LightMesh::Cube, 0.05f);
+
+    light.position = Vector4(0.5f, 0.0f, -0.5f, 1.0f);
+    light.color = Vector4(0.3f, 1.0f, 0.5f, 0.0f);
+    light.type = LightType::Point;
+    modelImporter->LoadLight(light, LightMesh::Cube, 0.05f);
 }
 
 Engine::~Engine() {
@@ -123,8 +139,6 @@ void Engine::Update(float dt) {
     renderer->Update(dt);
 }
 
-void Engine::Render() {
-    renderer->Render();
-}
+void Engine::Render() { renderer->Render(); }
 
 } // namespace Riley

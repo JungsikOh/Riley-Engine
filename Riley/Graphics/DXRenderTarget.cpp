@@ -30,7 +30,7 @@ DXRenderTarget::DXRenderTarget(ID3D11Device* device, UINT width, UINT height,
     rtvDesc.Texture2D.MipSlice = 0;
 
     HR(device->CreateRenderTargetView(
-        reinterpret_cast<ID3D11Texture2D*>(&m_resource), &rtvDesc, &m_rtv));
+        reinterpret_cast<ID3D11Texture2D*>(m_resource), &rtvDesc, &m_rtv));
 }
 
 DXRenderTarget::DXRenderTarget(ID3D11Device* device,
@@ -61,9 +61,12 @@ void DXRenderTarget::BindRenderTargetView(ID3D11DeviceContext* context) {
         context->OMSetRenderTargets(1, &m_rtv, m_depthStencilBuffer->GetDSV());
 }
 
-void DXRenderTarget::UnBindRenderTargetView(ID3D11DeviceContext* context) {
+/**
+* @brief Bind null RTV and DepthOnlyDSV
+*/
+void DXRenderTarget::BindOnlyDepthStencilView(ID3D11DeviceContext* context) {
     ID3D11RenderTargetView* nullRTV = nullptr;
-    context->OMSetRenderTargets(1, &nullRTV, nullptr);
+    context->OMSetRenderTargets(1, &nullRTV, m_depthStencilBuffer->GetDSV());
 }
 
 void DXRenderTarget::Clear(ID3D11DeviceContext* context,

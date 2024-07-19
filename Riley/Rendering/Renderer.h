@@ -4,6 +4,7 @@
 #include "../Graphics/DXConstantBuffer.h"
 #include "../Graphics/DXDepthStencilBuffer.h"
 #include "../Graphics/DXRenderTarget.h"
+#include "../Graphics/DXRenderPass.h"
 #include "Camera.h"
 #include "ConstantBuffers.h"
 #include "SceneViewport.h"
@@ -61,9 +62,6 @@ class Renderer {
     SceneViewport m_currentSceneViewport;
     float m_currentDeltaTime;
 
-    DXRasterizerState* m_solidRS;
-    DXDepthStencilState* m_solidDSS;
-
     // cbuffers
     FrameBufferConsts frameBufferCPU;
     DXConstantBuffer<FrameBufferConsts>* frameBufferGPU = nullptr;
@@ -71,6 +69,37 @@ class Renderer {
     DXConstantBuffer<ObjectConsts>* objectConstsGPU = nullptr;
     MaterialConsts materialConstsCPU;
     DXConstantBuffer<MaterialConsts>* materialConstsGPU = nullptr;
+    LightConsts lightConstsCPU;
+    DXConstantBuffer<LightConsts>* lightConstsGPU = nullptr;
+
+    // Render States
+    DXRasterizerState* solidRS;
+    DXRasterizerState* wireframeRS;
+    DXRasterizerState* cullNoneRS;
+
+    DXDepthStencilState* solidDSS;
+    DXDepthStencilState* noneDepthDSS;
+
+    DXBlendState* additiveBS;
+    DXBlendState* alphaBS;
+
+    // Render Target Views
+    std::vector<DXRenderTarget*> gbufferRTVs;
+    DXRenderTarget* hdrRTV;
+    DXRenderTarget* postProcessRTV;
+
+    DXRenderTarget* depthMapRTV;
+    DXRenderTarget* shadowDepthMapRTV;
+
+    // Depth Stencil Buffers(View)
+    DXDepthStencilBuffer* hdrDSV;
+    DXDepthStencilBuffer* depthMapDSV;
+    DXDepthStencilBuffer* shadowDepthMapDSV;
+
+    // Render Pass
+    DXRenderPassDesc forwardPass;
+    DXRenderPassDesc shadowMapPass;
+    DXRenderPassDesc postProcessPass;
 
   private:
     void CreateBackBufferResources();
@@ -78,8 +107,17 @@ class Renderer {
     void CreateSamplers();
     void CreateRenderStates();
 
+    void CreateDepthStencilBuffers(uint32 width, uint32 height);
+    void CreateRenderTargets(uint32 width, uint32 height);
+    void CreateRenderPasses(uint32 width, uint32 height);
+
+    void CreateGBuffer(uint32 width, uint32 height);
+
     void BindGlobals();
+
     void PassSolid();
+    void PassForwardPhong();
+    void PassShadowMapDirectional();
 };
 
 } // namespace Riley

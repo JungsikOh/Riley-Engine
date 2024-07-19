@@ -47,8 +47,10 @@ std::unordered_map<ShaderProgram, DXGraphicsShaderProgram> DXShaderProgramMap;
 constexpr DXShaderStage GetStage(ShaderId shader) {
     switch (shader) {
     case VS_Solid:
+    case VS_Phong:
         return DXShaderStage::VS;
     case PS_Solid:
+    case PS_Phong:
         return DXShaderStage::PS;
     }
 }
@@ -58,6 +60,9 @@ constexpr std::string GetShaderSource(ShaderId shader) {
     case VS_Solid:
     case PS_Solid:
         return "Resources/Shaders/Solid.hlsl";
+    case VS_Phong:
+    case PS_Phong:
+        return "Resources/Shaders/ForwardPhong.hlsl";
     }
 }
 
@@ -67,6 +72,10 @@ constexpr std::string GetEntryPoint(ShaderId shader) {
         return "SolidVS";
     case PS_Solid:
         return "SolidPS";
+    case VS_Phong:
+        return "PhongVS";
+    case PS_Phong:
+        return "PhongPS";
     default:
         return "main";
     }
@@ -99,8 +108,8 @@ void CompileShader(ShaderId shader, bool firstCompile = false) {
         break;
     case DXShaderStage::PS:
         if (firstCompile)
-            psShaderMap[shader] = std::make_unique<DXPixelShader>(
-                device, output.shader_bytecode);
+            psShaderMap[shader] =
+                std::make_unique<DXPixelShader>(device, output.shader_bytecode);
         else
             psShaderMap[shader]->Recreate(output.shader_bytecode);
         break;
@@ -127,6 +136,10 @@ void CreateAllPrograms() {
         .SetVertexShader(vsShaderMap[VS_Solid].get())
         .SetPixelShader(psShaderMap[PS_Solid].get())
         .SetInputLayout(inputLayoutMap[VS_Solid].get());
+    DXShaderProgramMap[ShaderProgram::ForwardPhong]
+        .SetVertexShader(vsShaderMap[VS_Phong].get())
+        .SetPixelShader(psShaderMap[PS_Phong].get())
+        .SetInputLayout(inputLayoutMap[VS_Phong].get());
 }
 
 void CompileAllShaders() {

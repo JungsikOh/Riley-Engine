@@ -197,12 +197,17 @@
     <ClInclude Include="Rendering\ShaderManager.h">
       <Filter>Rendering</Filter>
     </ClInclude>
+    <ClInclude Include="Graphics\DXRenderPass.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include=".clang-format" />
     <None Include="Resources\Shaders\Common.hlsli">
       <Filter>Resources\Shaders</Filter>
     </None>
+    <None Include="Resources\Shaders\LightUtil.hlsli" />
+    <None Include="Resources\Shaders\ConstantData.hlsli" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Resources\Shaders\Solid.hlsl">
