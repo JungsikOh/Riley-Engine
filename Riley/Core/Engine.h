@@ -1,4 +1,6 @@
 #pragma once
+#include "../Graphics/DXRenderTarget.h"
+#include "../Graphics/DXDepthStencilBuffer.h"
 #include "../Rendering/ModelImporter.h"
 #include "../Rendering/SceneViewport.h"
 #include "../Utilities/Delegate.h"
@@ -38,6 +40,8 @@ namespace Riley
 
     void OnWindowEvent(WindowEventData const&);
     void CreateSwapChainAndDevice();
+    void CreateBackBufferResources(uint32 width, uint32 height);
+    void ResizeBackbuffer(uint32 width, uint32 height);
 
     void Run();
     void Present();
@@ -49,6 +53,7 @@ namespace Riley
     Window* GetWindow();
     Camera* GetCamera();
     Renderer* GetRenderer();
+    DXRenderTarget* GetBackbufferRTV();
 
   private:
     /* Low Level APIs */
@@ -56,12 +61,16 @@ namespace Riley
     ID3D11DeviceContext* m_context = nullptr;
     IDXGISwapChain* m_swapChain = nullptr;
 
+    /* App Level APIs */
     entt::registry m_registry;
 
     Window* window = nullptr;
     Renderer* renderer = nullptr;
     Camera* camera = nullptr;
     ModelImporter* modelImporter = nullptr;
+
+    DXRenderTarget* backBufferRTV = nullptr;
+    DXDepthStencilBuffer* backBufferDSV = nullptr;
 
     bool vsync;
     bool editor_active = true;

@@ -50,7 +50,6 @@ namespace Riley
     void Present(bool vsync);
 
     void OnResize(uint32 width, uint32 height);
-    void OnGetOffScreenReSize(uint32 width, uint32 height);
     void OnLeftMouseClicked();
 
   private:
@@ -91,8 +90,6 @@ namespace Riley
     DXBlendState* alphaBS;
 
   public:
-    DXRenderTarget* m_backBufferRTV;
-    DXDepthStencilBuffer* m_backBufferDepthStencil;
     // Render Target Views
     std::vector<DXRenderTarget*> gbufferRTVs;
     DXRenderTarget* hdrRTV;

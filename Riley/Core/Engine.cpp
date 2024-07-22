@@ -36,6 +36,8 @@ namespace Riley
       : window(init.window), vsync{init.vsync}
   {
     CreateSwapChainAndDevice();
+    CreateBackBufferResources(window->Width(), window->Height());
+
     CameraParameters cp = ParseCameraParam();
     camera = new Camera(cp);
     renderer
@@ -44,6 +46,8 @@ namespace Riley
     modelImporter = new ModelImporter(m_device, m_registry);
 
     InputEvents& inputEvents = g_Input.GetInputEvents();
+    std::ignore = inputEvents.window_resized_event.AddMember(
+      &Engine::ResizeBackbuffer, *this);
     std::ignore = inputEvents.window_resized_event.AddMember(
       &Renderer::OnResize, *renderer);
     // std::ignore = inputEvents.left_mouse_clicked.Add(
@@ -123,6 +127,28 @@ namespace Riley
       &featureLevel, &m_context));
   }
 
+  void Engine::CreateBackBufferResources(uint32 width, uint32 height)
+  {
+    if(backBufferRTV) SAFE_DELETE(backBufferRTV);
+    if(backBufferDSV) SAFE_DELETE(backBufferDSV);
+
+    m_swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
+
+    ID3D11Texture2D* backBuffer = nullptr;
+    ID3D11RenderTargetView* rtv = nullptr;
+    HR(m_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D),
+                              (void**)&backBuffer));
+    HR(m_device->CreateRenderTargetView(backBuffer, nullptr, &rtv));
+
+    backBufferDSV = new DXDepthStencilBuffer(m_device, width, height);
+    backBufferRTV = new DXRenderTarget(m_device, rtv, backBufferDSV);
+  }
+
+  void Engine::ResizeBackbuffer(uint32 width, uint32 height)
+  {
+    if(m_swapChain != nullptr) { CreateBackBufferResources(width, height); }
+  }
+
   void Engine::Run()
   {
     static RileyTimer timer;
@@ -146,6 +172,7 @@ namespace Riley
   Window* Engine::GetWindow() { return window; }
   Camera* Engine::GetCamera() { return camera; }
   Renderer* Engine::GetRenderer() { return renderer; }
+  DXRenderTarget* Engine::GetBackbufferRTV() { return backBufferRTV; }
 
   void Engine::Update(float dt)
   {

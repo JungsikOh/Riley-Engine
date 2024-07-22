@@ -42,10 +42,10 @@ namespace Riley
     static constexpr float clearDarkBlue[4] = {0.0f, 0.21f, 0.38f, 0.0f};
     engine->SetSceneViewportData(sceneViewportData);
     engine->Run();
-    engine->GetRenderer()->m_backBufferRTV->Clear(engine->GetDeviceContext(),
-                                                  clearDarkBlue);
-    engine->GetRenderer()->m_backBufferRTV->BindRenderTargetView(
-      engine->GetDeviceContext());
+    engine->GetCamera()->SetAspectRatio(sceneViewportData.GetWidth() / sceneViewportData.GetHeight());
+    engine->GetBackbufferRTV()->Clear(engine->GetDeviceContext(),
+                                      clearDarkBlue);
+    engine->GetBackbufferRTV()->BindRenderTargetView(engine->GetDeviceContext());
     gui->Begin();
     {
       ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(),

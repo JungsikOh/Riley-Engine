@@ -22,7 +22,6 @@ namespace Riley
         m_height(height)
   {
     ShaderManager::Initialize(m_device);
-    CreateBackBufferResources();
     CreateBuffers();
     CreateRenderStates();
 
@@ -39,8 +38,6 @@ namespace Riley
 
   Renderer::~Renderer()
   {
-    SAFE_DELETE(m_backBufferDepthStencil);
-    SAFE_DELETE(m_backBufferRTV);
     SAFE_DELETE(frameBufferGPU);
     SAFE_DELETE(objectConstsGPU);
   }
@@ -55,19 +52,10 @@ namespace Riley
       {
         m_width = width;
         m_height = height;
-        if(m_swapChain != nullptr) { CreateBackBufferResources(); }
-        // SetSceneViewport(width, height);
         CreateDepthStencilBuffers(width, height);
         CreateRenderTargets(width, height);
         CreateRenderPasses(width, height);
       }
-  }
-
-  void Renderer::OnGetOffScreenReSize(uint32 width, uint32 height)
-  {
-    CreateDepthStencilBuffers(width, height);
-    CreateRenderTargets(width, height);
-    CreateRenderPasses(width, height);
   }
 
   void Renderer::Tick(Camera* camera)
@@ -122,28 +110,6 @@ namespace Riley
   {
     m_currentSceneViewport = viewport;
     m_currentSceneViewport.Bind(m_context);
-  }
-
-  void Renderer::CreateBackBufferResources()
-  {
-    if(m_backBufferRTV) SAFE_DELETE(m_backBufferRTV);
-    if(m_backBufferDepthStencil) SAFE_DELETE(m_backBufferDepthStencil);
-
-    m_swapChain->ResizeBuffers(0, m_width, m_height, DXGI_FORMAT_UNKNOWN, 0);
-
-    ID3D11Texture2D* backBuffer = nullptr;
-    ID3D11RenderTargetView* rtv = nullptr;
-    HR(m_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D),
-                              (void**)&backBuffer));
-    HR(m_device->CreateRenderTargetView(backBuffer, nullptr, &rtv));
-
-    m_backBufferDepthStencil
-      = new DXDepthStencilBuffer(m_device, m_width, m_height);
-    m_backBufferRTV
-      = new DXRenderTarget(m_device, rtv, m_backBufferDepthStencil);
-    m_backBufferRTV->CreateSRV(m_device, nullptr);
-
-    SAFE_RELEASE(backBuffer);
   }
 
   void Renderer::CreateBuffers()
@@ -202,12 +168,12 @@ namespace Riley
     forwardPass.width = width;
     forwardPass.height = height;
 
-    postProcessPass.attachmentRTVs.clear();
-    postProcessPass.attachmentRTVs.push_back(m_backBufferRTV);
-    postProcessPass.clearColor = clearBlack;
-    postProcessPass.attachmentDSV = m_backBufferDepthStencil;
-    postProcessPass.width = width;
-    postProcessPass.height = height;
+    //postProcessPass.attachmentRTVs.clear();
+    //postProcessPass.attachmentRTVs.push_back(m_backBufferRTV);
+    //postProcessPass.clearColor = clearBlack;
+    //postProcessPass.attachmentDSV = m_backBufferDepthStencil;
+    //postProcessPass.width = width;
+    //postProcessPass.height = height;
   }
 
   void Renderer::BindGlobals()
