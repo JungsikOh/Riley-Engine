@@ -4,8 +4,10 @@
 #include "Windows.h"
 #include <array>
 
-namespace Riley {
-enum class KeyCode : uint32 {
+namespace Riley
+{
+  enum class KeyCode : uint32
+  {
 
     F1,
     F2,
@@ -91,26 +93,28 @@ enum class KeyCode : uint32 {
     MouseMiddle,
     MouseRight,
     Count
-};
+  };
 
-class Window;
-struct WindowEventData;
+  class Window;
+  struct WindowEventData;
 
-DECLARE_EVENT(WindowResizedEvent, Input, uint32, uint32);
-DECLARE_EVENT(LeftMouseClickedEvent, Input, int32, int32);
-DECLARE_EVENT(MiddleMouseScrolledEvent, Input, int32);
-DECLARE_EVENT(F5PressedEvent, Input);
-DECLARE_EVENT(PrintScreenPressedEvent, Input, char const*);
+  DECLARE_EVENT(WindowResizedEvent, Input, uint32, uint32);
+  DECLARE_EVENT(LeftMouseClickedEvent, Input, int32, int32);
+  DECLARE_EVENT(MiddleMouseScrolledEvent, Input, int32);
+  DECLARE_EVENT(F5PressedEvent, Input);
+  DECLARE_EVENT(PrintScreenPressedEvent, Input, char const*);
 
-struct InputEvents {
+  struct InputEvents
+  {
     MiddleMouseScrolledEvent scroll_mouse_event;
     LeftMouseClickedEvent left_mouse_clicked;
     WindowResizedEvent window_resized_event;
     F5PressedEvent f5_pressed_event;
     PrintScreenPressedEvent f6_pressed_event;
-};
+  };
 
-class Input : public Singleton<Input> {
+  class Input : public Singleton<Input>
+  {
     friend class Singleton<Input>;
 
   public:
@@ -121,11 +125,13 @@ class Input : public Singleton<Input> {
     void OnWindowEvent(WindowEventData const&);
 
     bool GetKey(KeyCode key) const { return keys[(uint64)key]; }
-    bool IsKeyDown(KeyCode key) const {
-        return GetKey(key) && !prev_keys[(uint64)key];
+    bool IsKeyDown(KeyCode key) const
+    {
+      return GetKey(key) && !prev_keys[(uint64)key];
     }
-    bool IsKeyUp(KeyCode key) const {
-        return !GetKey(key) && prev_keys[(uint64)key];
+    bool IsKeyUp(KeyCode key) const
+    {
+      return !GetKey(key) && prev_keys[(uint64)key];
     }
 
     void SetMouseVisibility(bool visible);
@@ -134,11 +140,13 @@ class Input : public Singleton<Input> {
     float GetMousePositionX() const { return mouse_position_x; }
     float GetMousePositionY() const { return mouse_position_y; }
 
-    float GetMouseDeltaX() const {
-        return mouse_position_x - prev_mouse_position_x;
+    float GetMouseDeltaX() const
+    {
+      return mouse_position_x - prev_mouse_position_x;
     }
-    float GetMouseDeltaY() const { 
-        return mouse_position_y - prev_mouse_position_y;
+    float GetMouseDeltaY() const
+    {
+      return mouse_position_y - prev_mouse_position_y;
     }
     float GetMouseWheelDelta() const { return mouse_wheel_delta; }
 
@@ -161,6 +169,6 @@ class Input : public Singleton<Input> {
 
   private:
     Input();
-};
+  };
 #define g_Input Input::Get()
 } // namespace Riley

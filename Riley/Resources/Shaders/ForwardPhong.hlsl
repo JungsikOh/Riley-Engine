@@ -31,7 +31,7 @@ PSInput PhongVS(VSInput input)
     output.posProj = mul(pos, frameData.viewProj);
     
     float3 normalWorld = mul(input.normalModel, (float3x3) meshData.worldInvTranspose);
-    output.normalView = mul(normalWorld, (float3x3) frameData.invView);
+    output.normalView = mul(normalWorld, (float3x3) transpose(frameData.invView));
     output.tangentWorld = mul(input.tangentModel, (float3x3) meshData.world);
     output.bitangentWorld = mul(input.bitangentModel, (float3x3) meshData.world);
     output.normalWorld = normalWorld;
@@ -49,8 +49,8 @@ PSOutput PhongPS(PSInput input)
 {
     PSOutput output;
     
-    float4 worldPosition = input.posWorld;
-    float3 pixelToEye = normalize(frameData.cameraPosition.xyz - worldPosition.xyz);
+    float4 viewPosition = mul(input.posWorld, frameData.view);
+    float3 pixelToEye = normalize(0.0.xxx - viewPosition.xyz);
     
     float3 ambient = materialData.ambient;
     
@@ -61,10 +61,10 @@ PSOutput PhongPS(PSInput input)
             Lo = DoDirectionalLight(lightData, 2.0, pixelToEye, input.normalView);
             break;
         case POINT_LIGHT:
-            Lo = DoPointLight(lightData, 2.0, pixelToEye, worldPosition.xyz, input.normalView);
+            Lo = DoPointLight(lightData, 2.0, pixelToEye, viewPosition.xyz, input.normalView);
             break;
         case SPOT_LIGHT:
-            Lo = DoSpotLight(lightData, 2.0, pixelToEye, worldPosition.xyz, input.normalView);
+            Lo = DoSpotLight(lightData, 2.0, pixelToEye, viewPosition.xyz, input.normalView);
             break;
     }
     

@@ -1,6 +1,6 @@
 #pragma once
-#include <d3d11.h>
 #include "DXShader.h"
+#include <d3d11.h>
 
 namespace Riley {
 enum class DXPrimitiveTopology : uint8 {
@@ -206,9 +206,14 @@ class DXBlendState {
   public:
     DXBlendState(ID3D11Device* device, DXBlendStateDesc const& desc);
 
-    void Bind(ID3D11DeviceContext* context, const float* blendFactor,
+    void Bind(ID3D11DeviceContext* context, const float* blendFactor = nullptr,
               uint32 sampleMask = 0xffffff) {
         context->OMSetBlendState(blendState, blendFactor, sampleMask);
+    }
+
+    void Unbind(ID3D11DeviceContext* context, const float* blendFactor = nullptr,
+                uint32 sampleMask = 0xffffff) {
+        context->OMSetBlendState(nullptr, blendFactor, sampleMask);
     }
 
   private:
@@ -280,7 +285,8 @@ class DXSampler {
   public:
     DXSampler(ID3D11Device* device, DXSamplerDesc const& desc);
 
-    void Bind(ID3D11DeviceContext* context, uint32 slot, DXShaderStage const& stage) {
+    void Bind(ID3D11DeviceContext* context, uint32 slot,
+              DXShaderStage const& stage) {
         switch (stage) {
         case DXShaderStage::VS:
             context->VSSetSamplers(slot, 1, &sampler);

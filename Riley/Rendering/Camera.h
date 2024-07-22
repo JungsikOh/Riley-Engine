@@ -27,11 +27,8 @@ class Camera {
     float nearPlane;
     float farPlane;
 
-    float pitch;
-    float yaw;
-
     float speedFactor = 1.0f;
-    float sensitivity = 20.0f;
+    float sensitivity = 0.3f;
 
   public:
     Camera() = default;

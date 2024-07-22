@@ -8,6 +8,7 @@
 #include <mutex>
 #include <thread>
 #include <optional>
+#include <algorithm>
 #include <functional>
 #include <span>
 #include <type_traits>
@@ -21,6 +22,7 @@
 
 //external utility
 #include <DirectXMath.h>
+
 
 //
 #include "Core/CoreTypes.h"

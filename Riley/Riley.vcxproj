@@ -70,6 +70,9 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Label="Vcpkg">
+    <VcpkgEnabled>true</VcpkgEnabled>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
@@ -104,12 +107,13 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;NOMINMAX;_SILENCE_ALL_CXX20_DEPRECATION_WARNINGS;_SILENCE_CXX23_ALIGNED_STORAGE_DEPRECATION_WARNING</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)Riley\;$(SolutionDir)ThirdParty\ImGui;$(SolutionDir)ThirdParty\SimpleMath;$(SolutionDir)ThirdParty\cereal;$(SolutionDir)ThirdParty\entt\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\ImGui;$(SolutionDir)ThirdParty\SimpleMath;$(SolutionDir)ThirdParty\cereal;$(SolutionDir)ThirdParty\entt\include;$(SolutionDir)Riley\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UseStandardPreprocessor>false</UseStandardPreprocessor>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <ForcedIncludeFiles>pch.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -137,10 +141,22 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\ThirdParty\ImGui\ImGui\imgui.cpp" />
+    <ClCompile Include="..\ThirdParty\ImGui\ImGui\imgui_demo.cpp" />
+    <ClCompile Include="..\ThirdParty\ImGui\ImGui\imgui_draw.cpp" />
+    <ClCompile Include="..\ThirdParty\ImGui\ImGui\imgui_impl_dx11.cpp" />
+    <ClCompile Include="..\ThirdParty\ImGui\ImGui\imgui_impl_win32.cpp" />
+    <ClCompile Include="..\ThirdParty\ImGui\ImGui\imgui_tables.cpp" />
+    <ClCompile Include="..\ThirdParty\ImGui\ImGui\imgui_widgets.cpp" />
+    <ClCompile Include="..\ThirdParty\SimpleMath\SimpleMath.cpp" />
     <ClCompile Include="Core\Engine.cpp" />
     <ClCompile Include="Core\Input.cpp" />
+    <ClCompile Include="Core\Layer.cpp" />
+    <ClCompile Include="Core\LayerStack.cpp" />
     <ClCompile Include="Core\Paths.cpp" />
     <ClCompile Include="Core\Window.cpp" />
+    <ClCompile Include="Editor\Editor.cpp" />
+    <ClCompile Include="Editor\ImGuiLayer.cpp" />
     <ClCompile Include="Graphics\DXDepthStencilBuffer.cpp" />
     <ClCompile Include="Graphics\DXInputLayout.cpp" />
     <ClCompile Include="Graphics\DXRenderTarget.cpp" />
@@ -156,14 +172,27 @@
     <ClCompile Include="Utilities\StringUtil.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\ThirdParty\entt\include\entt.hpp" />
+    <ClInclude Include="..\ThirdParty\ImGui\ImGui\imconfig.h" />
+    <ClInclude Include="..\ThirdParty\ImGui\ImGui\imgui.h" />
+    <ClInclude Include="..\ThirdParty\ImGui\ImGui\imgui_impl_dx11.h" />
+    <ClInclude Include="..\ThirdParty\ImGui\ImGui\imgui_impl_win32.h" />
+    <ClInclude Include="..\ThirdParty\ImGui\ImGui\imgui_internal.h" />
+    <ClInclude Include="..\ThirdParty\ImGui\ImGui\imstb_rectpack.h" />
+    <ClInclude Include="..\ThirdParty\ImGui\ImGui\imstb_textedit.h" />
+    <ClInclude Include="..\ThirdParty\ImGui\ImGui\imstb_truetype.h" />
+    <ClInclude Include="..\ThirdParty\SimpleMath\SimpleMath.h" />
     <ClInclude Include="Core\CoreTypes.h" />
     <ClInclude Include="Core\Engine.h" />
     <ClInclude Include="Core\Input.h" />
+    <ClInclude Include="Core\Layer.h" />
+    <ClInclude Include="Core\LayerStack.h" />
     <ClInclude Include="Core\Paths.h" />
     <ClInclude Include="Core\Rendering.h" />
     <ClInclude Include="Core\Window.h" />
     <ClInclude Include="Core\Windows.h" />
     <ClInclude Include="Editor\Editor.h" />
+    <ClInclude Include="Editor\ImGuiLayer.h" />
     <ClInclude Include="Graphics\DXBuffer.h" />
     <ClInclude Include="Graphics\DXConstantBuffer.h" />
     <ClInclude Include="Graphics\DXDepthStencilBuffer.h" />
@@ -198,6 +227,7 @@
     <ClInclude Include="Utilities\Timer.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\ThirdParty\SimpleMath\SimpleMath.inl" />
     <None Include=".clang-format" />
     <None Include="Resources\Shaders\Common.hlsli" />
     <None Include="Resources\Shaders\ConstantData.hlsli" />

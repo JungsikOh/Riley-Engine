@@ -1,17 +1,20 @@
 #pragma once
-#include "../Utilities/Singleton.h"
+#include "../Core/Engine.h"
+#include "../Core/Window.h"
 #include "../Rendering/SceneViewport.h"
+#include "GUI.h"
+#include "imgui.h"
 #include "entt.hpp"
+#include <memory>
 #include <array>
 
 namespace Riley {
-
-class Engine;
-class Window;
-class ImGuiLayer;
-
+struct Material;
 struct WindowEventData;
-struct EngineInit;
+
+struct EditorInit {
+    EngineInit engineInit;
+};
 
 class Editor {
     enum {
@@ -24,23 +27,25 @@ class Editor {
     };
 
   public:
-    Editor(EngineInit const& init);
+    explicit Editor(EditorInit const& init);
     ~Editor();
     void OnWindowEvent(WindowEventData const&);
     void Run();
 
   private:
     Engine* engine;
-    ImGuiLayer* gui;
+    GUI* gui;
     entt::entity selected_entity = entt::null;
     bool isSceneFocused = false;
     SceneViewport sceneViewportData;
 
-    std::array<bool, Flag_Count> window_flags = {true};
+    std::array<bool, Flag_Count> window_flags = {false};
 
-  private:
-    void MenuBar(); 
+    private:
+    void HandleInput();
+    void MenuBar();
     void Camera();
     void Scene();
 };
+
 } // namespace Riley

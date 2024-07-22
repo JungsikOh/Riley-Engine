@@ -30,7 +30,7 @@ class ModelImporter {
 
     std::vector<entt::entity>
     LoadSquare(const Vector3& pos, const float& scale = 1.0f,
-               const Vector2& texScale = Vector2(1.0f));
+               const float& rotate = 0.0f);
 
     std::vector<entt::entity> LoadBox(const Vector3& pos,
                                       const float& scale = 1.0f,

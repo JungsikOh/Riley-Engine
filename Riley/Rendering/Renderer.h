@@ -7,42 +7,50 @@
 #include "../Graphics/DXRenderPass.h"
 #include "Camera.h"
 #include "ConstantBuffers.h"
+#include "Components.h"
 #include "SceneViewport.h"
 #include "ShaderManager.h"
 #include <memory>
 #include <optional>
 #include <entt.hpp>
 
-namespace Riley {
+namespace Riley
+{
 
-class DXSampler;
-class DXBlendState;
-class DXRasterizerState;
-class DXDepthStencilState;
+  class DXSampler;
+  class DXBlendState;
+  class DXRasterizerState;
+  class DXDepthStencilState;
 
-class Camera;
-class Input;
+  class Camera;
+  class Input;
 
-class Renderer {
+  class Renderer
+  {
   public:
     Renderer() = default;
-    Renderer(Window* window, entt::registry& reg, ID3D11Device* device, ID3D11DeviceContext* context,
-             IDXGISwapChain* swapChain, Camera* camera, uint32 width,
-             uint32 height);
+    Renderer(Window* window, entt::registry& reg, ID3D11Device* device,
+             ID3D11DeviceContext* context, IDXGISwapChain* swapChain,
+             Camera* camera, uint32 width, uint32 height);
     ~Renderer();
 
     void Tick(Camera*);
     void Update(float dt);
 
-    void SetSceneViewport(const float& width = 0.0f, const float& height = 0.0f,
-                          const float& minDepth = 0.0f,
-                          const float& maxDepth = 1.0f,
-                          const float& topLeftX = 0.0f,
-                          const float& topLeftY = 0.0f);
+    void
+    SetSceneViewport(const float& width = 0.0f, const float& height = 0.0f,
+                     const float& minDepth = 0.0f,
+                     const float& maxDepth = 1.0f,
+                     const float& topLeftX = 0.0f,
+                     const float& topLeftY = 0.0f);
+
+    void SetSceneViewport(SceneViewport const& viewport);
+
     void Render();
     void Present(bool vsync);
 
     void OnResize(uint32 width, uint32 height);
+    void OnGetOffScreenReSize(uint32 width, uint32 height);
     void OnLeftMouseClicked();
 
   private:
@@ -52,8 +60,6 @@ class Renderer {
     ID3D11Device* m_device;
     ID3D11DeviceContext* m_context;
     IDXGISwapChain* m_swapChain;
-    DXRenderTarget* m_backBufferRTV;
-    DXDepthStencilBuffer* m_backBufferDepthStencil;
     Window* m_window;
 
     /* App Level */
@@ -80,9 +86,13 @@ class Renderer {
     DXDepthStencilState* solidDSS;
     DXDepthStencilState* noneDepthDSS;
 
+    DXBlendState* opaqueBS;
     DXBlendState* additiveBS;
     DXBlendState* alphaBS;
 
+  public:
+    DXRenderTarget* m_backBufferRTV;
+    DXDepthStencilBuffer* m_backBufferDepthStencil;
     // Render Target Views
     std::vector<DXRenderTarget*> gbufferRTVs;
     DXRenderTarget* hdrRTV;
@@ -115,9 +125,11 @@ class Renderer {
 
     void BindGlobals();
 
+    void PassForward();
     void PassSolid();
     void PassForwardPhong();
-    void PassShadowMapDirectional();
-};
+    void PassShadowMapDirectional(Light const& light);
+    void PassShadowMapSpot(Light const& light);
+  };
 
 } // namespace Riley

@@ -43,12 +43,17 @@ class SceneViewport {
         context->RSSetViewports(1, &viewport);
     }
 
-  private:
+  public:
     float m_width;
     float m_height;
-    float m_minDepth;
-    float m_maxDepth;
-    float m_topLeftX;
-    float m_topLeftY;
+    float m_minDepth = 0.0f;
+    float m_maxDepth = 1.0f;
+    float m_topLeftX = 0.0f;
+    float m_topLeftY = 0.0f;
+
+    float m_mousePositionX;
+    float m_mousePositionY;
+
+    bool isViewportFocused;
 };
 } // namespace Riley

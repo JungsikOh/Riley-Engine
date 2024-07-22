@@ -1,5 +1,7 @@
 #include "Core/Engine.h"
 #include "Core/Window.h"
+#include "Editor/Editor.h"
+#include "Editor/GUI.h"
 #include <assert.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog\spdlog.h>
@@ -28,14 +30,14 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     engineInit.vsync = true;
     engineInit.window = &window;
 
-    Engine engine(engineInit);
+    Editor editor(engineInit);
     window.GetWindowEvent().Add([&](WindowEventData const& msg_data) {
-        engine.OnWindowEvent(msg_data);
+        editor.OnWindowEvent(msg_data);
     });
 
     // Main Loop
     while (window.Loop()) {
-        engine.Run();
+        editor.Run();
     }
 
     return 0;

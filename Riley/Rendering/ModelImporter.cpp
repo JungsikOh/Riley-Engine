@@ -10,7 +10,7 @@ ModelImporter::ModelImporter(ID3D11Device* device, entt::registry& reg)
 
 std::vector<entt::entity> ModelImporter::LoadSquare(const Vector3& pos,
                                                     const float& scale,
-                                                    const Vector2& texScale) {
+                                                    const float& rotate) {
 
     std::vector<Vector3> positions;
     std::vector<Vector3> normals;
@@ -69,9 +69,13 @@ std::vector<entt::entity> ModelImporter::LoadSquare(const Vector3& pos,
 
     Transform transform{};
     transform.startingTransform =
-        Matrix::CreateScale(scale) * Matrix::CreateTranslation(pos);
+        Matrix::CreateScale(scale) *
+        Matrix::CreateRotationX(DirectX::XMConvertToRadians(rotate)) *
+        Matrix::CreateTranslation(pos);
     transform.currentTransform =
-        Matrix::CreateScale(scale) * Matrix::CreateTranslation(pos);
+        Matrix::CreateScale(scale) *
+        Matrix::CreateRotationX(DirectX::XMConvertToRadians(rotate)) *
+        Matrix::CreateTranslation(pos);
 
     m_registry.emplace<Transform>(entity, transform);
 

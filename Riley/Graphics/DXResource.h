@@ -60,7 +60,7 @@ class DXResource {
         return reinterpret_cast<ResourceType*>(Map(context));
     }
 
-    bool BindShaderResourceView(ID3D11DeviceContext* context,
+    bool BindSRV(ID3D11DeviceContext* context,
                                 unsigned int bindSlot,
                                 DXShaderStage bindShader) {
         if (m_srv != nullptr) {
@@ -91,9 +91,8 @@ class DXResource {
         return false;
     }
 
-    void UnBindShaderResourceView(ID3D11DeviceContext* context,
-                                  unsigned int boundSlot,
-                                  DXShaderStage boundShader) {
+    void UnbindSRV(ID3D11DeviceContext* context, unsigned int boundSlot,
+                   DXShaderStage boundShader) {
         if (m_srv != nullptr) {
             ID3D11ShaderResourceView* nullSRV = nullptr;
             switch (boundShader) {
@@ -121,8 +120,7 @@ class DXResource {
         }
     }
 
-    bool BindUnorderedAccessView(ID3D11DeviceContext* context,
-                                 unsigned int bindSlot) {
+    bool BindUAV(ID3D11DeviceContext* context, unsigned int bindSlot) {
         if (m_uav != nullptr) {
             context->CSSetUnorderedAccessViews(bindSlot, 1, &m_uav, nullptr);
             return true;
@@ -130,8 +128,7 @@ class DXResource {
         return false;
     }
 
-    void UnbindUnorderedAccessView(ID3D11DeviceContext* context,
-                                   unsigned int boundSlot) {
+    void UnbindUAV(ID3D11DeviceContext* context, unsigned int boundSlot) {
         if (m_uav != nullptr) {
             ID3D11UnorderedAccessView* nullView = nullptr;
             context->CSSetUnorderedAccessViews(boundSlot, 1, &nullView,
@@ -148,9 +145,8 @@ class DXResource {
         m_uav = r.GetUnorderedAccessView();
     }
 
-  protected:
-    HRESULT InitShaderResourceView(ID3D11Device* device,
-                                   D3D11_SHADER_RESOURCE_VIEW_DESC* desc) {
+    HRESULT CreateSRV(ID3D11Device* device,
+                      D3D11_SHADER_RESOURCE_VIEW_DESC* desc) {
         if (m_srv == nullptr) {
             HR(device->CreateShaderResourceView(m_resource, desc, &m_srv));
             return S_OK;
@@ -158,8 +154,8 @@ class DXResource {
         return S_FALSE;
     }
 
-    HRESULT InitUnorderedAccessView(ID3D11Device* device,
-                                    D3D11_UNORDERED_ACCESS_VIEW_DESC* desc) {
+    HRESULT CreateUAV(ID3D11Device* device,
+                      D3D11_UNORDERED_ACCESS_VIEW_DESC* desc) {
         if (m_uav == nullptr) {
             HR(device->CreateUnorderedAccessView(m_resource, desc, &m_uav));
             return S_OK;

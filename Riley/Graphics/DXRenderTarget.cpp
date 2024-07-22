@@ -31,6 +31,8 @@ DXRenderTarget::DXRenderTarget(ID3D11Device* device, UINT width, UINT height,
 
     HR(device->CreateRenderTargetView(
         reinterpret_cast<ID3D11Texture2D*>(m_resource), &rtvDesc, &m_rtv));
+
+    /*CreateSRV(device, nullptr);*/
 }
 
 DXRenderTarget::DXRenderTarget(ID3D11Device* device,
@@ -39,6 +41,7 @@ DXRenderTarget::DXRenderTarget(ID3D11Device* device,
     : m_rtv(rtv), m_depthStencilBuffer(buffer) {
     ID3D11Resource* rtvResource = nullptr;
     rtv->GetResource(&rtvResource);
+    m_resource = rtvResource;
     if (rtvResource != nullptr) {
         ID3D11Texture2D* tex = reinterpret_cast<ID3D11Texture2D*>(rtvResource);
 

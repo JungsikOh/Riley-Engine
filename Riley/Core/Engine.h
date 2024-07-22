@@ -1,28 +1,35 @@
 #pragma once
 #include "../Rendering/ModelImporter.h"
+#include "../Rendering/SceneViewport.h"
 #include "../Utilities/Delegate.h"
+#include "../Utilities/Singleton.h"
+#include "LayerStack.h"
 #include "Input.h"
 #include <iostream>
 #include <memory>
 #include <optional>
 #include <entt.hpp>
 
-namespace Riley {
+namespace Riley
+{
 
-class Renderer;
-class Camera;
+  class Renderer;
+  class Camera;
 
-struct WindowEventData;
-struct EngineInit {
+  struct WindowEventData;
+  struct EngineInit
+  {
     bool vsync = false;
     Window* window = nullptr;
-};
+  };
 
-class Engine {
+  class Engine
+  {
     friend class Editor;
 
   public:
     explicit Engine(EngineInit const&);
+    Engine() = delete;
     Engine(Engine const&) = delete;
     Engine(Engine&&) = delete;
     Engine& operator=(Engine const&) = delete;
@@ -34,6 +41,14 @@ class Engine {
 
     void Run();
     void Present();
+
+    void SetSceneViewportData(std::optional<SceneViewport> viewportData);
+
+    ID3D11Device* GetDevice();
+    ID3D11DeviceContext* GetDeviceContext();
+    Window* GetWindow();
+    Camera* GetCamera();
+    Renderer* GetRenderer();
 
   private:
     /* Low Level APIs */
@@ -50,12 +65,14 @@ class Engine {
 
     bool vsync;
     bool editor_active = true;
+    SceneViewport sceneViewportData;
+
+    // GUI
+    LayerStack layerStack;
 
   private:
     void InitializeScene();
     void Update(float dt);
     void Render();
-    void SetSceneViewportData();
-};
-
+  };
 } // namespace Riley

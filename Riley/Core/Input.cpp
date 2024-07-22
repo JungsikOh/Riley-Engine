@@ -3,32 +3,39 @@
 #include <iostream>
 #include <windowsx.h>
 
-namespace Riley {
+namespace Riley
+{
 
-inline bool IsPressed(int32 key_code) {
+  inline bool IsPressed(int32 key_code)
+  {
     return (::GetKeyState(key_code) & 0x8000) != 0;
-}
+  }
 
-Input::Input() : keys{}, prev_keys{}, input_events{} {
+  Input::Input() : keys{}, prev_keys{}, input_events{}
+  {
     POINT mouse_screen_pos;
-    if (GetCursorPos(&mouse_screen_pos)) {
+    if(GetCursorPos(&mouse_screen_pos))
+      {
         mouse_position_x = static_cast<float>(mouse_screen_pos.x);
         mouse_position_y = static_cast<float>(mouse_screen_pos.y);
-    }
-}
+      }
+  }
 
-void Input::Tick() {
+  void Input::Tick()
+  {
     prev_keys = std::move(keys);
 
     prev_mouse_position_x = mouse_position_x;
     prev_mouse_position_y = mouse_position_y;
 
-    if (window->IsActive()) {
+    if(window->IsActive())
+      {
         POINT mouse_screen_pos;
-        if (GetCursorPos(&mouse_screen_pos)) {
+        if(GetCursorPos(&mouse_screen_pos))
+          {
             mouse_position_x = static_cast<float>(mouse_screen_pos.x);
             mouse_position_y = static_cast<float>(mouse_screen_pos.y);
-        }
+          }
 
         using enum KeyCode;
 
@@ -117,59 +124,67 @@ void Input::Tick() {
         keys[(uint64)End] = IsPressed(VK_END);
         keys[(uint64)Insert] = IsPressed(VK_INSERT);
 
-        if (GetKey(KeyCode::Esc))
-            PostQuitMessage(0);
-    }
-}
-void Input::OnWindowEvent(WindowEventData const& data) {
+        if(GetKey(KeyCode::Esc)) PostQuitMessage(0);
+      }
+  }
+  void Input::OnWindowEvent(WindowEventData const& data)
+  {
     HWND handle = static_cast<HWND>(data.handle);
     {
-        switch (data.msg) {
+      switch(data.msg)
+        {
         case WM_ENTERSIZEMOVE:
-            resizing = true;
-            break;
+          resizing = true;
+          break;
         case WM_EXITSIZEMOVE:
-            resizing = false;
-            input_events.window_resized_event.Broadcast((uint32)data.width,
-                                                        (uint32)data.height);
-            break;
+          resizing = false;
+          input_events.window_resized_event.Broadcast((uint32)data.width,
+                                                      (uint32)data.height);
+          break;
         case WM_SIZE:
-            if (!resizing) {
-                input_events.window_resized_event.Broadcast(
-                    (uint32)data.width, (uint32)data.height);
+          if(!resizing)
+            {
+              input_events.window_resized_event.Broadcast((uint32)data.width,
+                                                          (uint32)data.height);
             }
-            break;
+          break;
         case WM_MOUSEWHEEL:
-            input_events.scroll_mouse_event.Broadcast(
-                (int32)GET_WHEEL_DELTA_WPARAM(data.wparam) / WHEEL_DELTA);
-            break;
-        case WM_LBUTTONDOWN: {
+          input_events.scroll_mouse_event.Broadcast(
+            (int32)GET_WHEEL_DELTA_WPARAM(data.wparam) / WHEEL_DELTA);
+          break;
+          case WM_LBUTTONDOWN: {
             int32 mx = GET_X_LPARAM(data.lparam);
             int32 my = GET_Y_LPARAM(data.lparam);
             input_events.left_mouse_clicked.Broadcast(mx, my);
-        } break;
+          }
+          break;
         case WM_KEYDOWN:
-            if (data.wparam == VK_F5) {
-                input_events.f5_pressed_event.Broadcast();
-            } else if (data.wparam == VK_F6) {
-                input_events.f6_pressed_event.Broadcast("");
+          if(data.wparam == VK_F5)
+            {
+              input_events.f5_pressed_event.Broadcast();
             }
-            break;
+          else if(data.wparam == VK_F6)
+            {
+              input_events.f6_pressed_event.Broadcast("");
+            }
+          break;
         }
     }
-    mouse_wheel_delta =
-        (float)GET_WHEEL_DELTA_WPARAM(data.wparam) / (float)WHEEL_DELTA;
-}
-void Input::SetMouseVisibility(bool visible) { ShowCursor(visible); }
+    mouse_wheel_delta
+      = (float)GET_WHEEL_DELTA_WPARAM(data.wparam) / (float)WHEEL_DELTA;
+  }
+  void Input::SetMouseVisibility(bool visible) { ShowCursor(visible); }
 
-void Input::SetMousePosition(float xpos, float ypos) {
+  void Input::SetMousePosition(float xpos, float ypos)
+  {
     HWND handle = static_cast<HWND>(window->Handle());
-    if (handle == GetActiveWindow()) {
-        POINT mouse_screen_pos =
-            POINT{static_cast<LONG>(xpos), static_cast<LONG>(ypos)};
-        if (ClientToScreen(handle, &mouse_screen_pos))
-            SetCursorPos(mouse_screen_pos.x, mouse_screen_pos.y);
-    }
-}
+    if(handle == GetActiveWindow())
+      {
+        POINT mouse_screen_pos
+          = POINT{static_cast<LONG>(xpos), static_cast<LONG>(ypos)};
+        if(ClientToScreen(handle, &mouse_screen_pos))
+          SetCursorPos(mouse_screen_pos.x, mouse_screen_pos.y);
+      }
+  }
 
 } // namespace Riley

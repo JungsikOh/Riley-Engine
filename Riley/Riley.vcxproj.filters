@@ -78,6 +78,42 @@
     <ClCompile Include="Rendering\ShaderManager.cpp">
       <Filter>Rendering</Filter>
     </ClCompile>
+    <ClCompile Include="..\ThirdParty\ImGui\ImGui\imgui_tables.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ThirdParty\ImGui\ImGui\imgui_widgets.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ThirdParty\ImGui\ImGui\imgui.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ThirdParty\ImGui\ImGui\imgui_demo.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ThirdParty\ImGui\ImGui\imgui_draw.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ThirdParty\ImGui\ImGui\imgui_impl_dx11.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ThirdParty\ImGui\ImGui\imgui_impl_win32.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\Layer.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Core\LayerStack.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Editor\ImGuiLayer.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="..\ThirdParty\SimpleMath\SimpleMath.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Editor\Editor.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\CoreTypes.h">
@@ -97,9 +133,6 @@
     </ClInclude>
     <ClInclude Include="Math\MathTypes.h">
       <Filter>Math</Filter>
-    </ClInclude>
-    <ClInclude Include="Editor\Editor.h">
-      <Filter>Editor</Filter>
     </ClInclude>
     <ClInclude Include="Core\Windows.h">
       <Filter>Core</Filter>
@@ -200,6 +233,48 @@
     <ClInclude Include="Graphics\DXRenderPass.h">
       <Filter>Utilities</Filter>
     </ClInclude>
+    <ClInclude Include="..\ThirdParty\ImGui\ImGui\imgui_internal.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ThirdParty\ImGui\ImGui\imstb_rectpack.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ThirdParty\ImGui\ImGui\imstb_textedit.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ThirdParty\ImGui\ImGui\imstb_truetype.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ThirdParty\ImGui\ImGui\imconfig.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ThirdParty\ImGui\ImGui\imgui.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ThirdParty\ImGui\ImGui\imgui_impl_dx11.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ThirdParty\ImGui\ImGui\imgui_impl_win32.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\Layer.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Core\LayerStack.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Editor\ImGuiLayer.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Editor\Editor.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ThirdParty\entt\include\entt.hpp">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="..\ThirdParty\SimpleMath\SimpleMath.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include=".clang-format" />
@@ -208,6 +283,9 @@
     </None>
     <None Include="Resources\Shaders\LightUtil.hlsli" />
     <None Include="Resources\Shaders\ConstantData.hlsli" />
+    <None Include="..\ThirdParty\SimpleMath\SimpleMath.inl">
+      <Filter>Utilities</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Resources\Shaders\Solid.hlsl">
