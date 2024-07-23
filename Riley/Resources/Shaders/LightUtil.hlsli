@@ -65,7 +65,7 @@ LightingResult DoSpotLight(LightData light, float shininess, float3 V, float3 P,
 {
     LightingResult result;
     
-    float3 L = light.position.xyz - P;
+    float3 L = normalize(light.position.xyz - P);
     float distance = length(L);
     L = L / distance;
     
@@ -75,7 +75,7 @@ LightingResult DoSpotLight(LightData light, float shininess, float3 V, float3 P,
     
     // https://learnopengl.com/Lighting/Light-casters
     float cosAngle = dot(-lightDir, L);
-    float conAtt = saturate((cosAngle - light.innerCosine) / (light.outerCosine - light.innerCosine));
+    float conAtt = saturate((cosAngle - light.outerCosine) / (light.innerCosine - light.outerCosine));
     conAtt *= conAtt;
     
     result.diffuse = DoDiffuse(light, L, N) * attenuation * conAtt;

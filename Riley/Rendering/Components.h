@@ -6,28 +6,35 @@
 #include <entt.hpp>
 
 #define COMPONENT
-#define PI 3.141592654
 
-namespace Riley {
-struct Vertex {
+namespace Riley
+{
+
+  static constexpr float pie = 3.141592654f;
+
+  struct Vertex
+  {
     Vector3 position;
     Vector3 normal;
     Vector2 texcoord;
     Vector3 tangent;
     Vector3 bitangent;
-};
+  };
 
-struct SimpleVertex {
+  struct SimpleVertex
+  {
     Vector3 position;
     Vector2 texcoord;
-};
+  };
 
-struct COMPONENT Transform {
+  struct COMPONENT Transform
+  {
     Matrix startingTransform = Matrix::Identity;
     Matrix currentTransform = Matrix::Identity;
-};
+  };
 
-struct COMPONENT Material {
+  struct COMPONENT Material
+  {
     float albedoFactor = 1.0f;
     float metallicFactor = 1.0f;
     float roughnessFactor = 1.0f;
@@ -38,9 +45,10 @@ struct COMPONENT Material {
 
     Vector3 diffuse = Vector3(1, 1, 1);
     ShaderProgram shader = ShaderProgram::UnKnown;
-};
+  };
 
-struct COMPONENT Mesh {
+  struct COMPONENT Mesh
+  {
     std::shared_ptr<DXBuffer> vertexBuffer = nullptr;
     std::shared_ptr<DXBuffer> indexBuffer = nullptr;
     std::shared_ptr<DXBuffer> instanceBuffer = nullptr;
@@ -65,17 +73,18 @@ struct COMPONENT Mesh {
     void Draw(ID3D11DeviceContext* _context) const;
     void Draw(ID3D11DeviceContext* _context,
               D3D11_PRIMITIVE_TOPOLOGY override_topology) const;
-};
+  };
 
-struct COMPONENT Light {
+  struct COMPONENT Light
+  {
     Vector4 position = Vector4(0, 10, 0, 1);
     Vector4 direction = Vector4(0, -1, 0, 0);
     Vector4 color = Vector4(1, 1, 1, 1);
     float energy = 1.0f;
     float range = 100.0f;
     LightType type = LightType::Directional;
-    float outer_cosine = cos(PI / 4.0f);
-    float inner_cosine = cos(PI / 8.0f);
+    float outer_cosine = cos(pie / 4);
+    float inner_cosine = cos(pie / 8);
     bool casts_shadows = false;
     bool use_cascades = false;
     bool active = true;
@@ -91,10 +100,11 @@ struct COMPONENT Light {
     float godrays_weight = 0.25f;
     float godrays_density = 0.975f;
     float godrays_exposure = 2.0f;*/
-};
+  };
 
-struct COMPONENT Tag {
+  struct COMPONENT Tag
+  {
     std::string name = "default";
-};
+  };
 
 } // namespace Riley

@@ -47,10 +47,15 @@ namespace Riley
     void SetSceneViewport(SceneViewport const& viewport);
 
     void Render();
-    void Present(bool vsync);
 
     void OnResize(uint32 width, uint32 height);
     void OnLeftMouseClicked();
+
+    // Render Target Views
+    std::vector<DXRenderTarget*> gbufferRTVs;
+    DXRenderTarget* shadowDepthMapRTV;
+    DXRenderTarget* hdrRTV;
+    DXRenderTarget* postProcessRTV;
 
   private:
     uint32 m_width, m_height;
@@ -76,6 +81,8 @@ namespace Riley
     DXConstantBuffer<MaterialConsts>* materialConstsGPU = nullptr;
     LightConsts lightConstsCPU;
     DXConstantBuffer<LightConsts>* lightConstsGPU = nullptr;
+    ShadowConsts shadowConstsCPU;
+    DXConstantBuffer<ShadowConsts>* shadowConstsGPU = nullptr;
 
     // Render States
     DXRasterizerState* solidRS;
@@ -89,14 +96,10 @@ namespace Riley
     DXBlendState* additiveBS;
     DXBlendState* alphaBS;
 
-  public:
-    // Render Target Views
-    std::vector<DXRenderTarget*> gbufferRTVs;
-    DXRenderTarget* hdrRTV;
-    DXRenderTarget* postProcessRTV;
-
-    DXRenderTarget* depthMapRTV;
-    DXRenderTarget* shadowDepthMapRTV;
+    DXSampler* linearWrapSS;
+    DXSampler* linearClampSS;
+    DXSampler* linearBorderSS;
+    DXSampler* shadowLinearBorderSS;
 
     // Depth Stencil Buffers(View)
     DXDepthStencilBuffer* hdrDSV;

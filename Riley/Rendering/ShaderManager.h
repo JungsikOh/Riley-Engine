@@ -8,8 +8,10 @@ namespace Riley
   {
     VS_Solid,
     VS_Phong,
+    VS_Shadow,
     PS_Solid,
     PS_Phong,
+    PS_Shadow,
     ShaderIdCount
   };
 
@@ -17,6 +19,7 @@ namespace Riley
   {
     Solid,
     ForwardPhong,
+    ShadowDepthMap,
     UnKnown
   };
 

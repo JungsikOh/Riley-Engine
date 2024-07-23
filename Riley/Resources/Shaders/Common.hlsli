@@ -7,14 +7,15 @@
 #define POINT_LIGHT 1
 #define SPOT_LIGHT 2
 
+SamplerState LinearWrapSampler : register(s0);
+SamplerState LinearClampSampler : register(s1);
+SamplerComparisonState ShadowSampler : register(s2);
+
+Texture2D shadowMap : register(t0);
+
 cbuffer FrameBufferConsts : register(b0)
 {
     FrameData frameData;
-}
-
-cbuffer LightConsts : register(b2)
-{
-    LightData lightData;
 }
 
 cbuffer MeshConsts : register(b1)
@@ -26,4 +27,15 @@ cbuffer MaterialConsts : register(b1)
 {
     MaterialData materialData;
 };
+
+cbuffer LightConsts : register(b2)
+{
+    LightData lightData;
+}
+
+cbuffer ShadowConsts : register(b3)
+{
+    ShadowData shadowData;
+}
+
 #endif

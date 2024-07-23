@@ -59,15 +59,15 @@ class Camera {
         frustum.Transform(frustum, viewRow.Invert());
         return frustum;
     }
-    const Matrix& GetViewProj() {
+    Matrix GetViewProj() {
         Matrix viewProj = (viewRow * projRow).Transpose();
         return viewProj;
     }
-    const Matrix& GetProj() {
+    Matrix GetProj() {
         Matrix proj = projRow.Transpose();
         return proj;
     }
-    const Matrix& GetView() {
+    Matrix GetView() {
         Matrix view = viewRow.Transpose();
         return view;
     }

@@ -43,7 +43,7 @@ struct LightData
     float innerCosine;
 
     float castShadows;
-    float3 _padding2;
+    float3 _padding1;
 };
 
 struct MeshData
@@ -65,6 +65,23 @@ struct MaterialData
     float metallicFactor;
     float roughnessFactor;
     float emissiveFactor;
+};
+
+struct ShadowData
+{
+    matrix lightView;
+    matrix lightViewProj;
+    matrix shadow_matrices[4];
+
+    float split0;
+    float split1;
+    float split2;
+    float split3;
+
+    float softness;
+    int shadow_map_size;
+    int visualize;
+    float _padding2;
 };
 
 #endif

@@ -54,9 +54,11 @@ namespace Riley
         {
         case VS_Solid:
         case VS_Phong:
+        case VS_Shadow:
           return DXShaderStage::VS;
         case PS_Solid:
         case PS_Phong:
+        case PS_Shadow:
           return DXShaderStage::PS;
         }
     }
@@ -71,6 +73,9 @@ namespace Riley
         case VS_Phong:
         case PS_Phong:
           return "Resources/Shaders/ForwardPhong.hlsl";
+        case VS_Shadow:
+        case PS_Shadow:
+          return "Resources/Shaders/Shadow.hlsl";
         }
     }
 
@@ -86,6 +91,10 @@ namespace Riley
           return "PhongVS";
         case PS_Phong:
           return "PhongPS";
+        case VS_Shadow:
+          return "ShadowVS";
+        case PS_Shadow:
+          return "ShadowPS";
         default:
           return "main";
         }
@@ -154,6 +163,10 @@ namespace Riley
         .SetVertexShader(vsShaderMap[VS_Phong].get())
         .SetPixelShader(psShaderMap[PS_Phong].get())
         .SetInputLayout(inputLayoutMap[VS_Phong].get());
+      DXShaderProgramMap[ShaderProgram::ShadowDepthMap]
+        .SetVertexShader(vsShaderMap[VS_Shadow].get())
+        .SetPixelShader(psShaderMap[PS_Shadow].get())
+        .SetInputLayout(inputLayoutMap[VS_Shadow].get());
     }
 
     void CompileAllShaders()

@@ -2,9 +2,11 @@
 #include "../Math/MathTypes.h"
 #include <vector>
 
-namespace Riley {
+namespace Riley
+{
 
-struct FrameBufferConsts {
+  struct FrameBufferConsts
+  {
     Matrix view;
     Matrix proj;
     Matrix viewProj;
@@ -30,9 +32,10 @@ struct FrameBufferConsts {
     float screenResolutionY;
     float mouseNormalizedCoordsX;
     float mouseNormalizedCoordsY;
-};
+  };
 
-struct LightConsts {
+  struct LightConsts
+  {
     Vector4 screenSpacePosition;
     Vector4 position;
     Vector4 direction;
@@ -45,14 +48,16 @@ struct LightConsts {
 
     float castShadows;
     Vector3 _padding1;
-};
+  };
 
-struct ObjectConsts {
+  struct ObjectConsts
+  {
     Matrix world;
     Matrix worldInvTranspose;
-};
+  };
 
-struct MaterialConsts {
+  struct MaterialConsts
+  {
     Vector3 ambient;
     float _padding1;
     Vector3 diffuse;
@@ -64,22 +69,23 @@ struct MaterialConsts {
     float metallicFactor;
     float roughnessFactor;
     float emissiveFactor;
-};
+  };
 
-struct ShadowConsts {
-    Matrix lightviewprojection;
-    Matrix lightview;
+  struct ShadowConsts
+  {
+    Matrix lightView;
+    Matrix lightViewProj;
     Matrix shadow_matrices[4];
 
     float split0;
     float split1;
     float split2;
     float split3;
-    
+
     float softness;
     int32 shadow_map_size;
     int32 visualize;
     float _padding1;
-};
+  };
 
 } // namespace Riley

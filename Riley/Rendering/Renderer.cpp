@@ -118,6 +118,7 @@ namespace Riley
     objectConstsGPU = new DXConstantBuffer<ObjectConsts>(m_device, true);
     materialConstsGPU = new DXConstantBuffer<MaterialConsts>(m_device, true);
     lightConstsGPU = new DXConstantBuffer<LightConsts>(m_device, true);
+    shadowConstsGPU = new DXConstantBuffer<ShadowConsts>(m_device, true);
   }
 
   void Renderer::CreateRenderStates()
@@ -132,16 +133,42 @@ namespace Riley
     opaqueBS = new DXBlendState(m_device, OpaqueBlendStateDesc());
     additiveBS = new DXBlendState(m_device, AdditiveBlendStateDesc());
     alphaBS = new DXBlendState(m_device, AlphaBlendStateDesc());
+
+    linearWrapSS
+      = new DXSampler(m_device, SamplerDesc(DXFilter::MIN_MAG_MIP_LINEAR,
+                                            DXTextureAddressMode::Wrap));
+    linearClampSS
+      = new DXSampler(m_device, SamplerDesc(DXFilter::MIN_MAG_MIP_LINEAR,
+                                            DXTextureAddressMode::Clamp));
+
+    DXSamplerDesc comparisonSamplerDesc{};
+    comparisonSamplerDesc.filter = DXFilter::COMPARISON_MIN_MAG_MIP_LINEAR;
+    comparisonSamplerDesc.addressU = comparisonSamplerDesc.addressV
+      = comparisonSamplerDesc.addressW = DXTextureAddressMode::Border;
+    comparisonSamplerDesc.borderColor[0] = comparisonSamplerDesc.borderColor[1]
+      = comparisonSamplerDesc.borderColor[2]
+      = comparisonSamplerDesc.borderColor[3] = 1.0f;
+    comparisonSamplerDesc.comparisonFunc = DXComparisonFunc::LessEqual;
+    shadowLinearBorderSS = new DXSampler(m_device, comparisonSamplerDesc);
   }
 
   void Renderer::CreateDepthStencilBuffers(uint32 width, uint32 height)
   {
     if(hdrDSV != nullptr) SAFE_DELETE(hdrDSV);
     hdrDSV = new DXDepthStencilBuffer(m_device, width, height, true);
+    if(depthMapDSV != nullptr) SAFE_DELETE(depthMapDSV);
+    depthMapDSV = new DXDepthStencilBuffer(m_device, width, height, false);
+    if(shadowDepthMapDSV != nullptr) SAFE_DELETE(shadowDepthMapDSV);
+    shadowDepthMapDSV = new DXDepthStencilBuffer(
+      m_device, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE, false, false);
 
-    // depthMapDSV = new DXDepthStencilBuffer(m_device, width, height, false);
-    // shadowDepthMapDSV =
-    //     new DXDepthStencilBuffer(m_device, width, height, false);
+    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
+    ZeroMemory(&srvDesc, sizeof(srvDesc));
+    srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
+    srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+    srvDesc.Texture2D.MipLevels = 1;
+    depthMapDSV->CreateSRV(m_device, &srvDesc);
+    shadowDepthMapDSV->CreateSRV(m_device, &srvDesc);
   }
 
   void Renderer::CreateRenderTargets(uint32 width, uint32 height)
@@ -150,11 +177,6 @@ namespace Riley
     hdrRTV = new DXRenderTarget(m_device, width, height,
                                 DXFormat::R8G8B8A8_UNORM, hdrDSV);
     hdrRTV->CreateSRV(m_device, nullptr);
-    // depthMapRTV = new DXRenderTarget(m_device, width, height,
-    //                                  DXFormat::R8G8B8A8_UNORM, depthMapDSV);
-    // shadowDepthMapRTV =
-    //     new DXRenderTarget(m_device, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE,
-    //                        DXFormat::R8G8B8A8_UNORM, depthMapDSV);
   }
 
   void Renderer::CreateRenderPasses(uint32 width, uint32 height)
@@ -168,12 +190,9 @@ namespace Riley
     forwardPass.width = width;
     forwardPass.height = height;
 
-    //postProcessPass.attachmentRTVs.clear();
-    //postProcessPass.attachmentRTVs.push_back(m_backBufferRTV);
-    //postProcessPass.clearColor = clearBlack;
-    //postProcessPass.attachmentDSV = m_backBufferDepthStencil;
-    //postProcessPass.width = width;
-    //postProcessPass.height = height;
+    shadowMapPass.attachmentDSV = shadowDepthMapDSV;
+    shadowMapPass.width = SHADOW_MAP_SIZE;
+    shadowMapPass.height = SHADOW_MAP_SIZE;
   }
 
   void Renderer::BindGlobals()
@@ -184,11 +203,18 @@ namespace Riley
         // VS
         frameBufferGPU->Bind(m_context, DXShaderStage::VS, 0);
         objectConstsGPU->Bind(m_context, DXShaderStage::VS, 1);
+        shadowConstsGPU->Bind(m_context, DXShaderStage::VS, 3);
 
         // PS
         frameBufferGPU->Bind(m_context, DXShaderStage::PS, 0);
         materialConstsGPU->Bind(m_context, DXShaderStage::PS, 1);
         lightConstsGPU->Bind(m_context, DXShaderStage::PS, 2);
+        shadowConstsGPU->Bind(m_context, DXShaderStage::PS, 3);
+
+        // Samplers
+        linearWrapSS->Bind(m_context, 0, DXShaderStage::PS);
+        linearClampSS->Bind(m_context, 1, DXShaderStage::PS);
+        shadowLinearBorderSS->Bind(m_context, 2, DXShaderStage::PS);
 
         called = true;
       }
@@ -198,7 +224,6 @@ namespace Riley
   {
     SetSceneViewport(forwardPass.width, forwardPass.height);
 
-    std::vector<ID3D11RenderTargetView*> rtvs;
     // for(auto& rtv : postProcessPass.attachmentRTVs)
     //   {
     //     rtv->Clear(m_context, postProcessPass.clearColor);
@@ -210,7 +235,6 @@ namespace Riley
     static constexpr float clearBlack[4] = {0.0f, 0.2f, 0.0f, 0.0f};
     hdrRTV->Clear(m_context, clearBlack);
     hdrDSV->Clear(m_context, 1.0f, 0);
-    hdrRTV->BindRenderTargetView(m_context);
 
     solidRS->Bind(m_context);
     solidDSS->Bind(m_context, 0);
@@ -221,6 +245,8 @@ namespace Riley
 
   void Renderer::PassSolid()
   {
+    SetSceneViewport(forwardPass.width, forwardPass.height);
+    hdrRTV->BindRenderTargetView(m_context);
     auto entity_view = m_reg.view<Mesh, Material, Transform, Light>();
     for(auto& entity : entity_view)
       {
@@ -245,7 +271,7 @@ namespace Riley
 
   void Renderer::PassForwardPhong()
   {
-    opaqueBS->Bind(m_context, nullptr);
+    // opaqueBS->Bind(m_context, nullptr);
     auto lightView = m_reg.view<Light>();
     for(auto& e : lightView)
       {
@@ -262,42 +288,102 @@ namespace Riley
           lightConstsCPU.outerCosine = lightData.outer_cosine;
 
           Matrix cameraView = m_camera->GetView();
-          lightConstsCPU.position
-            = Vector4::Transform(lightConstsCPU.position, cameraView);
-          lightConstsCPU.direction
-            = Vector4::Transform(lightConstsCPU.direction, cameraView);
+          lightConstsCPU.position = Vector4::Transform(lightConstsCPU.position,
+                                                       cameraView.Transpose());
+          lightConstsCPU.direction = Vector4::Transform(
+            lightConstsCPU.direction, cameraView.Transpose());
           lightConstsGPU->Update(m_context, lightConstsCPU,
                                  sizeof(lightConstsCPU));
+        }
 
-          // Render Mesh
-          {
-            auto entityView
-              = m_reg.view<Mesh, Material, Transform>(entt::exclude<Light>);
-            for(auto& entity : entityView)
-              {
-                auto [mesh, material, transform]
-                  = entityView.get<Mesh, Material, Transform>(entity);
+        // Render Mesh
+        {
+          PassShadowMapDirectional(lightData);
+          float clearBlack[4] = {0.0f, 0.2f, 0.0f, 0.0f};
+          SetSceneViewport(forwardPass.width, forwardPass.height);
+          hdrRTV->BindRenderTargetView(m_context);
 
-                ShaderManager::GetShaderProgram(material.shader)
-                  ->Bind(m_context);
-                objectConstsCPU.world = transform.currentTransform.Transpose();
-                objectConstsCPU.worldInvTranspose
-                  = transform.currentTransform.Transpose().Invert();
-                objectConstsGPU->Update(m_context, objectConstsCPU,
-                                        sizeof(objectConstsCPU));
+          auto entityView
+            = m_reg.view<Mesh, Material, Transform>(entt::exclude<Light>);
+          for(auto& entity : entityView)
+            {
+              auto [mesh, material, transform]
+                = entityView.get<Mesh, Material, Transform>(entity);
 
-                materialConstsCPU.diffuse = material.diffuse;
-                materialConstsCPU.albedoFactor = material.albedoFactor;
-                materialConstsCPU.ambient = Vector3(0.4f, 0.1f, 0.1f);
-                materialConstsGPU->Update(m_context, materialConstsCPU,
-                                          sizeof(materialConstsCPU));
+              ShaderManager::GetShaderProgram(material.shader)->Bind(m_context);
+              shadowDepthMapDSV->BindSRV(m_context, 0, DXShaderStage::PS);
 
-                mesh.Draw(m_context);
-              }
-          }
+              objectConstsCPU.world = transform.currentTransform.Transpose();
+              objectConstsCPU.worldInvTranspose
+                = transform.currentTransform.Invert();
+              objectConstsGPU->Update(m_context, objectConstsCPU,
+                                      sizeof(objectConstsCPU));
+
+              materialConstsCPU.diffuse = material.diffuse;
+              materialConstsCPU.albedoFactor = material.albedoFactor;
+              materialConstsCPU.ambient = Vector3(0.5f, 0.1f, 0.1f);
+              materialConstsGPU->Update(m_context, materialConstsCPU,
+                                        sizeof(materialConstsCPU));
+
+              mesh.Draw(m_context);
+            }
         }
       }
-    opaqueBS->Unbind(m_context);
+    // opaqueBS->Unbind(m_context);
+  }
+
+  void Renderer::PassShadowMapDirectional(Light const& light)
+  {
+    // assert(light.type == LightType::Directional);
+    SetSceneViewport(shadowMapPass.width, shadowMapPass.height);
+    shadowDepthMapDSV->Clear(m_context, 1.0f, 0);
+    ID3D11RenderTargetView* rtv[1] = {0};
+    m_context->OMSetRenderTargets(0, rtv, shadowDepthMapDSV->GetDSV());
+
+    // ShadowConstantBuffer Update about Light View
+    {
+      Matrix lightViewRow = DirectX::XMMatrixLookToLH(
+        light.position, light.position + light.direction, Vector3(0.0f, 1.0f, 0.0f));
+      Matrix lightProjRow = DirectX::XMMatrixPerspectiveFovLH(
+        DirectX::XMConvertToRadians(m_camera->Fov()), 1.0f, m_camera->Near(), m_camera->Far());
+
+      shadowConstsCPU.lightViewProj
+        = (lightViewRow * lightProjRow).Transpose();
+      shadowConstsCPU.lightView = lightViewRow;
+      shadowConstsCPU.shadow_map_size = SHADOW_MAP_SIZE;
+      shadowConstsCPU.shadow_matrices[0]
+        = m_camera->GetView().Invert() * shadowConstsCPU.lightViewProj;
+      shadowConstsGPU->Update(m_context, shadowConstsCPU,
+                              sizeof(shadowConstsCPU));
+    }
+
+    // Render Mesh
+    {
+      auto entityView
+        = m_reg.view<Mesh, Material, Transform>(entt::exclude<Light>);
+      for(auto& entity : entityView)
+        {
+          auto [mesh, material, transform]
+            = entityView.get<Mesh, Material, Transform>(entity);
+
+          ShaderManager::GetShaderProgram(ShaderProgram::ShadowDepthMap)
+            ->Bind(m_context);
+
+          objectConstsCPU.world = transform.currentTransform.Transpose();
+          objectConstsCPU.worldInvTranspose
+            = transform.currentTransform.Invert();
+          objectConstsGPU->Update(m_context, objectConstsCPU,
+                                  sizeof(objectConstsCPU));
+
+          materialConstsCPU.diffuse = material.diffuse;
+          materialConstsCPU.albedoFactor = material.albedoFactor;
+          materialConstsCPU.ambient = Vector3(0.4f, 0.1f, 0.1f);
+          materialConstsGPU->Update(m_context, materialConstsCPU,
+                                    sizeof(materialConstsCPU));
+
+          mesh.Draw(m_context);
+        }
+    }
   }
 
 } // namespace Riley
