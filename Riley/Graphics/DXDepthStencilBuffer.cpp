@@ -40,7 +40,7 @@ namespace Riley
     dsvDesc.ViewDimension = m_isTextureCube
                               ? D3D11_DSV_DIMENSION_TEXTURE2DARRAY
                               : D3D11_DSV_DIMENSION_TEXTURE2D;
-    /*dsvDesc.Texture2D.MipSlice = 0;*/
+    dsvDesc.Texture2D.MipSlice = 0;
     if(m_isTextureCube)
       {
         dsvDesc.Texture2DArray.ArraySize = 6;

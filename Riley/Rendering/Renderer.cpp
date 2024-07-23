@@ -296,13 +296,14 @@ namespace Riley
                                  sizeof(lightConstsCPU));
         }
 
+        PassShadowMapDirectional(lightData);
+
         // Render Mesh
         {
-          PassShadowMapDirectional(lightData);
           float clearBlack[4] = {0.0f, 0.2f, 0.0f, 0.0f};
           SetSceneViewport(forwardPass.width, forwardPass.height);
           hdrRTV->BindRenderTargetView(m_context);
-
+          shadowDepthMapDSV->BindSRV(m_context, 0, DXShaderStage::PS);
           auto entityView
             = m_reg.view<Mesh, Material, Transform>(entt::exclude<Light>);
           for(auto& entity : entityView)
@@ -311,7 +312,6 @@ namespace Riley
                 = entityView.get<Mesh, Material, Transform>(entity);
 
               ShaderManager::GetShaderProgram(material.shader)->Bind(m_context);
-              shadowDepthMapDSV->BindSRV(m_context, 0, DXShaderStage::PS);
 
               objectConstsCPU.world = transform.currentTransform.Transpose();
               objectConstsCPU.worldInvTranspose
@@ -342,14 +342,19 @@ namespace Riley
 
     // ShadowConstantBuffer Update about Light View
     {
-      Matrix lightViewRow = DirectX::XMMatrixLookToLH(
-        light.position, light.position + light.direction, Vector3(0.0f, 1.0f, 0.0f));
-      Matrix lightProjRow = DirectX::XMMatrixPerspectiveFovLH(
-        DirectX::XMConvertToRadians(m_camera->Fov()), 1.0f, m_camera->Near(), m_camera->Far());
+      Vector3 lightDir = Vector3(light.direction);
+      lightDir.Normalize();
+      Vector3 lightPos = Vector3(light.position);
+      Vector3 targetPos = lightPos + lightDir * light.range;
+
+      Matrix lightViewRow
+        = DirectX::XMMatrixLookAtLH(lightPos, targetPos, Vector3(1.0f, 0.0f, 0.0f));
+      float fovAngle = 2.0f * acos(light.outer_cosine);
+      Matrix lightProjRow = DirectX::XMMatrixPerspectiveFovLH(fovAngle, 1.0f, 0.5f, light.range);
 
       shadowConstsCPU.lightViewProj
         = (lightViewRow * lightProjRow).Transpose();
-      shadowConstsCPU.lightView = lightViewRow;
+      shadowConstsCPU.lightView = lightViewRow.Transpose();
       shadowConstsCPU.shadow_map_size = SHADOW_MAP_SIZE;
       shadowConstsCPU.shadow_matrices[0]
         = m_camera->GetView().Invert() * shadowConstsCPU.lightViewProj;

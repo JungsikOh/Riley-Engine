@@ -30,7 +30,7 @@ PSInput PhongVS(VSInput input)
     output.posWorld = pos;
     output.posProj = mul(pos, frameData.viewProj);
     
-    float3 normalWorld = normalize(mul(input.normalModel, (float3x3) meshData.worldInvTranspose));
+    float3 normalWorld = normalize(mul(input.normalModel, (float3x3) transpose(meshData.worldInvTranspose)));
     output.normalView = mul(normalWorld, (float3x3) transpose(frameData.invView));
     output.tangentWorld = mul(input.tangentModel, (float3x3) meshData.world);
     output.bitangentWorld = mul(input.bitangentModel, (float3x3) meshData.world);
