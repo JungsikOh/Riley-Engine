@@ -10,6 +10,7 @@ float DoAttenuation(float distance, float range)
     
     // 2. LearnOpenGL
     float att = 1.0 / (distance * distance);
+    
     return att;
 }
 
@@ -32,7 +33,7 @@ float3 DoDiffuse(LightData light, float3 L, float3 N)
 float3 DoSpecular(LightData light, float shininess, float3 L, float3 N, float3 V)
 {
     float3 H = normalize(L + V);
-    float NdotH = max(0.00001f, dot(N, H));
+    float NdotH = max(0.0001f, dot(N, H));
     return (light.lightColor.rgb * pow(NdotH, shininess));
 }
 

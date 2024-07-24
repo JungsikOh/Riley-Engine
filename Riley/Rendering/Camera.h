@@ -1,8 +1,10 @@
 #pragma once
 #include "../Math/MathTypes.h"
 
-namespace Riley {
-struct CameraParameters {
+namespace Riley
+{
+  struct CameraParameters
+  {
     float aspectRatio;
     float nearPlane;
     float farPlane;
@@ -11,9 +13,10 @@ struct CameraParameters {
     float sensitivity;
     Vector3 position;
     Vector3 lootAt;
-};
+  };
 
-class Camera {
+  class Camera
+  {
   private:
     Matrix viewRow;
     Matrix projRow;
@@ -54,22 +57,28 @@ class Camera {
     const float& Far() const { return farPlane; }
     const float& Fov() const { return fov; }
     const float& AspectRatio() const { return aspectRatio; }
-    const BoundingFrustum& GetFrustum() {
-        BoundingFrustum frustum(GetProj());
-        frustum.Transform(frustum, viewRow.Invert());
-        return frustum;
+
+    DirectX::BoundingFrustum Frustum()
+    {
+      DirectX::BoundingFrustum frustum(GetProj().Transpose());
+      frustum.Transform(frustum, viewRow.Invert());
+      return frustum;
     }
-    Matrix GetViewProj() {
-        Matrix viewProj = (viewRow * projRow).Transpose();
-        return viewProj;
+
+    Matrix GetViewProj()
+    {
+      Matrix viewProj = (viewRow * projRow).Transpose();
+      return viewProj;
     }
-    Matrix GetProj() {
-        Matrix proj = projRow.Transpose();
-        return proj;
+    Matrix GetProj()
+    {
+      Matrix proj = projRow.Transpose();
+      return proj;
     }
-    Matrix GetView() {
-        Matrix view = viewRow.Transpose();
-        return view;
+    Matrix GetView()
+    {
+      Matrix view = viewRow.Transpose();
+      return view;
     }
 
   public:
@@ -78,5 +87,5 @@ class Camera {
     void MoveUp(float dt);
     void RotatePitch(int64 dy);
     void RotateYaw(int64 dx);
-};
+  };
 } // namespace Riley

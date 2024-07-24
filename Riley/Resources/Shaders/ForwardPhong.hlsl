@@ -65,7 +65,7 @@ float ShadowCalculation(LightData light, float3 posWorld, float3 viewPos, Textur
         {
             for (int y = -1; y <= 1; ++y)
             {
-                shadow += ShadowMap.SampleCmpLevelZero(ShadowSampler, UVD.xy + float2(x, y) * texelSize, UVD.z - 0.005).r;
+                shadow += ShadowMap.SampleCmpLevelZero(ShadowSampler, UVD.xy + float2(x, y) * texelSize, UVD.z - 0.05).r;
             }
         }
         shadow /= 9.0;
@@ -80,7 +80,7 @@ PSOutput PhongPS(PSInput input)
     float4 viewPosition = mul(float4(input.posWorld, 1.0), frameData.view);
     float3 V = normalize(0.0.xxx - viewPosition.xyz);
     
-    float3 ambient = materialData.ambient;
+    float3 ambient = materialData.ambient * 0.5;
     
     LightingResult Lo;
     float shadowFactor = ShadowCalculation(lightData, input.posWorld, viewPosition.xyz, ShadowMap);
@@ -88,7 +88,7 @@ PSOutput PhongPS(PSInput input)
     switch (lightData.type)
     {
         case DIRECTIONAL_LIGHT:
-            Lo = DoDirectionalLight(lightData, 2.0, V, input.normalWorld);
+            Lo = DoDirectionalLight(lightData, 2.0, V, input.normalView);
             break;
         case POINT_LIGHT:
             Lo = DoPointLight(lightData, 2.0, V, viewPosition.xyz, input.normalView);

@@ -72,6 +72,10 @@ namespace Riley
     SceneViewport m_currentSceneViewport;
     float m_currentDeltaTime;
 
+    // Others
+    ////////////////////////////
+    DirectX::BoundingBox lightBoundingBox;
+
     // cbuffers
     FrameBufferConsts frameBufferCPU;
     DXConstantBuffer<FrameBufferConsts>* frameBufferGPU = nullptr;

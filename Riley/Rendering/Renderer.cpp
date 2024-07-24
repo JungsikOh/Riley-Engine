@@ -5,14 +5,75 @@
 #include "../Graphics/DXStates.h"
 #include "../Math/ComputeVectors.h"
 #include "../Math/MathTypes.h"
+#include "Camera.h"
 #include "ModelImporter.h"
 #include "spdlog\spdlog.h"
 
 namespace Riley
 {
-
   constexpr uint32 SHADOW_MAP_SIZE = 2048;
   constexpr uint32 SHADOW_CUBE_SIZE = 512;
+
+  namespace
+  {
+    using namespace DirectX;
+
+    std::pair<Matrix, Matrix>
+    DirectionalLightViewProjection(Light const& light, Camera* camera,
+                                   BoundingBox& cullBox)
+    {
+      // [1] Camera view frustum 생성
+      BoundingFrustum frustum = camera->Frustum();
+      std::array<Vector3, BoundingFrustum::CORNER_COUNT> corners = {};
+      frustum.GetCorners(corners.data());
+
+      // 주어진 [1]frustum을 포함하는 [2]shpere를 생성
+      BoundingSphere frustumSphere;
+      BoundingSphere::CreateFromFrustum(frustumSphere, frustum);
+
+      // 모든 코너의 평균을 통해 frustum의 중심점을 계산
+      Vector3 frustumCenter(0, 0, 0);
+      for(uint32 i = 0; i < corners.size(); ++i)
+        {
+          frustumCenter = frustumCenter + corners[i];
+        }
+      frustumCenter /= static_cast<float>(corners.size());
+      // 반지름 계산
+      float radius = 0.0f;
+      for(Vector3 const& corner : corners)
+        {
+          float distance = Vector3::Distance(corner, frustumCenter);
+          radius = std::max(radius, distance);
+        }
+      radius = std::ceil(radius * 8.0f) / 8.0f; // 그림자 맵 해상도에 맞춤.
+
+      Vector3 const max_extents(radius, radius, radius);
+      Vector3 const min_extents = -max_extents;
+      Vector3 const cascade_extents = max_extents - min_extents;
+
+      Vector4 lightDir = light.direction;
+      lightDir.Normalize();
+      Matrix lightViewRow = XMMatrixLookAtLH(
+        frustumCenter, frustumCenter + 1.0f * lightDir * radius, Vector3::Up);
+
+      float l = min_extents.x;
+      float b = min_extents.y;
+      float n = min_extents.z;
+      float r = max_extents.x;
+      float t = max_extents.y;
+      float f = max_extents.z * 1.5f; // far는 추가적인 여유를 주어 설정
+
+      Matrix lightProjRow = XMMatrixOrthographicOffCenterLH(l, r, b, t, n, f);
+      Matrix lightViewProjRow = lightViewRow * lightProjRow;
+
+      // viewport 경계를 정의하는 bounding box 생성
+      BoundingBox::CreateFromPoints(cullBox, Vector4(l, b, n, 1.0f),
+                                    Vector4(r, t, f, 1.0f));
+      cullBox.Transform(
+        cullBox, lightViewRow.Invert()); // Camera View Space -> world Space
+      return {lightViewRow, lightProjRow};
+    }
+  }
 
   Renderer::Renderer(Window* window, entt::registry& reg, ID3D11Device* device,
                      ID3D11DeviceContext* context, IDXGISwapChain* swapChain,
@@ -281,6 +342,7 @@ namespace Riley
   void Renderer::PassForwardPhong()
   {
     // opaqueBS->Bind(m_context, nullptr);
+    additiveBS->Bind(m_context);
     auto lightView = m_reg.view<Light>();
     for(auto& e : lightView)
       {
@@ -306,7 +368,11 @@ namespace Riley
                                  sizeof(lightConstsCPU));
         }
 
-        PassShadowMapDirectional(lightData);
+        if(lightData.type == LightType::Spot)
+          PassShadowMapSpot(lightData);
+        else if(lightData.type == LightType::Directional)
+          PassShadowMapDirectional(lightData);
+
         solidRS->Bind(m_context);
         // Render Mesh
         {
@@ -340,11 +406,56 @@ namespace Riley
         }
       }
     // opaqueBS->Unbind(m_context);
+    additiveBS->Unbind(m_context);
   }
 
   void Renderer::PassShadowMapDirectional(Light const& light)
   {
-    // assert(light.type == LightType::Directional);
+    assert(light.type == LightType::Directional);
+    SetSceneViewport(shadowMapPass.width, shadowMapPass.height);
+    shadowDepthMapDSV->Clear(m_context, 1.0f, 0);
+    ID3D11RenderTargetView* rtv[1] = {0};
+    m_context->OMSetRenderTargets(0, rtv, shadowDepthMapDSV->GetDSV());
+
+    // ShadowConstantBuffer Update about Light View
+    {
+      auto const& [V, P]
+        = DirectionalLightViewProjection(light, m_camera, lightBoundingBox);
+
+      shadowConstsCPU.lightViewProj = (V * P).Transpose();
+      shadowConstsCPU.lightView = V.Transpose();
+      shadowConstsCPU.shadow_map_size = SHADOW_MAP_SIZE;
+      shadowConstsCPU.shadow_matrices[0]
+        = shadowConstsCPU.lightViewProj * m_camera->GetView().Invert();
+      shadowConstsGPU->Update(m_context, shadowConstsCPU,
+                              sizeof(shadowConstsCPU));
+    }
+
+    cullFrontRS->Bind(m_context);
+
+    {
+      auto entityView
+        = m_reg.view<Mesh, Material, Transform>(entt::exclude<Light>);
+      for(auto& entity : entityView)
+        {
+          auto [mesh, material, transform]
+            = entityView.get<Mesh, Material, Transform>(entity);
+          ShaderManager::GetShaderProgram(ShaderProgram::ShadowDepthMap)->Bind(m_context);
+
+          objectConstsCPU.world = transform.currentTransform.Transpose();
+          objectConstsCPU.worldInvTranspose
+            = transform.currentTransform.Invert().Transpose();
+          objectConstsGPU->Update(m_context, objectConstsCPU,
+                                  sizeof(objectConstsCPU));
+
+          mesh.Draw(m_context);
+        }
+    }
+  }
+
+  void Renderer::PassShadowMapSpot(Light const& light)
+  {
+    assert(light.type == LightType::Spot);
     SetSceneViewport(shadowMapPass.width, shadowMapPass.height);
     shadowDepthMapDSV->Clear(m_context, 1.0f, 0);
     ID3D11RenderTargetView* rtv[1] = {0};
@@ -357,10 +468,11 @@ namespace Riley
       Vector3 lightPos = Vector3(light.position);
       Vector3 targetPos = lightPos + lightDir * light.range;
 
-      Matrix lightViewRow
-        = DirectX::XMMatrixLookAtLH(lightPos, targetPos, Vector3(1.0f, 0.0f, 0.0f));
+      Matrix lightViewRow = DirectX::XMMatrixLookAtLH(
+        lightPos, targetPos, Vector3(1.0f, 0.0f, 0.0f));
       float fovAngle = 2.0f * acos(light.outer_cosine);
-      Matrix lightProjRow = DirectX::XMMatrixPerspectiveFovLH(fovAngle, 1.0f, 1.0f, light.range);
+      Matrix lightProjRow
+        = DirectX::XMMatrixPerspectiveFovLH(fovAngle, 1.0f, 1.0f, light.range);
 
       shadowConstsCPU.lightViewProj
         = (lightViewRow * lightProjRow).Transpose();
@@ -372,6 +484,8 @@ namespace Riley
                               sizeof(shadowConstsCPU));
     }
 
+    cullFrontRS->Bind(m_context);
+
     // Render Mesh
     {
       auto entityView
@@ -380,7 +494,6 @@ namespace Riley
         {
           auto [mesh, material, transform]
             = entityView.get<Mesh, Material, Transform>(entity);
-          cullFrontRS->Bind(m_context);
           ShaderManager::GetShaderProgram(ShaderProgram::ShadowDepthMap)
             ->Bind(m_context);
 
