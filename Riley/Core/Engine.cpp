@@ -62,15 +62,16 @@ namespace Riley
 
     Light light;
     light.position = Vector4(0.5f, 0.2f, 0.5f, 1.0f);
-    light.color = Vector4(1.0f, 0.2f, 0.3f, 0.0f);
+    light.color = Vector4(0.7f, 0.7f, 0.7f, 0.0f);
     light.direction = Vector4(0.0f, -1.0f, 0.0f, 0.0f);
+    light.energy = 0.3f;
     light.type = LightType::Directional;
     modelImporter->LoadLight(light, LightMesh::Cube, 0.03f);
 
     light.position = Vector4(0.6f, 1.8f, 0.02f, 1.0f);
     light.direction = Vector4(0.0f, -1.0f, 0.0f, 0.0f);
-    light.color = Vector4(1.0f, 1.0f, 1.0f, 0.0f);
-    light.energy = 5.0f;
+    light.color = Vector4(1.0f, 0.2f, 1.0f, 0.0f);
+    light.energy = 1.0f;
     light.range = 100.0f;
     light.type = LightType::Spot;
     modelImporter->LoadLight(light, LightMesh::Cube, 0.03f);

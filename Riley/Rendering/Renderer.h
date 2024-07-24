@@ -93,6 +93,7 @@ namespace Riley
     DXRasterizerState* wireframeRS;
     DXRasterizerState* cullNoneRS;
     DXRasterizerState* cullFrontRS;
+    DXRasterizerState* depthBiasRS;
 
     DXDepthStencilState* solidDSS;
     DXDepthStencilState* noneDepthDSS;

@@ -35,6 +35,7 @@ namespace Riley
         RotateYaw((int64)dx);
       }
     UpdateviewRow();
+    SetprojRow(fov, aspectRatio, nearPlane, farPlane);
   }
 
   void Camera::UpdateviewRow()

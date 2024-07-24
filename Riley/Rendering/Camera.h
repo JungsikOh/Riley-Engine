@@ -18,8 +18,8 @@ namespace Riley
   class Camera
   {
   private:
-    Matrix viewRow;
-    Matrix projRow;
+    Matrix viewRow = Matrix::Identity;
+    Matrix projRow = Matrix::Identity;
 
     Vector3 position;
     Vector3 rightVector = Vector3(1.0f, 0.0f, 0.0f);
@@ -53,14 +53,14 @@ namespace Riley
     Vector3 Right() const { return rightVector; }
     Vector3 Forward() const { return lookVector; }
 
-    const float& Near() const { return nearPlane; }
-    const float& Far() const { return farPlane; }
-    const float& Fov() const { return fov; }
-    const float& AspectRatio() const { return aspectRatio; }
+    float Near() const { return nearPlane; }
+    float Far() const { return farPlane; }
+    float Fov() const { return fov; }
+    float AspectRatio() const { return aspectRatio; }
 
     DirectX::BoundingFrustum Frustum()
     {
-      DirectX::BoundingFrustum frustum(GetProj().Transpose());
+      DirectX::BoundingFrustum frustum(GetProj());
       frustum.Transform(frustum, viewRow.Invert());
       return frustum;
     }

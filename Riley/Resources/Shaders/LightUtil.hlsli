@@ -33,7 +33,7 @@ float3 DoDiffuse(LightData light, float3 L, float3 N)
 float3 DoSpecular(LightData light, float shininess, float3 L, float3 N, float3 V)
 {
     float3 H = normalize(L + V);
-    float NdotH = max(0.0001f, dot(N, H));
+    float NdotH = max(0.0f, dot(N, H));
     return (light.lightColor.rgb * pow(NdotH, shininess));
 }
 

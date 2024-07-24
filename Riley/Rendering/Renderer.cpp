@@ -54,16 +54,19 @@ namespace Riley
       Vector4 lightDir = light.direction;
       lightDir.Normalize();
       Matrix lightViewRow = XMMatrixLookAtLH(
-        frustumCenter, frustumCenter + 1.0f * lightDir * radius, Vector3::Up);
+        frustumCenter, frustumCenter + 1.0f * Vector3(lightDir) * radius, Vector3(1.0f, 0.0f, 0.0f));
 
-      float l = min_extents.x;
-      float b = min_extents.y;
-      float n = min_extents.z;
-      float r = max_extents.x;
-      float t = max_extents.y;
-      float f = max_extents.z * 1.5f; // far는 추가적인 여유를 주어 설정
+      float l = min_extents.x* 80.0f;
+      float b = min_extents.y * 80.0f;
+      float n = min_extents.z * 40.0f;
+      float r = max_extents.x * 80.0f;
+      float t = max_extents.y* 80.0f;
+      float f = max_extents.z * 40.0f * 1.5f; // far는 추가적인 여유를 주어 설정
+
+      float fovAngle = 2.0f * acos(light.outer_cosine);
 
       Matrix lightProjRow = XMMatrixOrthographicOffCenterLH(l, r, b, t, n, f);
+      //Matrix lightProjRow = XMMatrixPerspectiveFovLH(fovAngle, 1.0f, 0.05f, f);
       Matrix lightViewProjRow = lightViewRow * lightProjRow;
 
       // viewport 경계를 정의하는 bounding box 생성
@@ -188,6 +191,15 @@ namespace Riley
     wireframeRS = new DXRasterizerState(m_device, WireframeDesc());
     cullNoneRS = new DXRasterizerState(m_device, CullNoneDesc());
     cullFrontRS = new DXRasterizerState(m_device, CullCWDesc());
+
+    DXRasterizerStateDesc shadow_depth_bias_state{};
+    shadow_depth_bias_state.cull_mode = DXCullMode::Front;
+    shadow_depth_bias_state.fill_mode = DXFillMode::Solid;
+    shadow_depth_bias_state.depth_clip_enable = true;
+    shadow_depth_bias_state.depth_bias = 8500;
+    shadow_depth_bias_state.depth_bias_clamp = 0.0f;
+    shadow_depth_bias_state.slope_scaled_depth_bias = 1.0f;
+    depthBiasRS = new DXRasterizerState(m_device, shadow_depth_bias_state);
 
     solidDSS = new DXDepthStencilState(m_device, DefaultDepthDesc());
     noneDepthDSS = new DXDepthStencilState(m_device, NoneDepthDesc());
@@ -353,7 +365,7 @@ namespace Riley
           lightConstsCPU.position = lightData.position;
           lightConstsCPU.direction = lightData.direction;
           lightConstsCPU.range = lightData.range;
-          lightConstsCPU.lightColor = lightData.color;
+          lightConstsCPU.lightColor = lightData.color * lightData.energy;
           lightConstsCPU.type = static_cast<int32>(lightData.type);
           lightConstsCPU.innerCosine = lightData.inner_cosine;
           lightConstsCPU.outerCosine = lightData.outer_cosine;
@@ -423,7 +435,7 @@ namespace Riley
         = DirectionalLightViewProjection(light, m_camera, lightBoundingBox);
 
       shadowConstsCPU.lightViewProj = (V * P).Transpose();
-      shadowConstsCPU.lightView = V.Transpose();
+      shadowConstsCPU.lightView = V;
       shadowConstsCPU.shadow_map_size = SHADOW_MAP_SIZE;
       shadowConstsCPU.shadow_matrices[0]
         = shadowConstsCPU.lightViewProj * m_camera->GetView().Invert();
@@ -431,11 +443,11 @@ namespace Riley
                               sizeof(shadowConstsCPU));
     }
 
-    cullFrontRS->Bind(m_context);
+    depthBiasRS->Bind(m_context);
 
     {
       auto entityView
-        = m_reg.view<Mesh, Material, Transform>(entt::exclude<Light>);
+        = m_reg.view<Mesh, Material, Transform, AABB>(entt::exclude<Light>);
       for(auto& entity : entityView)
         {
           auto [mesh, material, transform]
@@ -484,7 +496,7 @@ namespace Riley
                               sizeof(shadowConstsCPU));
     }
 
-    cullFrontRS->Bind(m_context);
+    depthBiasRS->Bind(m_context);
 
     // Render Mesh
     {

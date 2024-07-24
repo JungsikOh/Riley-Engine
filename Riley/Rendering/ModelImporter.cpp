@@ -244,7 +244,7 @@ std::vector<entt::entity> ModelImporter::LoadLight(Light& lightData,
     entt::entity light = m_registry.create();
 
     if (lightData.type == LightType::Directional) {
-        const_cast<Light&>(lightData).position = lightData.direction * 1e3;
+        const_cast<Light&>(lightData).position = -lightData.direction * 1e3;
     }
     m_registry.emplace<Light>(light, lightData);
 

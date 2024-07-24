@@ -40,22 +40,49 @@ namespace Riley
   void Editor::Run()
   {
     static constexpr float clearDarkBlue[4] = {0.0f, 0.21f, 0.38f, 0.0f};
-    engine->SetSceneViewportData(sceneViewportData);
-    engine->Run();
-    engine->GetCamera()->SetAspectRatio(sceneViewportData.GetWidth() / sceneViewportData.GetHeight());
-    engine->GetBackbufferRTV()->Clear(engine->GetDeviceContext(),
-                                      clearDarkBlue);
-    engine->GetBackbufferRTV()->BindRenderTargetView(engine->GetDeviceContext());
-    gui->Begin();
-    {
-      ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(),
-                                   ImGuiDockNodeFlags_PassthruCentralNode);
-      MenuBar();
-      Camera();
-      Scene();
-    }
-    gui->End();
-    engine->Present();
+    static bool started = false;
+
+    if(started)
+      {
+        engine->SetSceneViewportData(sceneViewportData);
+        engine->Run();
+        engine->GetCamera()->SetAspectRatio(sceneViewportData.GetWidth() / sceneViewportData.GetHeight());
+        engine->GetBackbufferRTV()->Clear(engine->GetDeviceContext(),
+                                          clearDarkBlue);
+        engine->GetBackbufferRTV()->BindRenderTargetView(
+          engine->GetDeviceContext());
+        gui->Begin();
+        {
+          ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(),
+                                       ImGuiDockNodeFlags_PassthruCentralNode);
+          MenuBar();
+          Camera();
+          Scene();
+        }
+        gui->End();
+        engine->Present();
+      }
+    else
+      {
+        engine->SetSceneViewportData(std::nullopt);
+        engine->Run();
+        engine->GetBackbufferRTV()->Clear(engine->GetDeviceContext(),
+                                          clearDarkBlue);
+        engine->GetBackbufferRTV()->BindRenderTargetView(
+          engine->GetDeviceContext());
+        gui->Begin();
+        {
+          ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(),
+                                       ImGuiDockNodeFlags_PassthruCentralNode);
+          MenuBar();
+          Camera();
+          Scene();
+        }
+        gui->End();
+        engine->Present();
+
+        started = true;
+      }
   }
 
   void Editor::MenuBar()
