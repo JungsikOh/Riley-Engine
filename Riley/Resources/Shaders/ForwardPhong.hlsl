@@ -13,7 +13,7 @@ struct VSInput
 struct PSInput
 {
     float4 posProj : SV_POSITION; // Screen position
-    float4 posWorld : position1;
+    float3 posWorld : POSITION0;
     float3 normalWorld : NORMAL0;
     float3 normalView : NORMAL1;
     float2 texcoord : TEXCOORD0;
@@ -27,8 +27,8 @@ PSInput PhongVS(VSInput input)
     
     float4 pos = float4(input.posModel, 1.0);
     pos = mul(pos, meshData.world);
-    output.posWorld = pos;
     output.posProj = mul(pos, frameData.viewProj);
+    output.posWorld = pos.xyz;
     
     float3 normalWorld = normalize(mul(input.normalModel, (float3x3) transpose(meshData.worldInvTranspose)));
     output.normalView = mul(normalWorld, (float3x3) transpose(frameData.invView));
@@ -40,51 +40,50 @@ PSInput PhongVS(VSInput input)
     return output;
 }
 
-float ShadowCalculation(LightData light, float4 posWorld, Texture2D shadowMap)
-{
-    float shadow = 0.0;
-    if (light.castShadows)
-    {
-        if (light.type & DIRECTIONAL_LIGHT)
-        {
-            // light의 inputTexcoord를 찾아야한다.
-            // 빛에서 볼 때를 기준으로 값을 정한다.
-            // 1. Light Proj -> Screen(Clip)
-            float4 lightScreen = mul(posWorld, shadowData.lightViewProj);
-            lightScreen /= lightScreen.w; // Clip -> NDC
-            lightScreen.y *= -1; // texcoord는 y축 방향이 다르므로
-        
-            // 2. [-1, 1] -> [0, 1]
-            lightScreen *= 0.5;
-            lightScreen += 0.5;
-        
-            float2 lightTex = float2(lightScreen.x, lightScreen.y);
-    
-            float shadow = 0.0;
-            shadow += shadowMap.SampleCmpLevelZero(ShadowSampler, lightTex.xy, lightScreen.z).r;
-        }
-        return shadow;
-    }
-}
-
 struct PSOutput
 {
     float4 pixelColor : SV_Target0;
 };
 
+float ShadowCalculation(LightData light, float3 posWorld, float3 viewPos, Texture2D ShadowMap)
+{
+    float shadow = 0.0;
+    if (light.castShadows)
+    {
+        float4 shadowMapCoords = mul(float4(viewPos, 1.0), shadowData.shadow_matrices[0]);
+        float3 UVD = shadowMapCoords.xyz / shadowMapCoords.w;
+        UVD.xy = 0.5 * UVD.xy + 0.5;
+        UVD.y = 1.0 - UVD.y;
+        
+        // PCF 3x3
+        float2 texel;
+        ShadowMap.GetDimensions(texel.x, texel.y);
+        
+        float2 texelSize = 1.0 / texel;
+        
+        for (int x = -1; x <= 1; ++x)
+        {
+            for (int y = -1; y <= 1; ++y)
+            {
+                shadow += ShadowMap.SampleCmpLevelZero(ShadowSampler, UVD.xy + float2(x, y) * texelSize, UVD.z - 0.005).r;
+            }
+        }
+        shadow /= 9.0;
+    }
+    return shadow;
+}
+
 PSOutput PhongPS(PSInput input)
 {
     PSOutput output;
     
-    float4 viewPosition = mul(input.posWorld, frameData.view);
-    float4 worldPosition = input.posWorld;
+    float4 viewPosition = mul(float4(input.posWorld, 1.0), frameData.view);
     float3 V = normalize(0.0.xxx - viewPosition.xyz);
-    //float3 V = normalize(frameData.cameraPosition.xyz - input.posWorld.xyz);
     
     float3 ambient = materialData.ambient;
     
     LightingResult Lo;
-    //float shadowFactor = ShadowCalculation(lightData, input.posWorld, shadowMap);
+    float shadowFactor = ShadowCalculation(lightData, input.posWorld, viewPosition.xyz, ShadowMap);
     
     switch (lightData.type)
     {
@@ -95,10 +94,10 @@ PSOutput PhongPS(PSInput input)
             Lo = DoPointLight(lightData, 2.0, V, viewPosition.xyz, input.normalView);
             break;
         case SPOT_LIGHT:
-            Lo = DoSpotLight(lightData, 2.0, V, viewPosition.xyz, input.normalView);
+            Lo = DoSpotLight(lightData, 8.0, V, viewPosition.xyz, input.normalView);
             break;
     }
     
-    output.pixelColor = float4(ambient + (Lo.diffuse + Lo.specular), 1.0);
+    output.pixelColor = float4(ambient + ((Lo.diffuse + Lo.specular)) * shadowFactor, 1.0);
     return output;
 }

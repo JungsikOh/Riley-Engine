@@ -42,7 +42,7 @@ struct LightData
     float outerCosine;
     float innerCosine;
 
-    float castShadows;
+    int castShadows;
     float3 _padding1;
 };
 

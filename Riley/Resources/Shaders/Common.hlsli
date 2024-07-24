@@ -9,9 +9,10 @@
 
 SamplerState LinearWrapSampler : register(s0);
 SamplerState LinearClampSampler : register(s1);
-SamplerComparisonState ShadowSampler : register(s2);
+SamplerState ShadowPointSampler : register(s2);
+SamplerComparisonState ShadowSampler : register(s3);
 
-Texture2D shadowMap : register(t0);
+Texture2D ShadowMap : register(t0);
 
 cbuffer FrameBufferConsts : register(b0)
 {

@@ -5,8 +5,11 @@
 
 float DoAttenuation(float distance, float range)
 {
-    float att = saturate(1.0f - (distance * distance / (range * range)));
-    //float att = 1.0 / (distance * distance);
+    // 1. Gihbud Source
+    //float att = saturate(1.0f - (distance * distance / (range * range)));
+    
+    // 2. LearnOpenGL
+    float att = 1.0 / (distance * distance);
     return att;
 }
 
@@ -29,7 +32,7 @@ float3 DoDiffuse(LightData light, float3 L, float3 N)
 float3 DoSpecular(LightData light, float shininess, float3 L, float3 N, float3 V)
 {
     float3 H = normalize(L + V);
-    float NdotH = max(0.0f, dot(N, H));
+    float NdotH = max(0.00001f, dot(N, H));
     return (light.lightColor.rgb * pow(NdotH, shininess));
 }
 
@@ -65,7 +68,7 @@ LightingResult DoSpotLight(LightData light, float shininess, float3 V, float3 P,
 {
     LightingResult result;
     
-    float3 L = normalize(light.position.xyz - P);
+    float3 L = light.position.xyz - P;
     float distance = length(L);
     L = L / distance;
     

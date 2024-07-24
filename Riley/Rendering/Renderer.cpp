@@ -126,6 +126,7 @@ namespace Riley
     solidRS = new DXRasterizerState(m_device, CullCCWDesc());
     wireframeRS = new DXRasterizerState(m_device, WireframeDesc());
     cullNoneRS = new DXRasterizerState(m_device, CullNoneDesc());
+    cullFrontRS = new DXRasterizerState(m_device, CullCWDesc());
 
     solidDSS = new DXDepthStencilState(m_device, DefaultDepthDesc());
     noneDepthDSS = new DXDepthStencilState(m_device, NoneDepthDesc());
@@ -140,6 +141,13 @@ namespace Riley
     linearClampSS
       = new DXSampler(m_device, SamplerDesc(DXFilter::MIN_MAG_MIP_LINEAR,
                                             DXTextureAddressMode::Clamp));
+
+    DXSamplerDesc shadowPointDesc{};
+    shadowPointDesc.filter = DXFilter::MIN_MAG_MIP_POINT;
+    shadowPointDesc.addressU = shadowPointDesc.addressV
+      = shadowPointDesc.addressW = DXTextureAddressMode::Border;
+    shadowPointDesc.borderColor[0] = 1.0f;
+    linearBorderSS = new DXSampler(m_device, shadowPointDesc);
 
     DXSamplerDesc comparisonSamplerDesc{};
     comparisonSamplerDesc.filter = DXFilter::COMPARISON_MIN_MAG_MIP_LINEAR;
@@ -214,7 +222,8 @@ namespace Riley
         // Samplers
         linearWrapSS->Bind(m_context, 0, DXShaderStage::PS);
         linearClampSS->Bind(m_context, 1, DXShaderStage::PS);
-        shadowLinearBorderSS->Bind(m_context, 2, DXShaderStage::PS);
+        linearBorderSS->Bind(m_context, 2, DXShaderStage::PS);
+        shadowLinearBorderSS->Bind(m_context, 3, DXShaderStage::PS);
 
         called = true;
       }
@@ -256,7 +265,7 @@ namespace Riley
         ShaderManager::GetShaderProgram(material.shader)->Bind(m_context);
         objectConstsCPU.world = transform.currentTransform.Transpose();
         objectConstsCPU.worldInvTranspose
-          = transform.currentTransform.Invert();
+          = transform.currentTransform.Invert().Transpose();
         objectConstsGPU->Update(m_context, objectConstsCPU,
                                 sizeof(objectConstsCPU));
 
@@ -286,6 +295,7 @@ namespace Riley
           lightConstsCPU.type = static_cast<int32>(lightData.type);
           lightConstsCPU.innerCosine = lightData.inner_cosine;
           lightConstsCPU.outerCosine = lightData.outer_cosine;
+          lightConstsCPU.castShadows = 1;
 
           Matrix cameraView = m_camera->GetView();
           lightConstsCPU.position = Vector4::Transform(lightConstsCPU.position,
@@ -297,7 +307,7 @@ namespace Riley
         }
 
         PassShadowMapDirectional(lightData);
-
+        solidRS->Bind(m_context);
         // Render Mesh
         {
           float clearBlack[4] = {0.0f, 0.2f, 0.0f, 0.0f};
@@ -315,7 +325,7 @@ namespace Riley
 
               objectConstsCPU.world = transform.currentTransform.Transpose();
               objectConstsCPU.worldInvTranspose
-                = transform.currentTransform.Invert();
+                = transform.currentTransform.Invert().Transpose();
               objectConstsGPU->Update(m_context, objectConstsCPU,
                                       sizeof(objectConstsCPU));
 
@@ -350,14 +360,14 @@ namespace Riley
       Matrix lightViewRow
         = DirectX::XMMatrixLookAtLH(lightPos, targetPos, Vector3(1.0f, 0.0f, 0.0f));
       float fovAngle = 2.0f * acos(light.outer_cosine);
-      Matrix lightProjRow = DirectX::XMMatrixPerspectiveFovLH(fovAngle, 1.0f, 0.5f, light.range);
+      Matrix lightProjRow = DirectX::XMMatrixPerspectiveFovLH(fovAngle, 1.0f, 1.0f, light.range);
 
       shadowConstsCPU.lightViewProj
         = (lightViewRow * lightProjRow).Transpose();
       shadowConstsCPU.lightView = lightViewRow.Transpose();
       shadowConstsCPU.shadow_map_size = SHADOW_MAP_SIZE;
       shadowConstsCPU.shadow_matrices[0]
-        = m_camera->GetView().Invert() * shadowConstsCPU.lightViewProj;
+        = shadowConstsCPU.lightViewProj * m_camera->GetView().Invert();
       shadowConstsGPU->Update(m_context, shadowConstsCPU,
                               sizeof(shadowConstsCPU));
     }
@@ -370,21 +380,15 @@ namespace Riley
         {
           auto [mesh, material, transform]
             = entityView.get<Mesh, Material, Transform>(entity);
-
+          cullFrontRS->Bind(m_context);
           ShaderManager::GetShaderProgram(ShaderProgram::ShadowDepthMap)
             ->Bind(m_context);
 
           objectConstsCPU.world = transform.currentTransform.Transpose();
           objectConstsCPU.worldInvTranspose
-            = transform.currentTransform.Invert();
+            = transform.currentTransform.Invert().Transpose();
           objectConstsGPU->Update(m_context, objectConstsCPU,
                                   sizeof(objectConstsCPU));
-
-          materialConstsCPU.diffuse = material.diffuse;
-          materialConstsCPU.albedoFactor = material.albedoFactor;
-          materialConstsCPU.ambient = Vector3(0.4f, 0.1f, 0.1f);
-          materialConstsGPU->Update(m_context, materialConstsCPU,
-                                    sizeof(materialConstsCPU));
 
           mesh.Draw(m_context);
         }

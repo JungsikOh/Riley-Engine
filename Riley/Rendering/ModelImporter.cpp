@@ -232,6 +232,9 @@ ModelImporter::LoadBox(const Vector3& pos, const float& scale /*1.0f*/,
 
     m_registry.emplace<Transform>(entity, transform);
 
+    AABB aabb{};
+    m_registry.emplace<AABB>(entity, aabb);
+
     return std::vector<entt::entity>{entity};
 }
 
@@ -371,7 +374,7 @@ std::vector<entt::entity> ModelImporter::LoadLight(Light& lightData,
 
         Material material{};
         material.diffuse =
-            Vector3(lightData.color.x, lightData.color.y, lightData.color.z);
+            Vector3(lightData.color.x, lightData.color.y, lightData.color.z) * lightData.energy;
         material.shader = ShaderProgram::Solid;
         m_registry.emplace<Material>(light, material);
 

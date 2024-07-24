@@ -85,7 +85,7 @@ namespace Riley
     LightType type = LightType::Directional;
     float outer_cosine = cos(pie / 4);
     float inner_cosine = cos(pie / 8);
-    bool casts_shadows = false;
+    bool casts_shadows = true;
     bool use_cascades = false;
     bool active = true;
     /*bool volumetric = false;
@@ -100,6 +100,12 @@ namespace Riley
     float godrays_weight = 0.25f;
     float godrays_density = 0.975f;
     float godrays_exposure = 2.0f;*/
+  };
+
+  struct COMPONENT AABB
+  {
+    bool isCameraVisible = true;
+    bool isLightVisible = true;
   };
 
   struct COMPONENT Tag

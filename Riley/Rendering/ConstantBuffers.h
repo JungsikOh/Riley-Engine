@@ -46,7 +46,7 @@ namespace Riley
     float outerCosine;
     float innerCosine;
 
-    float castShadows;
+    int32 castShadows;
     Vector3 _padding1;
   };
 
