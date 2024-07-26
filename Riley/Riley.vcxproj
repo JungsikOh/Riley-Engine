@@ -159,6 +159,7 @@
     <ClCompile Include="Editor\ImGuiLayer.cpp" />
     <ClCompile Include="Graphics\DXDepthStencilBuffer.cpp" />
     <ClCompile Include="Graphics\DXInputLayout.cpp" />
+    <ClCompile Include="Graphics\DXRenderPass.cpp" />
     <ClCompile Include="Graphics\DXRenderTarget.cpp" />
     <ClCompile Include="Graphics\DXShaderCompiler.cpp" />
     <ClCompile Include="Graphics\DXShaderProgram.cpp" />

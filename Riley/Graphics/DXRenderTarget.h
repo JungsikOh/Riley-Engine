@@ -21,20 +21,28 @@ class DXRenderTarget : public DXResource {
     ID3D11Texture2D* GetTexture() const {
         return reinterpret_cast<ID3D11Texture2D*>(m_resource);
     }
-    ID3D11RenderTargetView* GetRTV() { return m_rtv; }
+    std::vector<ID3D11RenderTargetView*> GetRTVs() const { return m_RTVs; }
+    ID3D11RenderTargetView* RTV(uint64 i = 0) const { return m_RTVs[i]; }
 
     void SetDepthStencilBuffer(DXDepthStencilBuffer* buffer) {
         m_depthStencilBuffer = buffer;
     }
+
+    void Initalize(ID3D11Device* device, UINT width, UINT height,
+                             DXFormat format, DXDepthStencilBuffer* buffer);
+
+    void CreateRenderTarget(ID3D11Device* device, UINT width, UINT height,
+                            DXFormat format, DXDepthStencilBuffer* buffer);
+    void CreateRenderTarget(ID3D11Device* device, ID3D11RenderTargetView* rtv,
+                            DXDepthStencilBuffer* buffer);
 
     void BindRenderTargetView(ID3D11DeviceContext* context);
     void BindOnlyDepthStencilView(ID3D11DeviceContext* context);
     void Clear(ID3D11DeviceContext* context, const float* clearColor);
 
   private:
-    ID3D11RenderTargetView* m_rtv;
-    DXDepthStencilBuffer*
-        m_depthStencilBuffer; // It is deleted by DXDepthStencilBuffer
+    std::vector<ID3D11RenderTargetView*> m_RTVs;
+    DXDepthStencilBuffer* m_depthStencilBuffer; // It is deleted by DXDepthStencilBuffer
 
     UINT m_width;
     UINT m_height;

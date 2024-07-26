@@ -285,18 +285,17 @@ namespace Riley
   {
     static constexpr float clearBlack[4] = {0.0f, 0.2f, 0.0f, 0.0f};
 
-    forwardPass.attachmentRTVs.clear();
-    forwardPass.attachmentRTVs.push_back(hdrRTV);
+    forwardPass.attachmentRTVs = hdrRTV;
     forwardPass.clearColor = clearBlack;
-    forwardPass.attachmentDSV = hdrDSV;
+    forwardPass.attachmentDSVs = hdrDSV;
     forwardPass.width = width;
     forwardPass.height = height;
 
-    shadowMapPass.attachmentDSV = shadowDepthMapDSV;
+    shadowMapPass.attachmentDSVs = shadowDepthMapDSV;
     shadowMapPass.width = SHADOW_MAP_SIZE;
     shadowMapPass.height = SHADOW_MAP_SIZE;
 
-    shadowCubeMapPass.attachmentDSV = shadowDepthCubeMapDSV;
+    shadowCubeMapPass.attachmentDSVs = shadowDepthCubeMapDSV;
     shadowCubeMapPass.width = SHADOW_CUBE_SIZE;
     shadowCubeMapPass.height = SHADOW_CUBE_SIZE;
   }

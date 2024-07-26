@@ -53,7 +53,6 @@ float CalcShadowCubeMapPCF3x3x3(LightData light, float3 viewPos, TextureCube sha
     
     // PCF 3x3x3
     const float dx = 1.0 / shadowData.shadow_map_size;
-    
         
     for (int x = -1; x <= 1; ++x)
     {
@@ -66,7 +65,6 @@ float CalcShadowCubeMapPCF3x3x3(LightData light, float3 viewPos, TextureCube sha
         }
     }
     shadow /= 27.0;
-    
     
     return shadow;
 }
