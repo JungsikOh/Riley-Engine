@@ -38,7 +38,7 @@ class SceneViewport {
         return viewport;
     }
 
-    void Bind(ID3D11DeviceContext* context) {
+    void BindViewport(ID3D11DeviceContext* context) {
         D3D11_VIEWPORT viewport = GetD3DViewport();
         context->RSSetViewports(1, &viewport);
     }

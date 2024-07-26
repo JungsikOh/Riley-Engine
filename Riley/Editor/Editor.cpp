@@ -49,8 +49,7 @@ namespace Riley
         engine->GetCamera()->SetAspectRatio(sceneViewportData.GetWidth() / sceneViewportData.GetHeight());
         engine->GetBackbufferRTV()->Clear(engine->GetDeviceContext(),
                                           clearDarkBlue);
-        engine->GetBackbufferRTV()->BindRenderTargetView(
-          engine->GetDeviceContext());
+        engine->GetBackbufferRTV()->BindRenderTargets(engine->GetDeviceContext());
         gui->Begin();
         {
           ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(),
@@ -66,10 +65,8 @@ namespace Riley
       {
         engine->SetSceneViewportData(std::nullopt);
         engine->Run();
-        engine->GetBackbufferRTV()->Clear(engine->GetDeviceContext(),
-                                          clearDarkBlue);
-        engine->GetBackbufferRTV()->BindRenderTargetView(
-          engine->GetDeviceContext());
+        engine->GetBackbufferRTV()->Clear(engine->GetDeviceContext(), clearDarkBlue);
+        engine->GetBackbufferRTV()->BindRenderTargets(engine->GetDeviceContext());
         gui->Begin();
         {
           ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(),

@@ -5,9 +5,9 @@
 
 namespace Riley {
 static void ComputeAndSetTangets(_In_ std::vector<uint32> const indices,
-                                 _In_ std::vector<Vector3>& const positions,
-                                 _In_ std::vector<Vector3>& const normals,
-                                 _In_ std::vector<Vector2>& const texcoords,
+                                 _In_ std::vector<Vector3> const positions,
+                                 _In_ std::vector<Vector3> const normals,
+                                 _In_ std::vector<Vector2> const texcoords,
                                  _Out_ std::vector<Vector3>& tangents,
                                  _Out_ std::vector<Vector3>& bitangents) {
     std::vector<Vector3> _tangents(positions.size(), Vector3(0.0f));
@@ -70,8 +70,8 @@ static void ComputeAndSetTangets(_In_ std::vector<uint32> const indices,
 }
 
 static void ComputeAndSetNormals(_In_ std::vector<uint32> const indices,
-                                 _In_ std::vector<Vector3>& const positions,
-                                 _In_ std::vector<Vector2>& const texcoords,
+                                 _In_ std::vector<Vector3> const positions,
+                                 _In_ std::vector<Vector2> const texcoords,
                                  _Out_ std::vector<Vector3>& normals) {
     std::vector<Vector3> _normals(positions.size(), Vector3(0.0f));
     std::vector<float> _weights(positions.size(), 0.0f);

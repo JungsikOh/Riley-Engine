@@ -161,6 +161,7 @@
     <ClCompile Include="Graphics\DXInputLayout.cpp" />
     <ClCompile Include="Graphics\DXRenderPass.cpp" />
     <ClCompile Include="Graphics\DXRenderTarget.cpp" />
+    <ClCompile Include="Graphics\DXResource.cpp" />
     <ClCompile Include="Graphics\DXShaderCompiler.cpp" />
     <ClCompile Include="Graphics\DXShaderProgram.cpp" />
     <ClCompile Include="Graphics\DXStates.cpp" />
