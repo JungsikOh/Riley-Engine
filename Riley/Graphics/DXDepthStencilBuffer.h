@@ -9,7 +9,7 @@ class DXDepthStencilBuffer : public DXResource {
                          bool isStencilEnable = true, bool isTextureCube = false);
     virtual ~DXDepthStencilBuffer() { SAFE_RELEASE(m_dsv); }
 
-    ID3D11DepthStencilView* GetDSV() { return m_dsv; }
+    ID3D11DepthStencilView* GetDSV() const { return m_dsv; }
     void Clear(ID3D11DeviceContext* context, float depth, uint8 stencil);
 
     uint32 m_width;

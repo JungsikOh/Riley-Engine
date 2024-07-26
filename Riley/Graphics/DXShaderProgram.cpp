@@ -34,8 +34,8 @@ namespace Riley
     HR(m_device->CreatePixelShader(blob.GetPointer(), blob.GetLength(),
                                    nullptr, &ps));
   }
-  /*
-  DXDomainShader::DXDomainShader(ID3D11Device& device,
+  
+  DXDomainShader::DXDomainShader(ID3D11Device* device,
                                  DXShaderBytecode const& blob)
       : DXShader(device, blob, DXShaderStage::DS) {
       DXShaderBytecode const& dsBlob = GetBytecode();
@@ -49,7 +49,8 @@ namespace Riley
                                       nullptr, &ds));
   }
 
-  DXHullShader::DXHullShader(ID3D11Device& device, DXShaderBytecode const&
+  DXHullShader::DXHullShader(ID3D11Device* device,
+                             DXShaderBytecode const&
   blob) : DXShader(device, blob, DXShaderStage::HS) { DXShaderBytecode const&
   hsBlob = GetBytecode(); HR(m_device->CreateHullShader(hsBlob.GetPointer(),
   hsBlob.GetLength(), nullptr, &hs));
@@ -61,7 +62,7 @@ namespace Riley
   nullptr, &hs));
   }
 
-  DXGeometryShader::DXGeometryShader(ID3D11Device& device,
+  DXGeometryShader::DXGeometryShader(ID3D11Device* device,
                                      DXShaderBytecode const& blob)
       : DXShader(device, blob, DXShaderStage::GS) {
       DXShaderBytecode const& gsBlob = GetBytecode();
@@ -75,7 +76,7 @@ namespace Riley
                                         nullptr, &gs));
   }
 
-  DXComputeShader::DXComputeShader(ID3D11Device& device,
+  DXComputeShader::DXComputeShader(ID3D11Device* device,
                                    DXShaderBytecode const& blob)
       : DXShader(device, blob, DXShaderStage::CS) {
       DXShaderBytecode const& csBlob = GetBytecode();
@@ -88,7 +89,7 @@ namespace Riley
       HR(m_device->CreateComputeShader(blob.GetPointer(), blob.GetLength(),
                                        nullptr, &cs));
   }
-  */
+  
 
   DXGraphicsShaderProgram &
   DXGraphicsShaderProgram::SetVertexShader(DXVertexShader *_vs)

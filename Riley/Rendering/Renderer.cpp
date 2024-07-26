@@ -53,20 +53,27 @@ namespace Riley
 
       Vector4 lightDir = light.direction;
       lightDir.Normalize();
-      Matrix lightViewRow = XMMatrixLookAtLH(
-        frustumCenter, frustumCenter + 1.0f * Vector3(lightDir) * radius, Vector3(1.0f, 0.0f, 0.0f));
+      Vector3 up = Vector3::Up;
 
-      float l = min_extents.x* 80.0f;
+      if(abs(up.Dot(Vector3(lightDir)) + 1.0f) < 1e-5)
+        up = Vector3(1.0f, 0.0f, 0.0f);
+
+      Matrix lightViewRow = XMMatrixLookAtLH(
+        frustumCenter, frustumCenter + 1.0f * Vector3(lightDir) * radius, up);
+
+      float l = min_extents.x * 80.0f;
       float b = min_extents.y * 80.0f;
       float n = min_extents.z * 40.0f;
       float r = max_extents.x * 80.0f;
-      float t = max_extents.y* 80.0f;
-      float f = max_extents.z * 40.0f * 1.5f; // far는 추가적인 여유를 주어 설정
+      float t = max_extents.y * 80.0f;
+      float f
+        = max_extents.z * 40.0f * 1.5f; // far는 추가적인 여유를 주어 설정
 
       float fovAngle = 2.0f * acos(light.outer_cosine);
 
       Matrix lightProjRow = XMMatrixOrthographicOffCenterLH(l, r, b, t, n, f);
-      //Matrix lightProjRow = XMMatrixPerspectiveFovLH(fovAngle, 1.0f, 0.05f, f);
+      // Matrix lightProjRow = XMMatrixPerspectiveFovLH(fovAngle, 1.0f, 0.05f,
+      // f);
       Matrix lightViewProjRow = lightViewRow * lightProjRow;
 
       // viewport 경계를 정의하는 bounding box 생성
@@ -235,6 +242,7 @@ namespace Riley
 
   void Renderer::CreateDepthStencilBuffers(uint32 width, uint32 height)
   {
+    // DXDepthStencilBuffer Init
     if(hdrDSV != nullptr) SAFE_DELETE(hdrDSV);
     hdrDSV = new DXDepthStencilBuffer(m_device, width, height, true);
     if(depthMapDSV != nullptr) SAFE_DELETE(depthMapDSV);
@@ -242,14 +250,27 @@ namespace Riley
     if(shadowDepthMapDSV != nullptr) SAFE_DELETE(shadowDepthMapDSV);
     shadowDepthMapDSV = new DXDepthStencilBuffer(
       m_device, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE, false, false);
+    if(shadowDepthCubeMapDSV != nullptr) SAFE_DELETE(shadowDepthCubeMapDSV);
+    shadowDepthCubeMapDSV = new DXDepthStencilBuffer(
+      m_device, SHADOW_CUBE_SIZE, SHADOW_CUBE_SIZE, false, true);
 
-    D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
-    ZeroMemory(&srvDesc, sizeof(srvDesc));
-    srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
-    srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-    srvDesc.Texture2D.MipLevels = 1;
-    depthMapDSV->CreateSRV(m_device, &srvDesc);
-    shadowDepthMapDSV->CreateSRV(m_device, &srvDesc);
+    // SRV about Texture2D DSV
+    D3D11_SHADER_RESOURCE_VIEW_DESC shadowMapDesc;
+    ZeroMemory(&shadowMapDesc, sizeof(shadowMapDesc));
+    shadowMapDesc.Format = DXGI_FORMAT_R32_FLOAT;
+    shadowMapDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+    shadowMapDesc.Texture2D.MipLevels = 1;
+    depthMapDSV->CreateSRV(m_device, &shadowMapDesc);
+    shadowDepthMapDSV->CreateSRV(m_device, &shadowMapDesc);
+
+    // SRV about TextureCube DSV
+    D3D11_SHADER_RESOURCE_VIEW_DESC shadowCubeMapDesc;
+    ZeroMemory(&shadowCubeMapDesc, sizeof(shadowCubeMapDesc));
+    shadowCubeMapDesc.Format = DXGI_FORMAT_R32_FLOAT;
+    shadowCubeMapDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBE;
+    shadowCubeMapDesc.TextureCube.MostDetailedMip = 0;
+    shadowCubeMapDesc.TextureCube.MipLevels = 1;
+    shadowDepthCubeMapDSV->CreateSRV(m_device, &shadowCubeMapDesc);
   }
 
   void Renderer::CreateRenderTargets(uint32 width, uint32 height)
@@ -274,6 +295,10 @@ namespace Riley
     shadowMapPass.attachmentDSV = shadowDepthMapDSV;
     shadowMapPass.width = SHADOW_MAP_SIZE;
     shadowMapPass.height = SHADOW_MAP_SIZE;
+
+    shadowCubeMapPass.attachmentDSV = shadowDepthCubeMapDSV;
+    shadowCubeMapPass.width = SHADOW_CUBE_SIZE;
+    shadowCubeMapPass.height = SHADOW_CUBE_SIZE;
   }
 
   void Renderer::BindGlobals()
@@ -292,6 +317,9 @@ namespace Riley
         lightConstsGPU->Bind(m_context, DXShaderStage::PS, 2);
         shadowConstsGPU->Bind(m_context, DXShaderStage::PS, 3);
 
+        // GS
+        shadowConstsGPU->Bind(m_context, DXShaderStage::GS, 3);
+
         // Samplers
         linearWrapSS->Bind(m_context, 0, DXShaderStage::PS);
         linearClampSS->Bind(m_context, 1, DXShaderStage::PS);
@@ -306,14 +334,6 @@ namespace Riley
   {
     SetSceneViewport(forwardPass.width, forwardPass.height);
 
-    // for(auto& rtv : postProcessPass.attachmentRTVs)
-    //   {
-    //     rtv->Clear(m_context, postProcessPass.clearColor);
-    //     rtvs.push_back(rtv->GetRTV());
-    //   }
-    // postProcessPass.attachmentDSV->Clear(m_context, 1.0f, 0);
-    // m_context->OMSetRenderTargets(rtvs.size(), rtvs.data(),
-    //                               postProcessPass.attachmentDSV->GetDSV());
     static constexpr float clearBlack[4] = {0.0f, 0.2f, 0.0f, 0.0f};
     hdrRTV->Clear(m_context, clearBlack);
     hdrDSV->Clear(m_context, 1.0f, 0);
@@ -353,7 +373,6 @@ namespace Riley
 
   void Renderer::PassForwardPhong()
   {
-    // opaqueBS->Bind(m_context, nullptr);
     additiveBS->Bind(m_context);
     auto lightView = m_reg.view<Light>();
     for(auto& e : lightView)
@@ -380,18 +399,27 @@ namespace Riley
                                  sizeof(lightConstsCPU));
         }
 
-        if(lightData.type == LightType::Spot)
-          PassShadowMapSpot(lightData);
+        if(lightData.type == LightType::Spot) { PassShadowMapSpot(lightData); }
         else if(lightData.type == LightType::Directional)
-          PassShadowMapDirectional(lightData);
+          {
+            PassShadowMapDirectional(lightData);
+          }
+        else if(lightData.type == LightType::Point)
+          {
+            PassShadowMapPoint(lightData);
+          }
 
         solidRS->Bind(m_context);
+
         // Render Mesh
         {
           float clearBlack[4] = {0.0f, 0.2f, 0.0f, 0.0f};
           SetSceneViewport(forwardPass.width, forwardPass.height);
           hdrRTV->BindRenderTargetView(m_context);
+
           shadowDepthMapDSV->BindSRV(m_context, 0, DXShaderStage::PS);
+          shadowDepthCubeMapDSV->BindSRV(m_context, 1, DXShaderStage::PS);
+
           auto entityView
             = m_reg.view<Mesh, Material, Transform>(entt::exclude<Light>);
           for(auto& entity : entityView)
@@ -417,7 +445,6 @@ namespace Riley
             }
         }
       }
-    // opaqueBS->Unbind(m_context);
     additiveBS->Unbind(m_context);
   }
 
@@ -447,12 +474,13 @@ namespace Riley
 
     {
       auto entityView
-        = m_reg.view<Mesh, Material, Transform, AABB>(entt::exclude<Light>);
+        = m_reg.view<Mesh, Material, Transform>(entt::exclude<Light>);
       for(auto& entity : entityView)
         {
           auto [mesh, material, transform]
             = entityView.get<Mesh, Material, Transform>(entity);
-          ShaderManager::GetShaderProgram(ShaderProgram::ShadowDepthMap)->Bind(m_context);
+          ShaderManager::GetShaderProgram(ShaderProgram::ShadowDepthMap)
+            ->Bind(m_context);
 
           objectConstsCPU.world = transform.currentTransform.Transpose();
           objectConstsCPU.worldInvTranspose
@@ -463,6 +491,8 @@ namespace Riley
           mesh.Draw(m_context);
         }
     }
+    ShaderManager::GetShaderProgram(ShaderProgram::ShadowDepthMap)
+      ->Unbind(m_context);
   }
 
   void Renderer::PassShadowMapSpot(Light const& light)
@@ -479,9 +509,10 @@ namespace Riley
       lightDir.Normalize();
       Vector3 lightPos = Vector3(light.position);
       Vector3 targetPos = lightPos + lightDir * light.range;
+      Vector3 up = Vector3::Up;
+      if(abs(up.Dot(lightDir) + 1.0f) < 1e-5) up = Vector3(1.0f, 0.0f, 0.0f);
 
-      Matrix lightViewRow = DirectX::XMMatrixLookAtLH(
-        lightPos, targetPos, Vector3(1.0f, 0.0f, 0.0f));
+      Matrix lightViewRow = DirectX::XMMatrixLookAtLH(lightPos, targetPos, up);
       float fovAngle = 2.0f * acos(light.outer_cosine);
       Matrix lightProjRow
         = DirectX::XMMatrixPerspectiveFovLH(fovAngle, 1.0f, 1.0f, light.range);
@@ -506,8 +537,7 @@ namespace Riley
         {
           auto [mesh, material, transform]
             = entityView.get<Mesh, Material, Transform>(entity);
-          ShaderManager::GetShaderProgram(ShaderProgram::ShadowDepthMap)
-            ->Bind(m_context);
+          ShaderManager::GetShaderProgram(ShaderProgram::ShadowDepthMap)->Bind(m_context);
 
           objectConstsCPU.world = transform.currentTransform.Transpose();
           objectConstsCPU.worldInvTranspose
@@ -518,6 +548,65 @@ namespace Riley
           mesh.Draw(m_context);
         }
     }
+    ShaderManager::GetShaderProgram(ShaderProgram::ShadowDepthMap)
+      ->Unbind(m_context);
+  }
+
+  void Renderer::PassShadowMapPoint(Light const& light)
+  {
+    assert(light.type == LightType::Point);
+    SetSceneViewport(shadowCubeMapPass.width, shadowCubeMapPass.height);
+    depthBiasRS->Bind(m_context);
+    shadowDepthCubeMapDSV->Clear(m_context, 1.0f, 0);
+    m_context->OMSetRenderTargets(0, NULL, shadowDepthCubeMapDSV->GetDSV());
+
+    {
+      Matrix lightViewRow = Matrix::Identity;
+      Matrix lightProjRow = Matrix::Identity;
+
+      Vector3 directions[6]
+        = {{1.0f, 0.0f, 0.0f},  {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f},
+           {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 1.0f},  {0.0f, 0.0f, -1.0f}};
+      Vector3 up[6]
+        = {{0.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, -1.0f},
+           {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}};
+
+      float fovAngle = 2.0f * acos(light.outer_cosine);
+      lightProjRow
+        = DirectX::XMMatrixPerspectiveFovLH(fovAngle, 1.0f, 0.5f, light.range);
+
+      for (uint32 face = 0; face < 6; ++face) {
+          lightViewRow = DirectX::XMMatrixLookAtLH(
+            light.position, light.position + directions[face] * light.range,
+            up[face]);
+          shadowConstsCPU.shadowCubeMapViewProj[face]
+            = (lightViewRow * lightProjRow).Transpose();
+      }
+      shadowConstsCPU.shadow_map_size = SHADOW_CUBE_SIZE;
+      shadowConstsGPU->Update(m_context, shadowConstsCPU,
+                              sizeof(shadowConstsCPU));
+    }
+
+    //Render Mesh
+    {
+      auto entityView
+        = m_reg.view<Mesh, Material, Transform>(entt::exclude<Light>);
+      for(auto& entity : entityView)
+        {
+          auto [mesh, material, transform]
+            = entityView.get<Mesh, Material, Transform>(entity);
+          ShaderManager::GetShaderProgram(ShaderProgram::ShadowDepthCubeMap)->Bind(m_context);
+
+          objectConstsCPU.world = transform.currentTransform.Transpose();
+          objectConstsCPU.worldInvTranspose
+            = transform.currentTransform.Invert().Transpose();
+          objectConstsGPU->Update(m_context, objectConstsCPU,
+                                  sizeof(objectConstsCPU));
+
+          mesh.Draw(m_context);
+        }
+    }
+    ShaderManager::GetShaderProgram(ShaderProgram::ShadowDepthCubeMap)->Unbind(m_context);
   }
 
 } // namespace Riley

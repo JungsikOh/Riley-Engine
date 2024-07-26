@@ -9,9 +9,12 @@ namespace Riley
     VS_Solid,
     VS_Phong,
     VS_Shadow,
+    VS_ShadowCube,
     PS_Solid,
     PS_Phong,
     PS_Shadow,
+    PS_ShadowCube,
+    GS_ShadowCube,
     ShaderIdCount
   };
 
@@ -20,6 +23,7 @@ namespace Riley
     Solid,
     ForwardPhong,
     ShadowDepthMap,
+    ShadowDepthCubeMap,
     UnKnown
   };
 

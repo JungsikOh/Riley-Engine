@@ -111,10 +111,12 @@ namespace Riley
     DXDepthStencilBuffer* hdrDSV;
     DXDepthStencilBuffer* depthMapDSV;
     DXDepthStencilBuffer* shadowDepthMapDSV;
+    DXDepthStencilBuffer* shadowDepthCubeMapDSV;
 
     // Render Pass
     DXRenderPassDesc forwardPass;
     DXRenderPassDesc shadowMapPass;
+    DXRenderPassDesc shadowCubeMapPass;
     DXRenderPassDesc postProcessPass;
 
   private:
@@ -136,6 +138,7 @@ namespace Riley
     void PassForwardPhong();
     void PassShadowMapDirectional(Light const& light);
     void PassShadowMapSpot(Light const& light);
+    void PassShadowMapPoint(Light const& light);
   };
 
 } // namespace Riley

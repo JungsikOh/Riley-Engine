@@ -72,6 +72,7 @@ struct ShadowData
     matrix lightView;
     matrix lightViewProj;
     matrix shadow_matrices[4];
+    matrix shadowCubeMapViewProj[6];
 
     float split0;
     float split1;

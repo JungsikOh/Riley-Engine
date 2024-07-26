@@ -1,5 +1,6 @@
 #include "Common.hlsli"
 #include "LightUtil.hlsli"
+#include "ShadowUtil.hlsli"
 
 struct VSInput
 {
@@ -45,34 +46,6 @@ struct PSOutput
     float4 pixelColor : SV_Target0;
 };
 
-float ShadowCalculation(LightData light, float3 posWorld, float3 viewPos, Texture2D ShadowMap)
-{
-    float shadow = 0.0;
-    if (light.castShadows)
-    {
-        float4 shadowMapCoords = mul(float4(viewPos, 1.0), shadowData.shadow_matrices[0]);
-        float3 UVD = shadowMapCoords.xyz / shadowMapCoords.w;
-        UVD.xy = 0.5 * UVD.xy + 0.5;
-        UVD.y = 1.0 - UVD.y;
-        
-        // PCF 3x3
-        float2 texel;
-        ShadowMap.GetDimensions(texel.x, texel.y);
-        
-        float2 texelSize = 1.0 / texel;
-        
-        for (int x = -1; x <= 1; ++x)
-        {
-            for (int y = -1; y <= 1; ++y)
-            {
-                shadow += ShadowMap.SampleCmpLevelZero(ShadowSampler, UVD.xy + float2(x, y) * texelSize, UVD.z - 0.05).r;
-            }
-        }
-        shadow /= 9.0;
-    }
-    return shadow;
-}
-
 PSOutput PhongPS(PSInput input)
 {
     PSOutput output;
@@ -83,7 +56,7 @@ PSOutput PhongPS(PSInput input)
     float3 ambient = materialData.ambient * 0.5;
     
     LightingResult Lo;
-    float shadowFactor = ShadowCalculation(lightData, input.posWorld, viewPosition.xyz, ShadowMap);
+    float shadowFactor = 0.0;
     
     switch (lightData.type)
     {
@@ -98,6 +71,20 @@ PSOutput PhongPS(PSInput input)
             break;
     }
     
-    output.pixelColor = float4(ambient + ((Lo.diffuse + Lo.specular)) * shadowFactor, 1.0);
+    if (lightData.castShadows)
+    {
+        switch (lightData.type)
+        {
+            case DIRECTIONAL_LIGHT:
+            case SPOT_LIGHT:
+                shadowFactor = CalcShadowMapPCF3x3(lightData, viewPosition.xyz, ShadowMap);
+                break;
+            case POINT_LIGHT:
+                shadowFactor = CalcShadowCubeMapPCF3x3x3(lightData, viewPosition.xyz, ShadowCubeMap);
+                break;
+        }
+    }
+    
+    output.pixelColor = float4(ambient + (Lo.diffuse + Lo.specular) * shadowFactor, 1.0);
     return output;
 }

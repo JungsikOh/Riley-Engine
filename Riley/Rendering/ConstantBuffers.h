@@ -76,6 +76,7 @@ namespace Riley
     Matrix lightView;
     Matrix lightViewProj;
     Matrix shadow_matrices[4];
+    Matrix shadowCubeMapViewProj[6];
 
     float split0;
     float split1;

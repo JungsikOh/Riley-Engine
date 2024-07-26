@@ -37,16 +37,15 @@ namespace Riley
   namespace
   {
 
-    ID3D11Device *device;
+    ID3D11Device* device;
 
-    std::unordered_map<ShaderId, std::unique_ptr<DXVertexShader> > vsShaderMap;
-    std::unordered_map<ShaderId, std::unique_ptr<DXPixelShader> > psShaderMap;
-    std::unordered_map<ShaderId, std::unique_ptr<DXInputLayout> >
-      inputLayoutMap;
+    std::unordered_map<ShaderId, std::unique_ptr<DXVertexShader> >      vsShaderMap;
+    std::unordered_map<ShaderId, std::unique_ptr<DXGeometryShader> >    gsShaderMap;
+    std::unordered_map<ShaderId, std::unique_ptr<DXPixelShader> >       psShaderMap;
+    std::unordered_map<ShaderId, std::unique_ptr<DXInputLayout> >       inputLayoutMap;
 
     // 만든 셰이더들을 사용하고 싶은 설정에 맞게 담을 map
-    std::unordered_map<ShaderProgram, DXGraphicsShaderProgram>
-      DXShaderProgramMap;
+    std::unordered_map<ShaderProgram, DXGraphicsShaderProgram>          DXShaderProgramMap;
 
     constexpr DXShaderStage GetStage(ShaderId shader)
     {
@@ -55,11 +54,17 @@ namespace Riley
         case VS_Solid:
         case VS_Phong:
         case VS_Shadow:
+        case VS_ShadowCube:
           return DXShaderStage::VS;
         case PS_Solid:
         case PS_Phong:
         case PS_Shadow:
+        case PS_ShadowCube:
           return DXShaderStage::PS;
+        case GS_ShadowCube:
+          return DXShaderStage::GS;
+        default:
+          assert("Not supported DXShaderStage.");
         }
     }
 
@@ -76,6 +81,12 @@ namespace Riley
         case VS_Shadow:
         case PS_Shadow:
           return "Resources/Shaders/Shadow.hlsl";
+        case VS_ShadowCube:
+        case GS_ShadowCube:
+        case PS_ShadowCube:
+          return "Resources/Shaders/ShadowCube.hlsl";
+        default:
+          assert("Don't found Shader Resource Path");
         }
     }
 
@@ -95,6 +106,12 @@ namespace Riley
           return "ShadowVS";
         case PS_Shadow:
           return "ShadowPS";
+        case VS_ShadowCube:
+          return "ShadowCubeVS";
+        case GS_ShadowCube:
+          return "ShadowCubeGS";
+        case PS_ShadowCube:
+          return "ShadowCubePS";
         default:
           return "main";
         }
@@ -115,8 +132,7 @@ namespace Riley
 
       DXShaderCompileOutput output{};
       bool result = DXShaderCompiler::CompileShader(input, output);
-      if(!result)
-        return;
+      if(!result) return;
 
       switch(input.stage)
         {
@@ -134,8 +150,15 @@ namespace Riley
           else
             psShaderMap[shader]->Recreate(output.shader_bytecode);
           break;
+        case DXShaderStage::GS:
+          if(firstCompile)
+            gsShaderMap[shader] = std::make_unique<DXGeometryShader>(
+              device, output.shader_bytecode);
+          else
+            gsShaderMap[shader]->Recreate(output.shader_bytecode);
+          break;
         default:
-          assert(false);
+          assert("Unsupported Shader Stage!");
         }
     }
 
@@ -148,8 +171,7 @@ namespace Riley
       for(UnderlyingType s = 0; s < ShaderIdCount; ++s)
         {
           ShaderId shader = (ShaderId)s; // It's OK.
-          if(GetStage(shader) != DXShaderStage::VS)
-            continue;
+          if(GetStage(shader) != DXShaderStage::VS) continue;
 
           inputLayoutMap[shader] = std::make_unique<DXInputLayout>(
             device, vsShaderMap[shader]->GetBytecode());
@@ -167,6 +189,11 @@ namespace Riley
         .SetVertexShader(vsShaderMap[VS_Shadow].get())
         .SetPixelShader(psShaderMap[PS_Shadow].get())
         .SetInputLayout(inputLayoutMap[VS_Shadow].get());
+      DXShaderProgramMap[ShaderProgram::ShadowDepthCubeMap]
+        .SetVertexShader(vsShaderMap[VS_ShadowCube].get())
+        .SetGeometryShader(gsShaderMap[GS_ShadowCube].get())
+        .SetPixelShader(psShaderMap[PS_ShadowCube].get())
+        .SetInputLayout(inputLayoutMap[VS_ShadowCube].get());
     }
 
     void CompileAllShaders()
@@ -186,7 +213,7 @@ namespace Riley
     }
   } // namespace
 
-  void ShaderManager::Initialize(ID3D11Device *_device)
+  void ShaderManager::Initialize(ID3D11Device* _device)
   {
     device = _device;
     CompileAllShaders();
@@ -195,7 +222,7 @@ namespace Riley
   void ShaderManager::Destroy()
   {
     device = nullptr;
-    auto FreeContainer = []<typename T>(T &container) {
+    auto FreeContainer = []<typename T>(T& container) {
       container.clear();
       T empty;
       std::swap(container, empty);
@@ -203,13 +230,13 @@ namespace Riley
     FreeContainer(DXShaderProgramMap);
     FreeContainer(vsShaderMap);
     FreeContainer(psShaderMap);
+    FreeContainer(gsShaderMap);
   }
 
-  DXShaderProgram *ShaderManager::GetShaderProgram(ShaderProgram shaderProgram)
+  DXShaderProgram* ShaderManager::GetShaderProgram(ShaderProgram shaderProgram)
   {
     bool isDXProgram = DXShaderProgramMap.contains(shaderProgram);
-    if(isDXProgram)
-      return &DXShaderProgramMap[shaderProgram];
+    if(isDXProgram) return &DXShaderProgramMap[shaderProgram];
     return &DXShaderProgramMap[shaderProgram];
   }
 

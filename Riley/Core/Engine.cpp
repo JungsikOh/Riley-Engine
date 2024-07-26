@@ -75,6 +75,14 @@ namespace Riley
     light.range = 100.0f;
     light.type = LightType::Spot;
     modelImporter->LoadLight(light, LightMesh::Cube, 0.03f);
+
+    light.position = Vector4(0.0f, 1.8f, 0.6f, 1.0f);
+    light.direction = Vector4(0.0f, -1.0f, 0.0f, 0.0f);
+    light.color = Vector4(1.0f, 1.0f, 0.2f, 0.0f);
+    light.energy = 1.0f;
+    light.range = 100.0f;
+    light.type = LightType::Point;
+    modelImporter->LoadLight(light, LightMesh::Cube, 0.03f);
   }
 
   Engine::~Engine()
