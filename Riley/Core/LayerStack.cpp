@@ -1,5 +1,4 @@
 #include "LayerStack.h"
-#include "pch.h"
 
 namespace Riley
 {

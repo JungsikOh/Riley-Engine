@@ -4,16 +4,12 @@
 #include "../Rendering/ShaderManager.h"
 #include "../Utilities/Timer.h"
 #include "Engine.h"
-#include "Input.h"
 #include "Window.h"
-#include <iostream>
-#include <optional>
-#include <tuple>
 
 // std::ignore
-// std::tuple·Î ¹İÈ¯µÇ´Â °á°ú¸¦ std::tie·Î ¿¬°áÇØ¼­ ¹ŞÀ» ¶§ »ç¿ëÇÏÁö ¾Ê´Â °ªÀ»
-// Ã³¸®ÇÏ±â À§ÇÔ. std::tie(std::ignore, inserted) = set_of_str.insert("Test")
-// ÀÌ·±½ÄÀ¸·Î »ç¿ë.
+// std::tupleÂ·Ã Â¹ÃÃˆÂ¯ÂµÃ‡Â´Ã‚ Â°Ã¡Â°ÃºÂ¸Â¦ std::tieÂ·Ã Â¿Â¬Â°Ã¡Ã‡Ã˜Â¼Â­ Â¹ÃÃ€Â» Â¶Â§ Â»Ã§Â¿Ã«Ã‡ÃÃÃ¶ Â¾ÃŠÂ´Ã‚ Â°ÂªÃ€Â»
+// ÃƒÂ³Â¸Â®Ã‡ÃÂ±Ã¢ Ã€Â§Ã‡Ã”. std::tie(std::ignore, inserted) = set_of_str.insert("Test")
+// Ã€ÃŒÂ·Â±Â½Ã„Ã€Â¸Â·Ã Â»Ã§Â¿Ã«.
 
 namespace Riley
 {
@@ -128,7 +124,7 @@ namespace Riley
 #endif
 
     const D3D_FEATURE_LEVEL featureLevels[2]
-      = {D3D_FEATURE_LEVEL_11_0, // ´õ ³ôÀº ¹öÀüÀÌ ¸ÕÀú ¿Àµµ·Ï ¼³Á¤
+      = {D3D_FEATURE_LEVEL_11_0, // Â´Ãµ Â³Ã´Ã€Âº Â¹Ã¶Ã€Ã¼Ã€ÃŒ Â¸Ã•Ã€Ãº Â¿Ã€ÂµÂµÂ·Ã Â¼Â³ÃÂ¤
          D3D_FEATURE_LEVEL_9_3};
     D3D_FEATURE_LEVEL featureLevel = D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_11_0;
 

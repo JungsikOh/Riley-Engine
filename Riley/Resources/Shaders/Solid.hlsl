@@ -2,7 +2,7 @@
 
 struct VSInput
 {
-    float3 posModel : POSITION; //¸ğµ¨ ÁÂÇ¥°èÀÇ À§Ä¡ position
+    float3 posModel : POSITION; //Â¸Ã°ÂµÂ¨ ÃÃ‚Ã‡Â¥Â°Ã¨Ã€Ã‡ Ã€Â§Ã„Â¡ position
     float2 texcoord : TEXCOORD0;
 };
 

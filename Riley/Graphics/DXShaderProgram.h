@@ -4,7 +4,6 @@
 #include "DXShader.h"
 #include "DXStates.h"
 #include "DXInputLayout.h"
-#include <memory>
 
 namespace Riley {
 class DXInputLayout;
@@ -29,9 +28,9 @@ class DXShader {
         : m_device(device), m_bytecode(bytecode), m_stage(stage) {}
 };
 
-// fianl : Ãß°¡ »ó¼ÓÀ» Â÷´ÜÇÏ±â À§ÇÑ Å°¿öµå
-// & ·Î ³Ñ°ÜÁÖ´Â ÀÌÀ¯´Â device¸¦ Æ÷ÀÎÅÍ·Î ³Ñ°ÜÁÖ°ÔµÇ¸é Æ÷ÀÎÅÍ ÁÖ¼Ò°¡ º¯°æµÇ´Âµ¥, ÀÌ ÁÖ¼Ò¸¦ DXShaderÀÇ device·Î µî·ÏÀ» ÇØ¹ö¸®°Ô µÈ´Ù.
-// ±×·¸°Ô µÇ¸é¼­ 
+// fianl : ÃƒÃŸÂ°Â¡ Â»Ã³Â¼Ã“Ã€Â» Ã‚Ã·Â´ÃœÃ‡ÃÂ±Ã¢ Ã€Â§Ã‡Ã‘ Ã…Â°Â¿Ã¶ÂµÃ¥
+// & Â·Ã Â³Ã‘Â°ÃœÃÃ–Â´Ã‚ Ã€ÃŒÃ€Â¯Â´Ã‚ deviceÂ¸Â¦ Ã†Ã·Ã€ÃÃ…ÃÂ·Ã Â³Ã‘Â°ÃœÃÃ–Â°Ã”ÂµÃ‡Â¸Ã© Ã†Ã·Ã€ÃÃ…Ã ÃÃ–Â¼Ã’Â°Â¡ ÂºÂ¯Â°Ã¦ÂµÃ‡Â´Ã‚ÂµÂ¥, Ã€ÃŒ ÃÃ–Â¼Ã’Â¸Â¦ DXShaderÃ€Ã‡ deviceÂ·Ã ÂµÃ®Â·ÃÃ€Â» Ã‡Ã˜Â¹Ã¶Â¸Â®Â°Ã” ÂµÃˆÂ´Ã™.
+// Â±Ã—Â·Â¸Â°Ã” ÂµÃ‡Â¸Ã©Â¼Â­ 
 // Vertex Shader
 class DXVertexShader final : public DXShader {
   public:

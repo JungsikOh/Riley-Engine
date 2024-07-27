@@ -1,5 +1,4 @@
 #include "DXShaderProgram.h"
-#include <memory>
 
 namespace Riley
 {

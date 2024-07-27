@@ -1,6 +1,5 @@
 #include "Input.h"
 #include "Window.h"
-#include <iostream>
 #include <windowsx.h>
 
 namespace Riley

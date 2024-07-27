@@ -10,9 +10,6 @@
 #include "Components.h"
 #include "SceneViewport.h"
 #include "ShaderManager.h"
-#include <memory>
-#include <optional>
-#include <entt.hpp>
 
 namespace Riley
 {
@@ -51,11 +48,8 @@ namespace Riley
     void OnResize(uint32 width, uint32 height);
     void OnLeftMouseClicked();
 
-    // Render Target Views
-    std::vector<DXRenderTarget*> gbufferRTVs;
-    DXRenderTarget* shadowDepthMapRTV;
+
     DXRenderTarget* hdrRTV;
-    DXRenderTarget* postProcessRTV;
 
   private:
     uint32 m_width, m_height;
@@ -107,14 +101,20 @@ namespace Riley
     DXSampler* linearBorderSS;
     DXSampler* shadowLinearBorderSS;
 
+    // Render Target Views
+    DXRenderTarget* gbufferRTV;
+    DXRenderTarget* postProcessRTV;
+
     // Depth Stencil Buffers(View)
     DXDepthStencilBuffer* hdrDSV;
+    DXDepthStencilBuffer* gbufferDSV;
     DXDepthStencilBuffer* depthMapDSV;
     DXDepthStencilBuffer* shadowDepthMapDSV;
     DXDepthStencilBuffer* shadowDepthCubeMapDSV;
 
     // Render Pass
     DXRenderPassDesc forwardPass;
+    DXRenderPassDesc gbufferPass;
     DXRenderPassDesc shadowMapPass;
     DXRenderPassDesc shadowCubeMapPass;
     DXRenderPassDesc postProcessPass;
@@ -136,6 +136,8 @@ namespace Riley
     void PassForward();
     void PassSolid();
     void PassForwardPhong();
+    void PassGBuffer();
+
     void PassShadowMapDirectional(Light const& light);
     void PassShadowMapSpot(Light const& light);
     void PassShadowMapPoint(Light const& light);

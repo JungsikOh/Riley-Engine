@@ -1,7 +1,5 @@
 #include "Camera.h"
 #include "../Core/Input.h"
-#include <algorithm>
-#include <iostream>
 
 namespace Riley
 {

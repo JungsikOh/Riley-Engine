@@ -1,11 +1,10 @@
 #pragma once
-#include "../Core/CoreTypes.h"
 #include "DXFormat.h"
 #include "DXResource.h"
 #include "DXResourceCommon.h"
 
 namespace Riley {
-// bufferDesc의 종류는 여러가지인데, 할당되는 공통속성이 존재하므로 desc 구조체
+
 struct DXBufferDesc {
     uint64 size = 0;
     DXResourceUsage resourceUsage = DXResourceUsage::Default;
@@ -39,15 +38,7 @@ static DXBufferDesc IndexBufferDesc(uint64 index_count, bool small_indices) {
     desc.format = small_indices ? DXFormat::R16_UINT : DXFormat::R32_UINT;
     return desc;
 }
-/**
- * @brief DXBuffer는 DXResource 상속받아 작동한다.
- * @brief DXResource 클래스는 기본적으로 resource에 대한 map, unmap 함수와 srv,
- * uav에 대한 초기화 및 bind함수를 다룬다.
- *
- * @brief DXBuffer는 이에 더불어 버퍼에 대한 전반적인
- * 것을 모두 다룬다. DXBufferDesc라는 구조체를 통하여 여러 버퍼의 desc를 받는
- * 것이 가능하도록 설계하였다.
- */
+
 class DXBuffer : public DXResource {
   public:
     DXBuffer() = default;
@@ -96,7 +87,7 @@ class DXBuffer : public DXResource {
     void Update(ID3D11DeviceContext* context, const T_DATA& srcData,
                 uint64 dataSize) {
         if (m_desc.resourceUsage == DXResourceUsage::Dynamic) {
-            memcpy(Map(context), &srcData, dataSize); // data 복사
+            memcpy(Map(context), &srcData, dataSize); // data 쨘쨔쨩챌
             UnMap(context);
         }
     }

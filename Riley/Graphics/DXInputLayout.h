@@ -2,8 +2,6 @@
 #include "../Core/Rendering.h"
 #include "DXFormat.h"
 #include "DXShader.h"
-#include <string>
-#include <vector>
 
 namespace Riley {
 enum class DXInputClassification { PerVertexData, PerInstanceData };

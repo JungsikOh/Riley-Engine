@@ -1,8 +1,6 @@
 #include "Window.h"
 #include "../Utilities/Timer.h"
 #include "Rendering.h"
-#include <conio.h>
-#include <iostream>
 
 namespace Riley {
 
@@ -84,12 +82,8 @@ Window::Window(WindowInit const& init) {
     UpdateWindow(hwnd);
     SetFocus(hwnd);
 
-    // print Console Window
-    AllocConsole();
-    freopen("CONOUT$", "wt", stdout);
-
     // Logger
-    spdlog::info("Window init complete {:f}s", timer.ElapsedInSeconds());
+    RI_CORE_INFO("Window Initialize Complete {:f}s", timer.ElapsedInSeconds());
     timer.Mark();
 }
 
@@ -149,8 +143,8 @@ bool Window::IsActive() const {
     return GetForegroundWindow() == hwnd; 
 }
 
-// multicast delegate¸¦ ÅëÇØ Á¤ÀÇÇÑ WindowEvent Å¬·¡½ºÀÇ µî·ÏµÈ Äİ¹éÀ» ¸ğµÎ
-// È£ÃâÇÑ´Ù.
+// multicast delegateÂ¸Â¦ Ã…Ã«Ã‡Ã˜ ÃÂ¤Ã€Ã‡Ã‡Ã‘ WindowEvent Ã…Â¬Â·Â¡Â½ÂºÃ€Ã‡ ÂµÃ®Â·ÃÂµÃˆ Ã„ÃÂ¹Ã©Ã€Â» Â¸Ã°ÂµÃ
+// ÃˆÂ£ÃƒÃ¢Ã‡Ã‘Â´Ã™.
 void Window::BroadcastEvent(WindowEventData const& data) {
     window_event.Broadcast(data);
 }

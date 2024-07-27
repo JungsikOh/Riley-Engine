@@ -19,7 +19,7 @@ struct WindowInit {
     bool maximize;
 };
 
-// WindowEvent Class Á¤ÀÇ
+// WindowEvent Class
 DECLARE_EVENT(WindowEvent, Window, WindowEventData const&);
 
 class Window {

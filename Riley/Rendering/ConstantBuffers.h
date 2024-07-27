@@ -1,6 +1,4 @@
 #pragma once
-#include "../Math/MathTypes.h"
-#include <vector>
 
 namespace Riley
 {

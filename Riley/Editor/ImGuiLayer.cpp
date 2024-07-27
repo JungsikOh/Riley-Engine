@@ -1,14 +1,6 @@
 #include "ImGuiLayer.h"
 #include "../Core/Engine.h"
 #include "../Core/Window.h"
-#include "pch.h"
-#include "spdlog\spdlog.h"
-
-#define IMGUI_DEFINE_MATH_OPERATORS
-#include "ImGui/imgui.h"
-#include "ImGui/imgui_impl_dx11.h"
-#include "ImGui/imgui_impl_win32.h"
-#include "ImGui/imgui_internal.h"
 
 IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg,
                                                       WPARAM wParam,

@@ -1,5 +1,4 @@
 #include "Layer.h"
-#include "pch.h"
 
 namespace Riley
 {

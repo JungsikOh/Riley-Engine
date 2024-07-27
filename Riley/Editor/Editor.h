@@ -1,8 +1,6 @@
 #pragma once
 #include "../Utilities/Singleton.h"
 #include "../Rendering/SceneViewport.h"
-#include "entt.hpp"
-#include <array>
 
 namespace Riley {
 

@@ -1,5 +1,4 @@
 #pragma once
-#include "../Core/CoreTypes.h"
 
 namespace Riley {
 class SceneViewport {

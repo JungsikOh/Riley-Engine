@@ -1,7 +1,6 @@
 #include "ModelImporter.h"
 #include "../Math/ComputeVectors.h"
-#include "spdlog\spdlog.h"
-#include <unordered_map>
+
 
 namespace Riley {
 
@@ -97,7 +96,7 @@ ModelImporter::LoadBox(const Vector3& pos, const float& scale /*1.0f*/,
     std::vector<Vector3> tangents;
     std::vector<Vector3> bitangents;
 
-    // À­¸é
+    // Ã€Â­Â¸Ã©
     positions.push_back(Vector3(-1.0f, 1.0f, -1.0f) * scale);
     positions.push_back(Vector3(-1.0f, 1.0f, 1.0f) * scale);
     positions.push_back(Vector3(1.0f, 1.0f, 1.0f) * scale);
@@ -111,7 +110,7 @@ ModelImporter::LoadBox(const Vector3& pos, const float& scale /*1.0f*/,
     texcoords.push_back(Vector2(1.0f, 1.0f));
     texcoords.push_back(Vector2(0.0f, 1.0f));
 
-    // ¾Æ·§¸é
+    // Â¾Ã†Â·Â§Â¸Ã©
     positions.push_back(Vector3(-1.0f, -1.0f, -1.0f) * scale);
     positions.push_back(Vector3(1.0f, -1.0f, -1.0f) * scale);
     positions.push_back(Vector3(1.0f, -1.0f, 1.0f) * scale);
@@ -125,7 +124,7 @@ ModelImporter::LoadBox(const Vector3& pos, const float& scale /*1.0f*/,
     texcoords.push_back(Vector2(1.0f, 1.0f));
     texcoords.push_back(Vector2(0.0f, 1.0f));
 
-    // ¾Õ¸é
+    // Â¾Ã•Â¸Ã©
     positions.push_back(Vector3(-1.0f, -1.0f, -1.0f) * scale);
     positions.push_back(Vector3(-1.0f, 1.0f, -1.0f) * scale);
     positions.push_back(Vector3(1.0f, 1.0f, -1.0f) * scale);
@@ -139,7 +138,7 @@ ModelImporter::LoadBox(const Vector3& pos, const float& scale /*1.0f*/,
     texcoords.push_back(Vector2(1.0f, 1.0f));
     texcoords.push_back(Vector2(0.0f, 1.0f));
 
-    // µÞ¸é
+    // ÂµÃžÂ¸Ã©
     positions.push_back(Vector3(-1.0f, -1.0f, 1.0f) * scale);
     positions.push_back(Vector3(1.0f, -1.0f, 1.0f) * scale);
     positions.push_back(Vector3(1.0f, 1.0f, 1.0f) * scale);
@@ -153,7 +152,7 @@ ModelImporter::LoadBox(const Vector3& pos, const float& scale /*1.0f*/,
     texcoords.push_back(Vector2(1.0f, 1.0f));
     texcoords.push_back(Vector2(0.0f, 1.0f));
 
-    // ¿ÞÂÊ
+    // Â¿ÃžÃ‚ÃŠ
     positions.push_back(Vector3(-1.0f, -1.0f, 1.0f) * scale);
     positions.push_back(Vector3(-1.0f, 1.0f, 1.0f) * scale);
     positions.push_back(Vector3(-1.0f, 1.0f, -1.0f) * scale);
@@ -167,7 +166,7 @@ ModelImporter::LoadBox(const Vector3& pos, const float& scale /*1.0f*/,
     texcoords.push_back(Vector2(1.0f, 1.0f));
     texcoords.push_back(Vector2(0.0f, 1.0f));
 
-    // ¿À¸¥ÂÊ
+    // Â¿Ã€Â¸Â¥Ã‚ÃŠ
     positions.push_back(Vector3(1.0f, -1.0f, 1.0f) * scale);
     positions.push_back(Vector3(1.0f, -1.0f, -1.0f) * scale);
     positions.push_back(Vector3(1.0f, 1.0f, -1.0f) * scale);
@@ -182,12 +181,12 @@ ModelImporter::LoadBox(const Vector3& pos, const float& scale /*1.0f*/,
     texcoords.push_back(Vector2(0.0f, 1.0f));
 
     std::vector<uint32> indices{
-        0,  1,  2,  0,  2,  3,  // À­¸é
-        4,  5,  6,  4,  6,  7,  // ¾Æ·§
-        8,  9,  10, 8,  10, 11, // ¾Õ¸é
-        12, 13, 14, 12, 14, 15, // µÞ¸é
-        16, 17, 18, 16, 18, 19, // ¿ÞÂÊ
-        20, 21, 22, 20, 22, 23  // ¿À¸¥
+        0,  1,  2,  0,  2,  3,  // Ã€Â­Â¸Ã©
+        4,  5,  6,  4,  6,  7,  // Â¾Ã†Â·Â§
+        8,  9,  10, 8,  10, 11, // Â¾Ã•Â¸Ã©
+        12, 13, 14, 12, 14, 15, // ÂµÃžÂ¸Ã©
+        16, 17, 18, 16, 18, 19, // Â¿ÃžÃ‚ÃŠ
+        20, 21, 22, 20, 22, 23  // Â¿Ã€Â¸Â¥
     };
 
     ComputeAndSetTangets(indices, positions, normals, texcoords, tangents,
@@ -284,7 +283,7 @@ std::vector<entt::entity> ModelImporter::LoadLight(Light& lightData,
         std::vector<Vector3> positions;
         std::vector<Vector2> texcoords;
 
-        // À­¸é
+        // Ã€Â­Â¸Ã©
         positions.push_back(Vector3(-1.0f, 1.0f, -1.0f) * scale);
         positions.push_back(Vector3(-1.0f, 1.0f, 1.0f) * scale);
         positions.push_back(Vector3(1.0f, 1.0f, 1.0f) * scale);
@@ -294,7 +293,7 @@ std::vector<entt::entity> ModelImporter::LoadLight(Light& lightData,
         texcoords.push_back(Vector2(1.0f, 1.0f));
         texcoords.push_back(Vector2(0.0f, 1.0f));
 
-        // ¾Æ·§¸é
+        // Â¾Ã†Â·Â§Â¸Ã©
         positions.push_back(Vector3(-1.0f, -1.0f, -1.0f) * scale);
         positions.push_back(Vector3(1.0f, -1.0f, -1.0f) * scale);
         positions.push_back(Vector3(1.0f, -1.0f, 1.0f) * scale);
@@ -304,7 +303,7 @@ std::vector<entt::entity> ModelImporter::LoadLight(Light& lightData,
         texcoords.push_back(Vector2(1.0f, 1.0f));
         texcoords.push_back(Vector2(0.0f, 1.0f));
 
-        // ¾Õ¸é
+        // Â¾Ã•Â¸Ã©
         positions.push_back(Vector3(-1.0f, -1.0f, -1.0f) * scale);
         positions.push_back(Vector3(-1.0f, 1.0f, -1.0f) * scale);
         positions.push_back(Vector3(1.0f, 1.0f, -1.0f) * scale);
@@ -314,7 +313,7 @@ std::vector<entt::entity> ModelImporter::LoadLight(Light& lightData,
         texcoords.push_back(Vector2(1.0f, 1.0f));
         texcoords.push_back(Vector2(0.0f, 1.0f));
 
-        // µÞ¸é
+        // ÂµÃžÂ¸Ã©
         positions.push_back(Vector3(-1.0f, -1.0f, 1.0f) * scale);
         positions.push_back(Vector3(1.0f, -1.0f, 1.0f) * scale);
         positions.push_back(Vector3(1.0f, 1.0f, 1.0f) * scale);
@@ -324,7 +323,7 @@ std::vector<entt::entity> ModelImporter::LoadLight(Light& lightData,
         texcoords.push_back(Vector2(1.0f, 1.0f));
         texcoords.push_back(Vector2(0.0f, 1.0f));
 
-        // ¿ÞÂÊ
+        // Â¿ÃžÃ‚ÃŠ
         positions.push_back(Vector3(-1.0f, -1.0f, 1.0f) * scale);
         positions.push_back(Vector3(-1.0f, 1.0f, 1.0f) * scale);
         positions.push_back(Vector3(-1.0f, 1.0f, -1.0f) * scale);
@@ -334,7 +333,7 @@ std::vector<entt::entity> ModelImporter::LoadLight(Light& lightData,
         texcoords.push_back(Vector2(1.0f, 1.0f));
         texcoords.push_back(Vector2(0.0f, 1.0f));
 
-        // ¿À¸¥ÂÊ
+        // Â¿Ã€Â¸Â¥Ã‚ÃŠ
         positions.push_back(Vector3(1.0f, -1.0f, 1.0f) * scale);
         positions.push_back(Vector3(1.0f, -1.0f, -1.0f) * scale);
         positions.push_back(Vector3(1.0f, 1.0f, -1.0f) * scale);
@@ -354,12 +353,12 @@ std::vector<entt::entity> ModelImporter::LoadLight(Light& lightData,
         }
 
         std::vector<uint32> indices{
-            0,  1,  2,  0,  2,  3,  // À­¸é
-            4,  5,  6,  4,  6,  7,  // ¾Æ·§
-            8,  9,  10, 8,  10, 11, // ¾Õ¸é
-            12, 13, 14, 12, 14, 15, // µÞ¸é
-            16, 17, 18, 16, 18, 19, // ¿ÞÂÊ
-            20, 21, 22, 20, 22, 23  // ¿À¸¥
+            0,  1,  2,  0,  2,  3,  // Ã€Â­Â¸Ã©
+            4,  5,  6,  4,  6,  7,  // Â¾Ã†Â·Â§
+            8,  9,  10, 8,  10, 11, // Â¾Ã•Â¸Ã©
+            12, 13, 14, 12, 14, 15, // ÂµÃžÂ¸Ã©
+            16, 17, 18, 16, 18, 19, // Â¿ÃžÃ‚ÃŠ
+            20, 21, 22, 20, 22, 23  // Â¿Ã€Â¸Â¥
         };
 
         Mesh mesh{};

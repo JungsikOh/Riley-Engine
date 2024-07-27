@@ -2,7 +2,7 @@
 
 namespace Riley
 {
-void DXRenderPassDesc::BeginRenderPass(ID3D11DeviceContext* context, bool isClearRTVs, uint8 isStencil)
+void DXRenderPassDesc::BeginRenderPass(ID3D11DeviceContext* context, bool isClearRTV, bool isClearDSV, uint8 isStencil)
 {
    attachmentRS->Bind(context);
    attachmentDSS->Bind(context, isStencil);
@@ -14,7 +14,7 @@ void DXRenderPassDesc::BeginRenderPass(ID3D11DeviceContext* context, bool isClea
       }
    else
       {
-         if (isClearRTVs)
+         if (isClearRTV)
             attachmentRTVs->Clear(context, clearColor);
          attachmentRTVs->BindRenderTargets(context);
       }

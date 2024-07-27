@@ -1,7 +1,6 @@
 #pragma once
 
 // DirectX Helper
-#include "spdlog\spdlog.h"
 #include "../Utilities/Timer.h"
 #include <Windows.h>
 #include <cassert>
@@ -14,6 +13,7 @@
 namespace Riley {
 
 static RileyTimer timer; 
+static RileyTimer AppTimer;
 
 #define SAFE_RELEASE(x)                                                        \
     if (x) {                                                                   \
@@ -43,28 +43,6 @@ inline bool HR(HRESULT hr) {
     }
     return true;
 }
-
-//template <typename Type> static void SAFE_RELEASE(Type& pointer) {
-//    if (pointer != nullptr) {
-//        pointer->Release();
-//        pointer = nullptr;
-//    }
-//}
-//
-template <typename Type> static void Safe_Delete(Type& pointer) {
-    if (pointer != nullptr) {
-        delete pointer;
-        pointer = nullptr;
-    }
-}
-//
-//template <typename Type> static void SAFE_DELETE_ARRAY(Type& pointer) {
-//    if (pointer != nullptr) {
-//        delete[] pointer;
-//        pointer = nullptr;
-//    }
-//}
-
 
 // const char* to wchar_t*
 static const wchar_t* GetWC(const char* c) {

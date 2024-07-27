@@ -4,10 +4,8 @@
 #include "../Graphics/DXShaderProgram.h"
 #include "../Graphics/DXStates.h"
 #include "../Math/ComputeVectors.h"
-#include "../Math/MathTypes.h"
 #include "Camera.h"
 #include "ModelImporter.h"
-#include "spdlog\spdlog.h"
 
 namespace Riley
 {
@@ -20,30 +18,30 @@ using namespace DirectX;
 
 std::pair<Matrix, Matrix> DirectionalLightViewProjection(Light const& light, Camera* camera, BoundingBox& cullBox)
 {
-   // [1] Camera view frustum »ı¼º
+   // [1] Camera view frustum Â»Ã½Â¼Âº
    BoundingFrustum frustum = camera->Frustum();
    std::array<Vector3, BoundingFrustum::CORNER_COUNT> corners = {};
    frustum.GetCorners(corners.data());
 
-   // ÁÖ¾îÁø [1]frustumÀ» Æ÷ÇÔÇÏ´Â [2]shpere¸¦ »ı¼º
+   // ÃÃ–Â¾Ã®ÃÃ¸ [1]frustumÃ€Â» Ã†Ã·Ã‡Ã”Ã‡ÃÂ´Ã‚ [2]shpereÂ¸Â¦ Â»Ã½Â¼Âº
    BoundingSphere frustumSphere;
    BoundingSphere::CreateFromFrustum(frustumSphere, frustum);
 
-   // ¸ğµç ÄÚ³ÊÀÇ Æò±ÕÀ» ÅëÇØ frustumÀÇ Áß½ÉÁ¡À» °è»ê
-   Vector3 frustumCenter(0, 0, 0);
+   // Â¸Ã°ÂµÃ§ Ã„ÃšÂ³ÃŠÃ€Ã‡ Ã†Ã²Â±Ã•Ã€Â» Ã…Ã«Ã‡Ã˜ frustumÃ€Ã‡ ÃÃŸÂ½Ã‰ÃÂ¡Ã€Â» Â°Ã¨Â»Ãª
+   Vector3 frustumCenter(0.0f, 0.0f, 0.0f);
    for (uint32 i = 0; i < corners.size(); ++i)
       {
          frustumCenter = frustumCenter + corners[i];
       }
    frustumCenter /= static_cast<float>(corners.size());
-   // ¹İÁö¸§ °è»ê
+   // Â¹ÃÃÃ¶Â¸Â§ Â°Ã¨Â»Ãª
    float radius = 0.0f;
    for (Vector3 const& corner : corners)
       {
          float distance = Vector3::Distance(corner, frustumCenter);
          radius = std::max(radius, distance);
       }
-   radius = std::ceil(radius * 8.0f) / 8.0f; // ±×¸²ÀÚ ¸Ê ÇØ»óµµ¿¡ ¸ÂÃã.
+   radius = std::ceil(radius * 8.0f) / 8.0f; // Â±Ã—Â¸Â²Ã€Ãš Â¸ÃŠ Ã‡Ã˜Â»Ã³ÂµÂµÂ¿Â¡ Â¸Ã‚ÃƒÃ£.
 
    Vector3 const max_extents(radius, radius, radius);
    Vector3 const min_extents = -max_extents;
@@ -58,12 +56,12 @@ std::pair<Matrix, Matrix> DirectionalLightViewProjection(Light const& light, Cam
 
    Matrix lightViewRow = XMMatrixLookAtLH(frustumCenter, frustumCenter + 1.0f * Vector3(lightDir) * radius, up);
 
-   float l = min_extents.x * 80.0f;
-   float b = min_extents.y * 80.0f;
+   float l = min_extents.x * 50.0f;
+   float b = min_extents.y * 50.0f;
    float n = min_extents.z * 40.0f;
-   float r = max_extents.x * 80.0f;
-   float t = max_extents.y * 80.0f;
-   float f = max_extents.z * 40.0f * 1.5f; // far´Â Ãß°¡ÀûÀÎ ¿©À¯¸¦ ÁÖ¾î ¼³Á¤
+   float r = max_extents.x * 50.0f;
+   float t = max_extents.y * 50.0f;
+   float f = max_extents.z * 40.0f * 1.5f; // farÂ´Ã‚ ÃƒÃŸÂ°Â¡Ã€Ã»Ã€Ã Â¿Â©Ã€Â¯Â¸Â¦ ÃÃ–Â¾Ã® Â¼Â³ÃÂ¤
 
    float fovAngle = 2.0f * acos(light.outer_cosine);
 
@@ -72,7 +70,7 @@ std::pair<Matrix, Matrix> DirectionalLightViewProjection(Light const& light, Cam
    // f);
    Matrix lightViewProjRow = lightViewRow * lightProjRow;
 
-   // viewport °æ°è¸¦ Á¤ÀÇÇÏ´Â bounding box »ı¼º
+   // viewport Â°Ã¦Â°Ã¨Â¸Â¦ ÃÂ¤Ã€Ã‡Ã‡ÃÂ´Ã‚ bounding box Â»Ã½Â¼Âº
    BoundingBox::CreateFromPoints(cullBox, Vector4(l, b, n, 1.0f), Vector4(r, t, f, 1.0f));
    cullBox.Transform(cullBox, lightViewRow.Invert()); // Camera View Space -> world Space
    return {lightViewRow, lightProjRow};
@@ -91,7 +89,10 @@ Renderer::Renderer(Window* window, entt::registry& reg, ID3D11Device* device, ID
     , m_height(height)
 {
    ShaderManager::Initialize(m_device);
+
    CreateBuffers();
+   RI_TRACE("Create Buffers {:f}s", AppTimer.ElapsedInSeconds());
+   AppTimer.Mark();
    CreateRenderStates();
 
    CreateDepthStencilBuffers(m_width, m_height);
@@ -100,8 +101,7 @@ Renderer::Renderer(Window* window, entt::registry& reg, ID3D11Device* device, ID
 
    SetSceneViewport(static_cast<float>(m_width), static_cast<float>(m_height));
 
-   // Logger
-   spdlog::info("Renderer init complete {:f}s", timer.MarkInSeconds());
+   RI_CORE_INFO("Renderer init complete {:f}s", timer.MarkInSeconds());
    timer.Mark();
 }
 
@@ -195,11 +195,14 @@ void Renderer::CreateBuffers()
 
 void Renderer::CreateRenderStates()
 {
+   /// Rasterize State
+   // Default RS
    solidRS = new DXRasterizerState(m_device, CullCCWDesc());
    wireframeRS = new DXRasterizerState(m_device, WireframeDesc());
    cullNoneRS = new DXRasterizerState(m_device, CullNoneDesc());
    cullFrontRS = new DXRasterizerState(m_device, CullCWDesc());
 
+   // Depth RS
    DXRasterizerStateDesc shadow_depth_bias_state{};
    shadow_depth_bias_state.cull_mode = DXCullMode::Front;
    shadow_depth_bias_state.fill_mode = DXFillMode::Solid;
@@ -209,13 +212,16 @@ void Renderer::CreateRenderStates()
    shadow_depth_bias_state.slope_scaled_depth_bias = 1.0f;
    depthBiasRS = new DXRasterizerState(m_device, shadow_depth_bias_state);
 
+   /// DepthStencil State
    solidDSS = new DXDepthStencilState(m_device, DefaultDepthDesc());
    noneDepthDSS = new DXDepthStencilState(m_device, NoneDepthDesc());
 
+   /// Blend State
    opaqueBS = new DXBlendState(m_device, OpaqueBlendStateDesc());
    additiveBS = new DXBlendState(m_device, AdditiveBlendStateDesc());
    alphaBS = new DXBlendState(m_device, AlphaBlendStateDesc());
 
+   /// Sampler State
    linearWrapSS = new DXSampler(m_device, SamplerDesc(DXFilter::MIN_MAG_MIP_LINEAR, DXTextureAddressMode::Wrap));
    linearClampSS = new DXSampler(m_device, SamplerDesc(DXFilter::MIN_MAG_MIP_LINEAR, DXTextureAddressMode::Clamp));
 
@@ -236,10 +242,13 @@ void Renderer::CreateRenderStates()
 
 void Renderer::CreateDepthStencilBuffers(uint32 width, uint32 height)
 {
-   // DXDepthStencilBuffer Init
+   /// DXDepthStencilBuffer Initialize
    if (hdrDSV != nullptr)
       SAFE_DELETE(hdrDSV);
    hdrDSV = new DXDepthStencilBuffer(m_device, width, height, true);
+   if (gbufferDSV != nullptr)
+      SAFE_DELETE(gbufferDSV);
+   gbufferDSV = new DXDepthStencilBuffer(m_device, width, height);
    if (depthMapDSV != nullptr)
       SAFE_DELETE(depthMapDSV);
    depthMapDSV = new DXDepthStencilBuffer(m_device, width, height, false);
@@ -251,6 +260,13 @@ void Renderer::CreateDepthStencilBuffers(uint32 width, uint32 height)
    shadowDepthCubeMapDSV = new DXDepthStencilBuffer(m_device, SHADOW_CUBE_SIZE, SHADOW_CUBE_SIZE, false, true);
 
    // SRV about Texture2D DSV
+   D3D11_SHADER_RESOURCE_VIEW_DESC gbufferSRVDesc;
+   ZeroMemory(&gbufferSRVDesc, sizeof(gbufferSRVDesc));
+   gbufferSRVDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+   gbufferSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+   gbufferSRVDesc.Texture2D.MipLevels = 1;
+   gbufferDSV->CreateSRV(m_device, &gbufferSRVDesc);
+
    D3D11_SHADER_RESOURCE_VIEW_DESC shadowMapDesc;
    ZeroMemory(&shadowMapDesc, sizeof(shadowMapDesc));
    shadowMapDesc.Format = DXGI_FORMAT_R32_FLOAT;
@@ -275,11 +291,27 @@ void Renderer::CreateRenderTargets(uint32 width, uint32 height)
       SAFE_DELETE(hdrRTV);
    hdrRTV = new DXRenderTarget(m_device, width, height, DXFormat::R8G8B8A8_UNORM, hdrDSV);
    hdrRTV->CreateSRV(m_device, nullptr);
+
+   // GBuffer Pass
+   if (gbufferRTV != nullptr)
+      SAFE_DELETE(gbufferRTV);
+   gbufferRTV = new DXRenderTarget(m_device, width, height, DXFormat::R8G8B8A8_UNORM, gbufferDSV);
+   gbufferRTV->CreateRenderTarget(m_device);
+   gbufferRTV->CreateRenderTarget(m_device);
+
+   D3D11_SHADER_RESOURCE_VIEW_DESC gbufferSRVDesc;
+   ZeroMemory(&gbufferSRVDesc, sizeof(gbufferSRVDesc));
+   gbufferSRVDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+   gbufferSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+   gbufferSRVDesc.Texture2D.MipLevels = 1;
+   gbufferRTV->CreateSRV(m_device, &gbufferSRVDesc);
+   gbufferRTV->CreateSRV(m_device, &gbufferSRVDesc);
+   gbufferRTV->CreateSRV(m_device, &gbufferSRVDesc);
 }
 
 void Renderer::CreateRenderPasses(uint32 width, uint32 height)
 {
-   static constexpr float clearBlack[4] = {0.0f, 0.2f, 0.0f, 0.0f};
+   static constexpr float clearBlack[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 
    forwardPass.attachmentRTVs = hdrRTV;
    forwardPass.attachmentDSVs = hdrDSV;
@@ -288,6 +320,14 @@ void Renderer::CreateRenderPasses(uint32 width, uint32 height)
    forwardPass.clearColor = clearBlack;
    forwardPass.width = width;
    forwardPass.height = height;
+
+   gbufferPass.attachmentRTVs = gbufferRTV;
+   gbufferPass.attachmentDSVs = gbufferDSV;
+   gbufferPass.attachmentRS = solidRS;
+   gbufferPass.attachmentRS = solidRS;
+   gbufferPass.clearColor = clearBlack;
+   gbufferPass.width = width;
+   gbufferPass.height = height;
 
    shadowMapPass.attachmentDSVs = shadowDepthMapDSV;
    shadowMapPass.attachmentRS = depthBiasRS;
@@ -333,33 +373,9 @@ void Renderer::BindGlobals()
 
 void Renderer::PassForward()
 {
-   SetSceneViewport(static_cast<float>(forwardPass.width), static_cast<float>(forwardPass.height));
    forwardPass.BeginRenderPass(m_context);
-
-   PassSolid();
    PassForwardPhong();
-
    forwardPass.EndRenderPass(m_context);
-}
-
-void Renderer::PassSolid()
-{
-   auto entity_view = m_reg.view<Mesh, Material, Transform, Light>();
-   for (auto& entity : entity_view)
-      {
-         auto [mesh, material, transform, light] = entity_view.get<Mesh, Material, Transform, Light>(entity);
-
-         ShaderManager::GetShaderProgram(material.shader)->Bind(m_context);
-         objectConstsCPU.world = transform.currentTransform.Transpose();
-         objectConstsCPU.worldInvTranspose = transform.currentTransform.Invert().Transpose();
-         objectConstsGPU->Update(m_context, objectConstsCPU, sizeof(objectConstsCPU));
-
-         materialConstsCPU.diffuse = material.diffuse;
-         materialConstsCPU.albedoFactor = material.albedoFactor;
-         materialConstsGPU->Update(m_context, materialConstsCPU, sizeof(materialConstsCPU));
-
-         mesh.Draw(m_context);
-      }
 }
 
 void Renderer::PassForwardPhong()
@@ -403,16 +419,14 @@ void Renderer::PassForwardPhong()
 
          additiveBS->Bind(m_context);
          SetSceneViewport(static_cast<float>(forwardPass.width), static_cast<float>(forwardPass.height));
-         forwardPass.BeginRenderPass(m_context, false);
+         forwardPass.BeginRenderPass(m_context, false, false);
 
          // Render Mesh
          {
-            float clearBlack[4] = {0.0f, 0.2f, 0.0f, 0.0f};
-
             shadowDepthMapDSV->BindSRV(m_context, 0, DXShaderStage::PS);
             shadowDepthCubeMapDSV->BindSRV(m_context, 1, DXShaderStage::PS);
 
-            auto entityView = m_reg.view<Mesh, Material, Transform>(entt::exclude<Light>);
+            auto entityView = m_reg.view<Mesh, Material, Transform>();
             for (auto& entity : entityView)
                {
                   auto [mesh, material, transform] = entityView.get<Mesh, Material, Transform>(entity);
@@ -433,6 +447,35 @@ void Renderer::PassForwardPhong()
          }
       }
    additiveBS->Unbind(m_context);
+}
+
+void Renderer::PassGBuffer()
+{
+   SetSceneViewport(static_cast<float>(gbufferPass.width), static_cast<float>(gbufferPass.height));
+   gbufferPass.BeginRenderPass(m_context);
+   
+   /// Mesh Render
+   {
+      auto entityView = m_reg.view<Mesh, Material, Transform>();
+      for (auto& entity : entityView)
+         {
+            auto [mesh, material, transform] = entityView.get<Mesh, Material, Transform>(entity);
+
+            //TODO : add the GBuffer Shader setting.
+            /*ShaderManager::GetShaderProgram(material.shader)->Bind(m_context);*/
+
+            objectConstsCPU.world = transform.currentTransform.Transpose();
+            objectConstsCPU.worldInvTranspose = transform.currentTransform.Invert().Transpose();
+            objectConstsGPU->Update(m_context, objectConstsCPU, sizeof(objectConstsCPU));
+
+            materialConstsCPU.diffuse = material.diffuse;
+            materialConstsCPU.albedoFactor = material.albedoFactor;
+            materialConstsCPU.ambient = Vector3(0.5f, 0.1f, 0.1f);
+            materialConstsGPU->Update(m_context, materialConstsCPU, sizeof(materialConstsCPU));
+
+            mesh.Draw(m_context);
+         }
+   }
 }
 
 void Renderer::PassShadowMapDirectional(Light const& light)

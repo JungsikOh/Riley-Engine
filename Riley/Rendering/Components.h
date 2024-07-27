@@ -2,8 +2,6 @@
 #include "../Graphics/DXBuffer.h"
 #include "../Graphics/DXShaderProgram.h"
 #include "../Rendering/ShaderManager.h"
-#include <memory>
-#include <entt.hpp>
 
 #define COMPONENT
 

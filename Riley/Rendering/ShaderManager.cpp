@@ -2,242 +2,238 @@
 #include "../Core/Rendering.h"
 #include "../Graphics/DXShaderCompiler.h"
 #include "../Graphics/DXShaderProgram.h"
-#include "spdlog\spdlog.h"
 #include <execution>
 #include <numeric>
-#include <unordered_map>
 
-// ShaderManager¸¦ ÅëÇØ¼­ °¢ ·»´õ¸µµéÀÇ ¼³Á¤À» °ü¸®
-// ÇØ½¬¸ÊÀ» ÀÌ¿ëÇÏ¿©, ÇØ´ç ¹øÈ£ÀÇ ¼³Á¤µéÀ» È£ÃâÇÏ´Â ¹æ½ÄÀ¸·Î ÀÛµ¿.
-// ÃÑ µÎ Á¾·ùÀÇ ÇØ½¬¸ÊÀ» »ı¼º,
-// 1. °¢ ½ºÅ×ÀÌÁö(vs,ps, ..)¸¦ ´ãÀº ÇØ½¬¸Ê
-// 2. ·»´õ ÆĞ½ºÀÇ ¼³Á¤µéÀ» ´ãÀº ÇØ½¬¸Ê(vs=PBR, ps=PBR)
-// 1¹øÀ» »ı¼ºÇÑ ÈÄ. 2¹ø ÇØ½¬¸Ê¿¡´Ù°¡ enum ShaderProgramÀ» ¹Ì¸® Á¤ÀÇÇØµĞ °ÍÀ»
-// ÅëÇØ ÇØ´ç enumÀ» key·Î ¼³Á¤ÇÏ¿© ÇØ´ç ÇØ½¬¸Ê¿¡ ¼³Á¤µéÀ» ÀúÀå
-// std::unoreder_map<ShaderProgram, DXShaderProgram> ¼±¾ğ.
+// ShaderManagerÂ¸Â¦ Ã…Ã«Ã‡Ã˜Â¼Â­ Â°Â¢ Â·Â»Â´ÃµÂ¸ÂµÂµÃ©Ã€Ã‡ Â¼Â³ÃÂ¤Ã€Â» Â°Ã¼Â¸Â®
+// Ã‡Ã˜Â½Â¬Â¸ÃŠÃ€Â» Ã€ÃŒÂ¿Ã«Ã‡ÃÂ¿Â©, Ã‡Ã˜Â´Ã§ Â¹Ã¸ÃˆÂ£Ã€Ã‡ Â¼Â³ÃÂ¤ÂµÃ©Ã€Â» ÃˆÂ£ÃƒÃ¢Ã‡ÃÂ´Ã‚ Â¹Ã¦Â½Ã„Ã€Â¸Â·Ã Ã€Ã›ÂµÂ¿.
+// ÃƒÃ‘ ÂµÃ ÃÂ¾Â·Ã¹Ã€Ã‡ Ã‡Ã˜Â½Â¬Â¸ÃŠÃ€Â» Â»Ã½Â¼Âº,
+// 1. Â°Â¢ Â½ÂºÃ…Ã—Ã€ÃŒÃÃ¶(vs,ps, ..)Â¸Â¦ Â´Ã£Ã€Âº Ã‡Ã˜Â½Â¬Â¸ÃŠ
+// 2. Â·Â»Â´Ãµ Ã†ÃÂ½ÂºÃ€Ã‡ Â¼Â³ÃÂ¤ÂµÃ©Ã€Â» Â´Ã£Ã€Âº Ã‡Ã˜Â½Â¬Â¸ÃŠ(vs=PBR, ps=PBR)
+// 1Â¹Ã¸Ã€Â» Â»Ã½Â¼ÂºÃ‡Ã‘ ÃˆÃ„. 2Â¹Ã¸ Ã‡Ã˜Â½Â¬Â¸ÃŠÂ¿Â¡Â´Ã™Â°Â¡ enum ShaderProgramÃ€Â» Â¹ÃŒÂ¸Â® ÃÂ¤Ã€Ã‡Ã‡Ã˜ÂµÃ Â°ÃÃ€Â»
+// Ã…Ã«Ã‡Ã˜ Ã‡Ã˜Â´Ã§ enumÃ€Â» keyÂ·Ã Â¼Â³ÃÂ¤Ã‡ÃÂ¿Â© Ã‡Ã˜Â´Ã§ Ã‡Ã˜Â½Â¬Â¸ÃŠÂ¿Â¡ Â¼Â³ÃÂ¤ÂµÃ©Ã€Â» Ã€ÃºÃ€Ã¥
+// std::unoreder_map<ShaderProgram, DXShaderProgram> Â¼Â±Â¾Ã°.
 
-// enum°ú enum classÀÇ Â÷ÀÌ?
-// enumÀÇ °æ¿ì, Á¤ÀÇ ½Ã ÇØ´ç scope ¾È¿¡ enum °ªµéÀÌ Á¤ÀÇ µÇ¾î, ´Ù¸¥ enum¿¡
-// µ¿ÀÏÇÏ°Ô Á¤ÀÇµÇ¾î ÀÖ´Â °æ¿ì¿¡ ÄÄÆÄÀÏ ¿¡·¯°¡ ¹ß»ıÇÑ´Ù.
-// enum classÀÇ °æ¿ì,
-// »õ·Î¿î scope ¾È¿¡ °¢°¢ÀÇ °ªµéÀ» ³Ö´Â ´À³¦ÀÌ´Ù. µû¶ó¼­ enum class¸¦
-// »ç¿ë½Ã¿¡´Â 'Å¬·¡½ºÀÌ¸§::Á¤ÀÇÇÑ°Í' °ú °°Àº Çü½ÄÀ¸·Î »ç¿ëÇØ¾ß ÇÑ´Ù.
+// enumÂ°Ãº enum classÃ€Ã‡ Ã‚Ã·Ã€ÃŒ?
+// enumÃ€Ã‡ Â°Ã¦Â¿Ã¬, ÃÂ¤Ã€Ã‡ Â½Ãƒ Ã‡Ã˜Â´Ã§ scope Â¾ÃˆÂ¿Â¡ enum Â°ÂªÂµÃ©Ã€ÃŒ ÃÂ¤Ã€Ã‡ ÂµÃ‡Â¾Ã®, Â´Ã™Â¸Â¥ enumÂ¿Â¡
+// ÂµÂ¿Ã€ÃÃ‡ÃÂ°Ã” ÃÂ¤Ã€Ã‡ÂµÃ‡Â¾Ã® Ã€Ã–Â´Ã‚ Â°Ã¦Â¿Ã¬Â¿Â¡ Ã„Ã„Ã†Ã„Ã€Ã Â¿Â¡Â·Â¯Â°Â¡ Â¹ÃŸÂ»Ã½Ã‡Ã‘Â´Ã™.
+// enum classÃ€Ã‡ Â°Ã¦Â¿Ã¬,
+// Â»ÃµÂ·ÃÂ¿Ã® scope Â¾ÃˆÂ¿Â¡ Â°Â¢Â°Â¢Ã€Ã‡ Â°ÂªÂµÃ©Ã€Â» Â³Ã–Â´Ã‚ Â´Ã€Â³Â¦Ã€ÃŒÂ´Ã™. ÂµÃ»Â¶Ã³Â¼Â­ enum classÂ¸Â¦
+// Â»Ã§Â¿Ã«Â½ÃƒÂ¿Â¡Â´Ã‚ 'Ã…Â¬Â·Â¡Â½ÂºÃ€ÃŒÂ¸Â§::ÃÂ¤Ã€Ã‡Ã‡Ã‘Â°Ã' Â°Ãº Â°Â°Ã€Âº Ã‡Ã¼Â½Ã„Ã€Â¸Â·Ã Â»Ã§Â¿Ã«Ã‡Ã˜Â¾ÃŸ Ã‡Ã‘Â´Ã™.
 
-// constexprÀÌ¶õ? ÄÄÆÄÀÏ ½Ã°£ »ó¼ö¸¦ ¸¸µå´Â Å°¿öµå
+// constexprÃ€ÃŒÂ¶Ãµ? Ã„Ã„Ã†Ã„Ã€Ã Â½ÃƒÂ°Â£ Â»Ã³Â¼Ã¶Â¸Â¦ Â¸Â¸ÂµÃ¥Â´Ã‚ Ã…Â°Â¿Ã¶ÂµÃ¥
 // https://blockdmask.tistory.com/482
-// »ó¼ö¶õ 2Á¾·ù°¡ ÀÖ´Ù.
-// ÄÄÆÄÀÏ ½Ã°£¿¡ ¾Ë¼ö ÀÖ´Â »ó¼ö¿Í ¾ø´Â »ó¼ö(½ÇÇà½Ã°£¿¡ ¾Ë ¼ö ÀÖ´Â ½ÇÇà½Ã°£
-// »ó¼ö)ÀÌ´Ù. constÀÇ °æ¿ì µÑ ´Ù »ç¿ë °¡´ÉÇÏ°í constexprÀÇ °æ¿ì¿¡´Â ÀüÀÚ¿¡
-// ÇØ´çÇÑ´Ù.
+// Â»Ã³Â¼Ã¶Â¶Ãµ 2ÃÂ¾Â·Ã¹Â°Â¡ Ã€Ã–Â´Ã™.
+// Ã„Ã„Ã†Ã„Ã€Ã Â½ÃƒÂ°Â£Â¿Â¡ Â¾Ã‹Â¼Ã¶ Ã€Ã–Â´Ã‚ Â»Ã³Â¼Ã¶Â¿Ã Â¾Ã¸Â´Ã‚ Â»Ã³Â¼Ã¶(Â½Ã‡Ã‡Ã Â½ÃƒÂ°Â£Â¿Â¡ Â¾Ã‹ Â¼Ã¶ Ã€Ã–Â´Ã‚ Â½Ã‡Ã‡Ã Â½ÃƒÂ°Â£
+// Â»Ã³Â¼Ã¶)Ã€ÃŒÂ´Ã™. constÃ€Ã‡ Â°Ã¦Â¿Ã¬ ÂµÃ‘ Â´Ã™ Â»Ã§Â¿Ã« Â°Â¡Â´Ã‰Ã‡ÃÂ°Ã­ constexprÃ€Ã‡ Â°Ã¦Â¿Ã¬Â¿Â¡Â´Ã‚ Ã€Ã¼Ã€ÃšÂ¿Â¡
+// Ã‡Ã˜Â´Ã§Ã‡Ã‘Â´Ã™.
 
 namespace Riley
 {
 
-  // Shader ¼³Á¤À» µµ¿ï std::unordered_map Á¤ÀÇ
-  namespace
-  {
+// Shader Â¼Â³ÃÂ¤Ã€Â» ÂµÂµÂ¿Ã¯ std::unordered_map ÃÂ¤Ã€Ã‡
+namespace
+{
 
-    ID3D11Device* device;
+ID3D11Device* device;
 
-    std::unordered_map<ShaderId, std::unique_ptr<DXVertexShader> >      vsShaderMap;
-    std::unordered_map<ShaderId, std::unique_ptr<DXGeometryShader> >    gsShaderMap;
-    std::unordered_map<ShaderId, std::unique_ptr<DXPixelShader> >       psShaderMap;
-    std::unordered_map<ShaderId, std::unique_ptr<DXInputLayout> >       inputLayoutMap;
+std::unordered_map<ShaderId, std::unique_ptr<DXVertexShader>> vsShaderMap;
+std::unordered_map<ShaderId, std::unique_ptr<DXGeometryShader>> gsShaderMap;
+std::unordered_map<ShaderId, std::unique_ptr<DXPixelShader>> psShaderMap;
+std::unordered_map<ShaderId, std::unique_ptr<DXInputLayout>> inputLayoutMap;
 
-    // ¸¸µç ¼ÎÀÌ´õµéÀ» »ç¿ëÇÏ°í ½ÍÀº ¼³Á¤¿¡ ¸Â°Ô ´ãÀ» map
-    std::unordered_map<ShaderProgram, DXGraphicsShaderProgram>          DXShaderProgramMap;
+// Â¸Â¸ÂµÃ§ Â¼ÃÃ€ÃŒÂ´ÃµÂµÃ©Ã€Â» Â»Ã§Â¿Ã«Ã‡ÃÂ°Ã­ Â½ÃÃ€Âº Â¼Â³ÃÂ¤Â¿Â¡ Â¸Ã‚Â°Ã” Â´Ã£Ã€Â» map
+std::unordered_map<ShaderProgram, DXGraphicsShaderProgram> DXShaderProgramMap;
 
-    constexpr DXShaderStage GetStage(ShaderId shader)
-    {
-      switch(shader)
-        {
-        case VS_Solid:
-        case VS_Phong:
-        case VS_Shadow:
-        case VS_ShadowCube:
-          return DXShaderStage::VS;
-        case PS_Solid:
-        case PS_Phong:
-        case PS_Shadow:
-        case PS_ShadowCube:
-          return DXShaderStage::PS;
-        case GS_ShadowCube:
-          return DXShaderStage::GS;
-        default:
-          assert("Not supported DXShaderStage.");
-        }
-    }
+constexpr DXShaderStage GetStage(ShaderId shader)
+{
+   switch (shader)
+      {
+      case VS_Solid:
+      case VS_Phong:
+      case VS_Shadow:
+      case VS_ShadowCube:
+         return DXShaderStage::VS;
+      case PS_Solid:
+      case PS_Phong:
+      case PS_Shadow:
+      case PS_ShadowCube:
+         return DXShaderStage::PS;
+      case GS_ShadowCube:
+         return DXShaderStage::GS;
+      default:
+         assert("Not supported DXShaderStage.");
+      }
+}
 
-    constexpr std::string GetShaderSource(ShaderId shader)
-    {
-      switch(shader)
-        {
-        case VS_Solid:
-        case PS_Solid:
-          return "Resources/Shaders/Solid.hlsl";
-        case VS_Phong:
-        case PS_Phong:
-          return "Resources/Shaders/ForwardPhong.hlsl";
-        case VS_Shadow:
-        case PS_Shadow:
-          return "Resources/Shaders/Shadow.hlsl";
-        case VS_ShadowCube:
-        case GS_ShadowCube:
-        case PS_ShadowCube:
-          return "Resources/Shaders/ShadowCube.hlsl";
-        default:
-          assert("Don't found Shader Resource Path");
-        }
-    }
+constexpr std::string GetShaderSource(ShaderId shader)
+{
+   switch (shader)
+      {
+      case VS_Solid:
+      case PS_Solid:
+         return "Resources/Shaders/Solid.hlsl";
+      case VS_Phong:
+      case PS_Phong:
+         return "Resources/Shaders/ForwardPhong.hlsl";
+      case VS_Shadow:
+      case PS_Shadow:
+         return "Resources/Shaders/Shadow.hlsl";
+      case VS_ShadowCube:
+      case GS_ShadowCube:
+      case PS_ShadowCube:
+         return "Resources/Shaders/ShadowCube.hlsl";
+      default:
+         assert("Don't found Shader Resource Path");
+      }
+}
 
-    constexpr std::string GetEntryPoint(ShaderId shader)
-    {
-      switch(shader)
-        {
-        case VS_Solid:
-          return "SolidVS";
-        case PS_Solid:
-          return "SolidPS";
-        case VS_Phong:
-          return "PhongVS";
-        case PS_Phong:
-          return "PhongPS";
-        case VS_Shadow:
-          return "ShadowVS";
-        case PS_Shadow:
-          return "ShadowPS";
-        case VS_ShadowCube:
-          return "ShadowCubeVS";
-        case GS_ShadowCube:
-          return "ShadowCubeGS";
-        case PS_ShadowCube:
-          return "ShadowCubePS";
-        default:
-          return "main";
-        }
-    }
+constexpr std::string GetEntryPoint(ShaderId shader)
+{
+   switch (shader)
+      {
+      case VS_Solid:
+         return "SolidVS";
+      case PS_Solid:
+         return "SolidPS";
+      case VS_Phong:
+         return "PhongVS";
+      case PS_Phong:
+         return "PhongPS";
+      case VS_Shadow:
+         return "ShadowVS";
+      case PS_Shadow:
+         return "ShadowPS";
+      case VS_ShadowCube:
+         return "ShadowCubeVS";
+      case GS_ShadowCube:
+         return "ShadowCubeGS";
+      case PS_ShadowCube:
+         return "ShadowCubePS";
+      default:
+         return "main";
+      }
+}
 
-    void CompileShader(ShaderId shader, bool firstCompile = false)
-    {
-      DXShaderDesc input{.entryPoint = GetEntryPoint(shader)};
+void CompileShader(ShaderId shader, bool firstCompile = false)
+{
+   DXShaderDesc input{.entryPoint = GetEntryPoint(shader)};
 
 #if _DEBUG
-      input.flags = DXShaderCompilerFlagBit_DEBUG
-                    | DXShaderCompilerFlagBit_DisableOptimization;
+   input.flags = DXShaderCompilerFlagBit_DEBUG | DXShaderCompilerFlagBit_DisableOptimization;
 #else
-      input.flags = DXShaderCompilerFlagBit_NONE;
+   input.flags = DXShaderCompilerFlagBit_NONE;
 #endif
-      input.sourceFile = GetShaderSource(shader);
-      input.stage = GetStage(shader);
+   input.sourceFile = GetShaderSource(shader);
+   input.stage = GetStage(shader);
 
-      DXShaderCompileOutput output{};
-      bool result = DXShaderCompiler::CompileShader(input, output);
-      if(!result) return;
+   DXShaderCompileOutput output{};
+   bool result = DXShaderCompiler::CompileShader(input, output);
+   if (!result)
+      return;
 
-      switch(input.stage)
-        {
-        case DXShaderStage::VS:
-          if(firstCompile)
-            vsShaderMap[shader] = std::make_unique<DXVertexShader>(
-              device, output.shader_bytecode);
-          else
+   switch (input.stage)
+      {
+      case DXShaderStage::VS:
+         if (firstCompile)
+            vsShaderMap[shader] = std::make_unique<DXVertexShader>(device, output.shader_bytecode);
+         else
             vsShaderMap[shader]->Recreate(output.shader_bytecode);
-          break;
-        case DXShaderStage::PS:
-          if(firstCompile)
-            psShaderMap[shader] = std::make_unique<DXPixelShader>(
-              device, output.shader_bytecode);
-          else
+         break;
+      case DXShaderStage::PS:
+         if (firstCompile)
+            psShaderMap[shader] = std::make_unique<DXPixelShader>(device, output.shader_bytecode);
+         else
             psShaderMap[shader]->Recreate(output.shader_bytecode);
-          break;
-        case DXShaderStage::GS:
-          if(firstCompile)
-            gsShaderMap[shader] = std::make_unique<DXGeometryShader>(
-              device, output.shader_bytecode);
-          else
+         break;
+      case DXShaderStage::GS:
+         if (firstCompile)
+            gsShaderMap[shader] = std::make_unique<DXGeometryShader>(device, output.shader_bytecode);
+         else
             gsShaderMap[shader]->Recreate(output.shader_bytecode);
-          break;
-        default:
-          assert("Unsupported Shader Stage!");
-        }
-    }
+         break;
+      default:
+         assert("Unsupported Shader Stage!");
+      }
+}
 
-    // ¸¸µç ¼¼ÀÌ´õµéÀ» ¿øÇÏ´Â ¼³Á¤µéÀ» ¸ğ¾Æ Ä¿½ºÅÒÇÏ´Â ÇÔ¼ö
-    void CreateAllPrograms()
-    {
-      // enum class´Â ¾Ï½ÃÀû Çüº¯È¯À» °­·ÂÇÏ°Ô ¸·°í ÀÖ±â ¶§¹®¿¡ ÀÌ ¹®Á¦¸¦
-      // ±Øº¹ÇÏ±â À§ÇØ std::underlying_tye_t¸¦ »ç¿ëÇÑ´Ù.
-      using UnderlyingType = std::underlying_type_t<ShaderId>;
-      for(UnderlyingType s = 0; s < ShaderIdCount; ++s)
-        {
-          ShaderId shader = (ShaderId)s; // It's OK.
-          if(GetStage(shader) != DXShaderStage::VS) continue;
+// Â¸Â¸ÂµÃ§ Â¼Â¼Ã€ÃŒÂ´ÃµÂµÃ©Ã€Â» Â¿Ã¸Ã‡ÃÂ´Ã‚ Â¼Â³ÃÂ¤ÂµÃ©Ã€Â» Â¸Ã°Â¾Ã† Ã„Â¿Â½ÂºÃ…Ã’Ã‡ÃÂ´Ã‚ Ã‡Ã”Â¼Ã¶
+void CreateAllPrograms()
+{
+   // enum classÂ´Ã‚ Â¾ÃÂ½ÃƒÃ€Ã» Ã‡Ã¼ÂºÂ¯ÃˆÂ¯Ã€Â» Â°Â­Â·Ã‚Ã‡ÃÂ°Ã” Â¸Â·Â°Ã­ Ã€Ã–Â±Ã¢ Â¶Â§Â¹Â®Â¿Â¡ Ã€ÃŒ Â¹Â®ÃÂ¦Â¸Â¦
+   // Â±Ã˜ÂºÂ¹Ã‡ÃÂ±Ã¢ Ã€Â§Ã‡Ã˜ std::underlying_tye_tÂ¸Â¦ Â»Ã§Â¿Ã«Ã‡Ã‘Â´Ã™.
+   using UnderlyingType = std::underlying_type_t<ShaderId>;
+   for (UnderlyingType s = 0; s < ShaderIdCount; ++s)
+      {
+         ShaderId shader = (ShaderId)s; // It's OK.
+         if (GetStage(shader) != DXShaderStage::VS)
+            continue;
 
-          inputLayoutMap[shader] = std::make_unique<DXInputLayout>(
-            device, vsShaderMap[shader]->GetBytecode());
-        }
+         inputLayoutMap[shader] = std::make_unique<DXInputLayout>(device, vsShaderMap[shader]->GetBytecode());
+      }
 
-      DXShaderProgramMap[ShaderProgram::Solid]
-        .SetVertexShader(vsShaderMap[VS_Solid].get())
-        .SetPixelShader(psShaderMap[PS_Solid].get())
-        .SetInputLayout(inputLayoutMap[VS_Solid].get());
-      DXShaderProgramMap[ShaderProgram::ForwardPhong]
-        .SetVertexShader(vsShaderMap[VS_Phong].get())
-        .SetPixelShader(psShaderMap[PS_Phong].get())
-        .SetInputLayout(inputLayoutMap[VS_Phong].get());
-      DXShaderProgramMap[ShaderProgram::ShadowDepthMap]
-        .SetVertexShader(vsShaderMap[VS_Shadow].get())
-        .SetPixelShader(psShaderMap[PS_Shadow].get())
-        .SetInputLayout(inputLayoutMap[VS_Shadow].get());
-      DXShaderProgramMap[ShaderProgram::ShadowDepthCubeMap]
-        .SetVertexShader(vsShaderMap[VS_ShadowCube].get())
-        .SetGeometryShader(gsShaderMap[GS_ShadowCube].get())
-        .SetPixelShader(psShaderMap[PS_ShadowCube].get())
-        .SetInputLayout(inputLayoutMap[VS_ShadowCube].get());
-    }
+   DXShaderProgramMap[ShaderProgram::Solid]
+     .SetVertexShader(vsShaderMap[VS_Solid].get())
+     .SetPixelShader(psShaderMap[PS_Solid].get())
+     .SetInputLayout(inputLayoutMap[VS_Solid].get());
+   DXShaderProgramMap[ShaderProgram::ForwardPhong]
+     .SetVertexShader(vsShaderMap[VS_Phong].get())
+     .SetPixelShader(psShaderMap[PS_Phong].get())
+     .SetInputLayout(inputLayoutMap[VS_Phong].get());
+   DXShaderProgramMap[ShaderProgram::ShadowDepthMap]
+     .SetVertexShader(vsShaderMap[VS_Shadow].get())
+     .SetPixelShader(psShaderMap[PS_Shadow].get())
+     .SetInputLayout(inputLayoutMap[VS_Shadow].get());
+   DXShaderProgramMap[ShaderProgram::ShadowDepthCubeMap]
+     .SetVertexShader(vsShaderMap[VS_ShadowCube].get())
+     .SetGeometryShader(gsShaderMap[GS_ShadowCube].get())
+     .SetPixelShader(psShaderMap[PS_ShadowCube].get())
+     .SetInputLayout(inputLayoutMap[VS_ShadowCube].get());
+}
 
-    void CompileAllShaders()
-    {
-      Timer t;
-      spdlog::info("Compiling All Shaders...");
-      using UnderlyingType = std::underlying_type_t<ShaderId>;
+void CompileAllShaders()
+{
+   RI_CORE_INFO("Shaders Compiling...");
+   using UnderlyingType = std::underlying_type_t<ShaderId>;
 
-      std::vector<UnderlyingType> shaders(ShaderIdCount);
-      // std::iota´Â ÄÁÅ×ÀÌ³Ê¿¡ ¿¬¼ÓÀû ¼ıÀÚ¸¦ ÇÒ´çÇÑ´Ù. [0,ShaderIdCount]
-      std::iota(std::begin(shaders), std::end(shaders), 0);
-      std::for_each(
-        std::execution::seq, std::begin(shaders), std::end(shaders),
-        [](UnderlyingType s) { CompileShader((ShaderId)s, true); });
-      CreateAllPrograms();
-      spdlog::info("Copilation done in {:f} seconds!", t.ElapsedInSeconds());
-    }
-  } // namespace
+   std::vector<UnderlyingType> shaders(ShaderIdCount);
+   // std::iotaÂ´Ã‚ Ã„ÃÃ…Ã—Ã€ÃŒÂ³ÃŠÂ¿Â¡ Â¿Â¬Â¼Ã“Ã€Ã» Â¼Ã½Ã€ÃšÂ¸Â¦ Ã‡Ã’Â´Ã§Ã‡Ã‘Â´Ã™. [0,ShaderIdCount]
+   std::iota(std::begin(shaders), std::end(shaders), 0);
+   std::for_each(std::execution::seq, std::begin(shaders), std::end(shaders), [](UnderlyingType s) {
+      CompileShader((ShaderId)s, true);
+   });
+   CreateAllPrograms();
+   RI_CORE_INFO("Shaders Compilation done in {:f}s", timer.MarkInSeconds());
+   timer.Mark();
+}
+} // namespace
 
-  void ShaderManager::Initialize(ID3D11Device* _device)
-  {
-    device = _device;
-    CompileAllShaders();
-  }
+void ShaderManager::Initialize(ID3D11Device* _device)
+{
+   device = _device;
+   CompileAllShaders();
+}
 
-  void ShaderManager::Destroy()
-  {
-    device = nullptr;
-    auto FreeContainer = []<typename T>(T& container) {
+void ShaderManager::Destroy()
+{
+   device = nullptr;
+   auto FreeContainer = []<typename T>(T& container) {
       container.clear();
       T empty;
       std::swap(container, empty);
-    };
-    FreeContainer(DXShaderProgramMap);
-    FreeContainer(vsShaderMap);
-    FreeContainer(psShaderMap);
-    FreeContainer(gsShaderMap);
-  }
+   };
+   FreeContainer(DXShaderProgramMap);
+   FreeContainer(vsShaderMap);
+   FreeContainer(psShaderMap);
+   FreeContainer(gsShaderMap);
+}
 
-  DXShaderProgram* ShaderManager::GetShaderProgram(ShaderProgram shaderProgram)
-  {
-    bool isDXProgram = DXShaderProgramMap.contains(shaderProgram);
-    if(isDXProgram) return &DXShaderProgramMap[shaderProgram];
-    return &DXShaderProgramMap[shaderProgram];
-  }
+DXShaderProgram* ShaderManager::GetShaderProgram(ShaderProgram shaderProgram)
+{
+   bool isDXProgram = DXShaderProgramMap.contains(shaderProgram);
+   if (isDXProgram)
+      return &DXShaderProgramMap[shaderProgram];
+   return &DXShaderProgramMap[shaderProgram];
+}
 
 } // namespace Riley

@@ -16,7 +16,7 @@ struct DXRenderPassDesc
    DXDepthStencilState* attachmentDSS = nullptr;
    uint32 width, height; // For Setting Viewport size.
 
-   void BeginRenderPass(ID3D11DeviceContext* context, bool isClearRTVs = true, uint8 isStencil = 0);
+   void BeginRenderPass(ID3D11DeviceContext* context, bool isClearRTVs = true, bool isClearDSV = true, uint8 isStencil = 0);
    void EndRenderPass(ID3D11DeviceContext* context);
 };
 } // namespace Riley
