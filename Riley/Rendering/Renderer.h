@@ -46,7 +46,7 @@ namespace Riley
     void Render();
 
     void OnResize(uint32 width, uint32 height);
-    void OnLeftMouseClicked();
+    void OnLeftMouseClicked(uint32 mx, uint32 my);
 
 
     DXRenderTarget* hdrRTV;
@@ -65,6 +65,8 @@ namespace Riley
     Camera* m_camera;
     SceneViewport m_currentSceneViewport;
     float m_currentDeltaTime;
+    bool m_seleted = false;
+    bool m_dragStartFlag = false;
 
     // Others
     ////////////////////////////

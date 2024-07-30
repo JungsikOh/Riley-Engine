@@ -60,6 +60,7 @@ std::vector<entt::entity> ModelImporter::LoadSquare(const Vector3& pos, const fl
    m_registry.emplace<Mesh>(entity, mesh);
 
    Material material{};
+   material.diffuse = Vector3(0.2f, 0.3f, 0.2f);
    material.shader = ShaderProgram::ForwardPhong;
 
    m_registry.emplace<Material>(entity, material);
@@ -223,13 +224,91 @@ std::vector<entt::entity> ModelImporter::LoadBox(const Vector3& pos, const float
 
    AABB aabb{};
    aabb.boundingBox = _boundingBox;
-   aabb.isDrawAABB = true;
+   aabb.isDrawAABB = false;
    aabb.UpdateBuffer(m_device);
    m_registry.emplace<AABB>(entity, aabb);
 
    return std::vector<entt::entity>{entity};
 }
 
+std::vector<entt::entity> ModelImporter::LoadSqhere(Vector3 const& pos, float const& radius /*= 1.0f*/, uint32 numSlices, uint32 numStacks)
+{
+   const float dTheta = -XM_2PI / float(numSlices);
+   const float dPhi = -XM_PI / float(numStacks);
+
+   std::vector<Vertex> vertices;
+   for (uint32 j = 0; j <= numStacks; ++j)
+      {
+         Vector3 stackStartPoint =
+           Vector3::Transform(Vector3(0.0f, -radius, 0.0f), Matrix::CreateRotationZ(dPhi * float(j)));
+         for (uint32 i = 0; i <= numSlices; ++i)
+            {
+               Vertex v;
+               v.position =
+                 Vector3::Transform(stackStartPoint, Matrix::CreateRotationY(dTheta * float(i)));
+               v.normal = v.position;
+               v.normal.Normalize();
+               v.texcoord = Vector2(float(i) / numSlices, 1.0f - float(j) / numStacks) * Vector2(1.0f);
+               v.bitangent = Vector3(0.0f, 1.0f, 0.0f);
+
+               Vector3 normalOrth = v.normal - v.bitangent.Dot(v.normal) * v.normal;
+               normalOrth.Normalize();
+               v.tangent = v.bitangent.Cross(normalOrth);
+               v.tangent.Normalize();
+
+               vertices.push_back(v);
+            }
+      }
+
+   std::vector<uint32> indices;
+
+   for (uint32 j = 0; j < numStacks; ++j)
+      {
+         const int offset = (numSlices + 1) * j;
+         for (uint32 i = 0; i < numSlices; ++i)
+            {
+               indices.push_back(offset + i);
+               indices.push_back(offset + i + numSlices + 1);
+               indices.push_back(offset + i + 1 + numSlices + 1);
+
+               indices.push_back(offset + i);
+               indices.push_back(offset + i + 1 + numSlices + 1);
+               indices.push_back(offset + i + 1);
+            }
+      }
+
+   entt::entity entity = m_registry.create();
+   Mesh mesh{};
+   mesh.vertexBuffer = std::make_shared<DXBuffer>(m_device, VertexBufferDesc(vertices.size(), sizeof(Vertex)), vertices.data());
+   mesh.indexBuffer = std::make_shared<DXBuffer>(m_device, IndexBufferDesc(indices.size(), false), indices.data());
+   mesh.vertexCount = static_cast<uint32>(vertices.size());
+   mesh.indexCount = static_cast<uint32>(indices.size());
+
+   m_registry.emplace<Mesh>(entity, mesh);
+
+   Material material{};
+   material.shader = ShaderProgram::ForwardPhong;
+   material.diffuse = Vector3(0.6f, 0.5f, 0.3f);
+
+   m_registry.emplace<Material>(entity, material);
+
+   Transform transform{};
+   transform.startingTransform = Matrix::CreateScale(radius) * Matrix::CreateTranslation(pos);
+   transform.currentTransform = Matrix::CreateScale(radius) * Matrix::CreateTranslation(pos);
+
+   m_registry.emplace<Transform>(entity, transform);
+
+   BoundingBox _boundingBox = AABBFromVertices(vertices);
+   _boundingBox.Transform(_boundingBox, transform.currentTransform);
+
+   AABB aabb{};
+   aabb.boundingBox = _boundingBox;
+   aabb.isDrawAABB = false;
+   aabb.UpdateBuffer(m_device);
+   m_registry.emplace<AABB>(entity, aabb);
+
+   return std::vector<entt::entity>{entity};
+}
 
 std::vector<entt::entity> ModelImporter::LoadLight(Light& lightData, LightMesh meshType, const float& scale)
 {

@@ -39,6 +39,7 @@ class Editor {
   private:
     void MenuBar(); 
     void Camera();
+    void ListEntities();
     void Scene();
 };
 } // namespace Riley

@@ -152,8 +152,8 @@ namespace Riley
             (int32)GET_WHEEL_DELTA_WPARAM(data.wparam) / WHEEL_DELTA);
           break;
           case WM_LBUTTONDOWN: {
-            int32 mx = GET_X_LPARAM(data.lparam);
-            int32 my = GET_Y_LPARAM(data.lparam);
+            uint32 mx = (uint32)GET_X_LPARAM(data.lparam);
+            uint32 my = (uint32)GET_Y_LPARAM(data.lparam);
             input_events.left_mouse_clicked.Broadcast(mx, my);
           }
           break;

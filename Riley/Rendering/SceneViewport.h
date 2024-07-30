@@ -52,6 +52,9 @@ class SceneViewport {
 
     float m_mousePositionX;
     float m_mousePositionY;
+    float m_widthImGui;
+    float m_heightImGui;
+
 
     bool isViewportFocused;
 };

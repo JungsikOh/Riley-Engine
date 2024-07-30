@@ -99,7 +99,7 @@ Renderer::Renderer(Window* window, entt::registry& reg, ID3D11Device* device, ID
    CreateRenderTargets(m_width, m_height);
    CreateRenderPasses(m_width, m_height);
 
-   SetSceneViewport(static_cast<float>(m_width), static_cast<float>(m_height));
+   /*SetSceneViewport(static_cast<float>(m_width), static_cast<float>(m_height));*/
 
    RI_CORE_INFO("Renderer init complete {:f}s", timer.MarkInSeconds());
    timer.Mark();
@@ -109,6 +109,9 @@ Renderer::~Renderer()
 {
    SAFE_DELETE(frameBufferGPU);
    SAFE_DELETE(objectConstsGPU);
+   SAFE_DELETE(materialConstsGPU);
+   SAFE_DELETE(lightConstsGPU);
+   SAFE_DELETE(shadowConstsGPU);
 }
 
 void Renderer::Update(float dt)
@@ -133,6 +136,45 @@ void Renderer::OnResize(uint32 width, uint32 height)
          CreateRenderTargets(width, height);
          CreateRenderPasses(width, height);
       }
+}
+
+void Renderer::OnLeftMouseClicked(uint32 mx, uint32 my)
+{
+   float cursorNdcX = m_currentSceneViewport.m_mousePositionX * 2.0f / m_currentSceneViewport.m_widthImGui - 1.0f;
+   float cursorNdcY = -m_currentSceneViewport.m_mousePositionY * 2.0f / m_currentSceneViewport.m_heightImGui + 1.0f;
+
+   cursorNdcX = std::clamp(cursorNdcX, -1.0f, 1.0f);
+   cursorNdcY = std::clamp(cursorNdcY, -1.0f, 1.0f);
+
+   Vector3 cursorNdcNear = Vector3(cursorNdcX, cursorNdcY, 0.0f);
+   Vector3 cursorNdcFar = Vector3(cursorNdcX, cursorNdcY, 1.0f);
+
+   //// NDC -> World
+   Vector3 cursorNearWS = Vector3::Transform(cursorNdcNear, frameBufferCPU.invViewProj.Transpose());
+   Vector3 cursorFarWS = Vector3::Transform(cursorNdcFar, frameBufferCPU.invViewProj.Transpose());
+   Vector3 cursorDir = (cursorFarWS - cursorNearWS);
+   cursorDir.Normalize();
+
+   std::cout << "WS :" << cursorNearWS.x << ", " << cursorNearWS.y << std::endl;
+
+   Ray cursorRay = Ray(cursorNearWS, cursorDir);
+   {
+      auto aabbView = m_reg.view<Transform, AABB>();
+      for (auto& entity : aabbView)
+         {
+            auto [transform, aabb] = aabbView.get<Transform, AABB>(entity);
+            float dist = 0.0f;
+            m_seleted = cursorRay.Intersects(aabb.boundingBox, dist);
+            if (m_seleted)
+               {
+                  if (!aabb.isDrawAABB)
+                     aabb.isDrawAABB = true;
+                  else
+                     aabb.isDrawAABB = false;
+                  return;
+               }
+         }
+   }
 }
 
 void Renderer::Tick(Camera* camera)
@@ -440,7 +482,7 @@ void Renderer::PassForwardPhong()
 
                   materialConstsCPU.diffuse = material.diffuse;
                   materialConstsCPU.albedoFactor = material.albedoFactor;
-                  materialConstsCPU.ambient = Vector3(0.5f, 0.1f, 0.1f);
+                  materialConstsCPU.ambient = material.diffuse;
                   materialConstsGPU->Update(m_context, materialConstsCPU, sizeof(materialConstsCPU));
 
                   mesh.Draw(m_context);
@@ -473,7 +515,7 @@ void Renderer::PassGBuffer()
             materialConstsCPU.metallicFactor = 0.5f;
             materialConstsCPU.roughnessFactor = 0.3f;
             materialConstsCPU.emissiveFactor = material.emissiveFactor;
-            materialConstsCPU.ambient = Vector3(0.5f, 0.1f, 0.1f);
+            materialConstsCPU.ambient = material.diffuse;
             materialConstsGPU->Update(m_context, materialConstsCPU, sizeof(materialConstsCPU));
 
             mesh.Draw(m_context);
@@ -644,6 +686,7 @@ void Renderer::PassAABB()
                   BindVertexBuffer(m_context, aabb.aabbVertexBuffer.get());
                   BindIndexBuffer(m_context, aabb.aabbIndexBuffer.get());
                   m_context->DrawIndexed(aabb.aabbIndexBuffer->GetCount(), 0, 0);
+
                }
          }
    }

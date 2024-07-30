@@ -167,6 +167,15 @@ class Input : public Singleton<Input>
       return mouse_wheel_delta;
    }
 
+   bool GetLButtonFlag() const
+   {
+      return dragStartflag;
+   }
+
+   void SetLButtonFlag (bool flag) {
+      dragStartflag = flag;
+   }
+
    private:
    InputEvents input_events;
    std::array<bool, (uint64)KeyCode::Count> keys;
@@ -181,6 +190,9 @@ class Input : public Singleton<Input>
 
    bool new_frame = false;
    bool resizing = false;
+
+   bool dragStartflag = false;
+   bool leftbutton = false;
 
    Window* window = nullptr;
 
