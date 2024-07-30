@@ -141,6 +141,9 @@ namespace Riley
     void PassShadowMapDirectional(Light const& light);
     void PassShadowMapSpot(Light const& light);
     void PassShadowMapPoint(Light const& light);
+
+    void PassAABB();
+
   };
 
 } // namespace Riley

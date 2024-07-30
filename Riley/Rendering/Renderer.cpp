@@ -119,6 +119,8 @@ void Renderer::Update(float dt)
 void Renderer::Render()
 {
    PassForward();
+   PassAABB();
+   PassGBuffer();
 }
 
 void Renderer::OnResize(uint32 width, uint32 height)
@@ -296,16 +298,15 @@ void Renderer::CreateRenderTargets(uint32 width, uint32 height)
    if (gbufferRTV != nullptr)
       SAFE_DELETE(gbufferRTV);
    gbufferRTV = new DXRenderTarget(m_device, width, height, DXFormat::R8G8B8A8_UNORM, gbufferDSV);
-   gbufferRTV->CreateRenderTarget(m_device);
-   gbufferRTV->CreateRenderTarget(m_device);
-
    D3D11_SHADER_RESOURCE_VIEW_DESC gbufferSRVDesc;
    ZeroMemory(&gbufferSRVDesc, sizeof(gbufferSRVDesc));
    gbufferSRVDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
    gbufferSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
    gbufferSRVDesc.Texture2D.MipLevels = 1;
    gbufferRTV->CreateSRV(m_device, &gbufferSRVDesc);
+   gbufferRTV->CreateRenderTarget(m_device);
    gbufferRTV->CreateSRV(m_device, &gbufferSRVDesc);
+   gbufferRTV->CreateRenderTarget(m_device);
    gbufferRTV->CreateSRV(m_device, &gbufferSRVDesc);
 }
 
@@ -324,7 +325,7 @@ void Renderer::CreateRenderPasses(uint32 width, uint32 height)
    gbufferPass.attachmentRTVs = gbufferRTV;
    gbufferPass.attachmentDSVs = gbufferDSV;
    gbufferPass.attachmentRS = solidRS;
-   gbufferPass.attachmentRS = solidRS;
+   gbufferPass.attachmentDSS = solidDSS;
    gbufferPass.clearColor = clearBlack;
    gbufferPass.width = width;
    gbufferPass.height = height;
@@ -453,16 +454,15 @@ void Renderer::PassGBuffer()
 {
    SetSceneViewport(static_cast<float>(gbufferPass.width), static_cast<float>(gbufferPass.height));
    gbufferPass.BeginRenderPass(m_context);
-   
-   /// Mesh Render
+
+   // Mesh Render
    {
       auto entityView = m_reg.view<Mesh, Material, Transform>();
       for (auto& entity : entityView)
          {
             auto [mesh, material, transform] = entityView.get<Mesh, Material, Transform>(entity);
 
-            //TODO : add the GBuffer Shader setting.
-            /*ShaderManager::GetShaderProgram(material.shader)->Bind(m_context);*/
+            ShaderManager::GetShaderProgram(ShaderProgram::GBuffer)->Bind(m_context);
 
             objectConstsCPU.world = transform.currentTransform.Transpose();
             objectConstsCPU.worldInvTranspose = transform.currentTransform.Invert().Transpose();
@@ -470,12 +470,17 @@ void Renderer::PassGBuffer()
 
             materialConstsCPU.diffuse = material.diffuse;
             materialConstsCPU.albedoFactor = material.albedoFactor;
+            materialConstsCPU.metallicFactor = 0.5f;
+            materialConstsCPU.roughnessFactor = 0.3f;
+            materialConstsCPU.emissiveFactor = material.emissiveFactor;
             materialConstsCPU.ambient = Vector3(0.5f, 0.1f, 0.1f);
             materialConstsGPU->Update(m_context, materialConstsCPU, sizeof(materialConstsCPU));
 
             mesh.Draw(m_context);
          }
    }
+   gbufferPass.attachmentRTVs->BindSRV(m_context, 4, DXShaderStage::PS);
+   gbufferPass.attachmentDSVs->BindSRV(m_context, 7, DXShaderStage::PS);
 }
 
 void Renderer::PassShadowMapDirectional(Light const& light)
@@ -606,6 +611,43 @@ void Renderer::PassShadowMapPoint(Light const& light)
       ShaderManager::GetShaderProgram(ShaderProgram::ShadowDepthCubeMap)->Unbind(m_context);
    }
    shadowCubeMapPass.EndRenderPass(m_context);
+}
+
+void Renderer::PassAABB()
+{
+   SetSceneViewport(static_cast<float>(forwardPass.width), static_cast<float>(forwardPass.height));
+   forwardPass.BeginRenderPass(m_context, false, false);
+
+   // Mesh Render
+   {
+      auto aabbView = m_reg.view<AABB>();
+      for (auto& entity : aabbView)
+         {
+            auto& aabb = aabbView.get<AABB>(entity);
+
+            if (aabb.isDrawAABB)
+               {
+                  ShaderManager::GetShaderProgram(ShaderProgram::Solid)->Bind(m_context);
+
+                  aabb.SetAABBIndexBuffer(m_device);
+
+                  objectConstsCPU.world = Matrix::Identity;
+                  objectConstsCPU.worldInvTranspose = Matrix::Identity;
+                  objectConstsGPU->Update(m_context, objectConstsCPU, sizeof(objectConstsCPU));
+
+                  materialConstsCPU.diffuse = Vector3(0.0f, 1.0f, 0.0f);
+                  materialConstsGPU->Update(m_context, materialConstsCPU, sizeof(materialConstsCPU));
+
+                  wireframeRS->Bind(m_context);
+                  noneDepthDSS->Bind(m_context, 0);
+                  m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+                  BindVertexBuffer(m_context, aabb.aabbVertexBuffer.get());
+                  BindIndexBuffer(m_context, aabb.aabbIndexBuffer.get());
+                  m_context->DrawIndexed(aabb.aabbIndexBuffer->GetCount(), 0, 0);
+               }
+         }
+   }
+   forwardPass.EndRenderPass(m_context);
 }
 
 } // namespace Riley

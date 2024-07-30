@@ -51,11 +51,13 @@ constexpr DXShaderStage GetStage(ShaderId shader)
       {
       case VS_Solid:
       case VS_Phong:
+      case VS_GBuffer:
       case VS_Shadow:
       case VS_ShadowCube:
          return DXShaderStage::VS;
       case PS_Solid:
       case PS_Phong:
+      case PS_GBuffer:
       case PS_Shadow:
       case PS_ShadowCube:
          return DXShaderStage::PS;
@@ -76,6 +78,9 @@ constexpr std::string GetShaderSource(ShaderId shader)
       case VS_Phong:
       case PS_Phong:
          return "Resources/Shaders/ForwardPhong.hlsl";
+      case VS_GBuffer:
+      case PS_GBuffer:
+         return "Resources/Shaders/GBuffer.hlsl";
       case VS_Shadow:
       case PS_Shadow:
          return "Resources/Shaders/Shadow.hlsl";
@@ -100,6 +105,10 @@ constexpr std::string GetEntryPoint(ShaderId shader)
          return "PhongVS";
       case PS_Phong:
          return "PhongPS";
+      case VS_GBuffer:
+         return "GBufferVS";
+      case PS_GBuffer:
+         return "GBUfferPS";
       case VS_Shadow:
          return "ShadowVS";
       case PS_Shadow:
@@ -157,11 +166,8 @@ void CompileShader(ShaderId shader, bool firstCompile = false)
       }
 }
 
-// ¸¸µç ¼¼ÀÌ´õµéÀ» ¿øÇÏ´Â ¼³Á¤µéÀ» ¸ð¾Æ Ä¿½ºÅÒÇÏ´Â ÇÔ¼ö
 void CreateAllPrograms()
 {
-   // enum class´Â ¾Ï½ÃÀû Çüº¯È¯À» °­·ÂÇÏ°Ô ¸·°í ÀÖ±â ¶§¹®¿¡ ÀÌ ¹®Á¦¸¦
-   // ±Øº¹ÇÏ±â À§ÇØ std::underlying_tye_t¸¦ »ç¿ëÇÑ´Ù.
    using UnderlyingType = std::underlying_type_t<ShaderId>;
    for (UnderlyingType s = 0; s < ShaderIdCount; ++s)
       {
@@ -180,6 +186,10 @@ void CreateAllPrograms()
      .SetVertexShader(vsShaderMap[VS_Phong].get())
      .SetPixelShader(psShaderMap[PS_Phong].get())
      .SetInputLayout(inputLayoutMap[VS_Phong].get());
+   DXShaderProgramMap[ShaderProgram::GBuffer]
+     .SetVertexShader(vsShaderMap[VS_GBuffer].get())
+     .SetPixelShader(psShaderMap[PS_GBuffer].get())
+     .SetInputLayout(inputLayoutMap[VS_GBuffer].get());
    DXShaderProgramMap[ShaderProgram::ShadowDepthMap]
      .SetVertexShader(vsShaderMap[VS_Shadow].get())
      .SetPixelShader(psShaderMap[PS_Shadow].get())

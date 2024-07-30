@@ -6,15 +6,15 @@ struct VSInput
     float2 texcoord : TEXCOORD0;
 };
 
-struct PSInput
+struct VSToPS
 {
     float4 posProj : SV_POSITION; // Screen position
     float2 texcoord : TEXCOORD0;
 };
 
-PSInput SolidVS(VSInput input)
+VSToPS SolidVS(VSInput input)
 {
-    PSInput output;
+    VSToPS output;
     
     float4 pos = float4(input.posModel, 1.0);
     pos = mul(pos, meshData.world);
@@ -29,7 +29,7 @@ struct PSOutput
     float4 pixelColor : SV_Target;
 };
 
-PSOutput SolidPS(PSInput input)
+PSOutput SolidPS(VSToPS input)
 {
     PSOutput output;
     output.pixelColor = float4(materialData.diffuse, 1.0);

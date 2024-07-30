@@ -2,16 +2,19 @@
 #include "LightUtil.hlsli"
 #include "ShadowUtil.hlsli"
 
+Texture2D ShadowMap : register(t0);
+TextureCube ShadowCubeMap : register(t1);
+
 struct VSInput
 {
-    float3 posModel : POSITION; //¸ğµ¨ ÁÂÇ¥°èÀÇ À§Ä¡ position
-    float3 normalModel : NORMAL0; // ¸ğµ¨ ÁÂÇ¥°èÀÇ normal    
+    float3 posModel : POSITION; //Â¸Ã°ÂµÂ¨ ÃÃ‚Ã‡Â¥Â°Ã¨Ã€Ã‡ Ã€Â§Ã„Â¡ position
+    float3 normalModel : NORMAL0; // Â¸Ã°ÂµÂ¨ ÃÃ‚Ã‡Â¥Â°Ã¨Ã€Ã‡ normal    
     float2 texcoord : TEXCOORD0;
     float3 tangentModel : TANGENT0;
     float3 bitangentModel : BITANGENT0;
 };
 
-struct PSInput
+struct VSToPS
 {
     float4 posProj : SV_POSITION; // Screen position
     float3 posWorld : POSITION0;
@@ -22,9 +25,9 @@ struct PSInput
     float3 bitangentWorld : BITANGENT0;
 };
 
-PSInput PhongVS(VSInput input)
+VSToPS PhongVS(VSInput input)
 {
-    PSInput output;
+    VSToPS output;
     
     float4 pos = float4(input.posModel, 1.0);
     pos = mul(pos, meshData.world);
@@ -32,7 +35,7 @@ PSInput PhongVS(VSInput input)
     output.posWorld = pos.xyz;
     
     float3 normalWorld = normalize(mul(input.normalModel, (float3x3) transpose(meshData.worldInvTranspose)));
-    output.normalView = mul(normalWorld, (float3x3) transpose(frameData.invView));
+    output.normalView = mul(normalWorld, (float3x3) frameData.view);
     output.tangentWorld = mul(input.tangentModel, (float3x3) meshData.world);
     output.bitangentWorld = mul(input.bitangentModel, (float3x3) meshData.world);
     output.normalWorld = normalWorld;
@@ -46,7 +49,7 @@ struct PSOutput
     float4 pixelColor : SV_Target0;
 };
 
-PSOutput PhongPS(PSInput input)
+PSOutput PhongPS(VSToPS input)
 {
     PSOutput output;
     

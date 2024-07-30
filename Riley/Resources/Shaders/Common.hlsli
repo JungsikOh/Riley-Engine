@@ -12,9 +12,6 @@ SamplerState LinearClampSampler : register(s1);
 SamplerState ShadowPointSampler : register(s2);
 SamplerComparisonState ShadowSampler : register(s3);
 
-Texture2D ShadowMap : register(t0);
-TextureCube ShadowCubeMap : register(t1);
-
 cbuffer FrameBufferConsts : register(b0)
 {
     FrameData frameData;

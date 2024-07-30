@@ -2,19 +2,19 @@
 
 struct VSInput
 {
-    float3 posModel : POSITION; //¸ğµ¨ ÁÂÇ¥°èÀÇ À§Ä¡ position
+    float3 posModel : POSITION; //Â¸Ã°ÂµÂ¨ ÃÃ‚Ã‡Â¥Â°Ã¨Ã€Ã‡ Ã€Â§Ã„Â¡ position
     float2 texcoord : TEXCOORD0;
 };
 
-struct PSInput
+struct VSToPS
 {
     float4 posProj : SV_POSITION; // Screen position
     float2 texcoord : TEXCOORD0;
 };
 
-PSInput ShadowVS(VSInput input)
+VSToPS ShadowVS(VSInput input)
 {
-    PSInput output;
+    VSToPS output;
     
     float4 pos = float4(input.posModel, 1.0);
     pos = mul(pos, meshData.world);
@@ -25,6 +25,6 @@ PSInput ShadowVS(VSInput input)
 }
 
 
-void ShadowPS(PSInput input)
+void ShadowPS(VSToPS input)
 {
 }
