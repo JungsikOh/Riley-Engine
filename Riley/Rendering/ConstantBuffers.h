@@ -57,7 +57,7 @@ namespace Riley
   struct MaterialConsts
   {
     Vector3 ambient;
-    float _padding1;
+    int32 entityID;
     Vector3 diffuse;
     float alphaCutoff;
     Vector3 specular;

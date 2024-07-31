@@ -219,10 +219,10 @@ std::vector<entt::entity> ModelImporter::LoadBox(const Vector3& pos, const float
 
    m_registry.emplace<Transform>(entity, transform);
 
-   BoundingBox _boundingBox = AABBFromVertices(vertices);
-   _boundingBox.Transform(_boundingBox, transform.currentTransform);
-
    AABB aabb{};
+   BoundingBox _boundingBox = AABBFromVertices(vertices);
+   aabb.orginalBox = _boundingBox;
+   _boundingBox.Transform(_boundingBox, transform.currentTransform);
    aabb.boundingBox = _boundingBox;
    aabb.isDrawAABB = false;
    aabb.UpdateBuffer(m_device);

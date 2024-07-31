@@ -11,6 +11,8 @@ namespace Riley
 {
 constexpr uint32 SHADOW_MAP_SIZE = 2048;
 constexpr uint32 SHADOW_CUBE_SIZE = 512;
+static bool tmp = false;
+static int i = 0;
 
 namespace
 {
@@ -154,8 +156,6 @@ void Renderer::OnLeftMouseClicked(uint32 mx, uint32 my)
    Vector3 cursorFarWS = Vector3::Transform(cursorNdcFar, frameBufferCPU.invViewProj.Transpose());
    Vector3 cursorDir = (cursorFarWS - cursorNearWS);
    cursorDir.Normalize();
-
-   std::cout << "WS :" << cursorNearWS.x << ", " << cursorNearWS.y << std::endl;
 
    Ray cursorRay = Ray(cursorNearWS, cursorDir);
    {
@@ -469,7 +469,7 @@ void Renderer::PassForwardPhong()
             shadowDepthMapDSV->BindSRV(m_context, 0, DXShaderStage::PS);
             shadowDepthCubeMapDSV->BindSRV(m_context, 1, DXShaderStage::PS);
 
-            auto entityView = m_reg.view<Mesh, Material, Transform>();
+            auto entityView = m_reg.view<Mesh, Material, Transform>(entt::exclude<Light>);
             for (auto& entity : entityView)
                {
                   auto [mesh, material, transform] = entityView.get<Mesh, Material, Transform>(entity);
@@ -686,7 +686,6 @@ void Renderer::PassAABB()
                   BindVertexBuffer(m_context, aabb.aabbVertexBuffer.get());
                   BindIndexBuffer(m_context, aabb.aabbIndexBuffer.get());
                   m_context->DrawIndexed(aabb.aabbIndexBuffer->GetCount(), 0, 0);
-
                }
          }
    }

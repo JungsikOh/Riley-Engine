@@ -128,6 +128,7 @@ class DXGraphicsShaderProgram final : public DXShaderProgram {
 
     virtual void Bind(ID3D11DeviceContext* context);
     virtual void Unbind(ID3D11DeviceContext* context);
+    
 
   private:
     DXVertexShader* vs = nullptr;

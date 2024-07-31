@@ -602,6 +602,9 @@
     <ClInclude Include="Math\BoundingVolume.h">
       <Filter>Utilities</Filter>
     </ClInclude>
+    <ClInclude Include="Math\MatrixMath.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include=".clang-format" />

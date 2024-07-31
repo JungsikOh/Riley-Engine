@@ -5,6 +5,8 @@
 #include "../Rendering/SceneViewport.h"
 #include "../Rendering/Renderer.h"
 #include "../Rendering/Camera.h"
+#include "../Math/MatrixMath.h"
+#include "../Math/BoundingVolume.h"
 #include "ImGuiLayer.h"
 
 namespace Riley
@@ -126,13 +128,13 @@ void Editor::Scene()
 
 void Editor::ListEntities()
 {
-   //if (!window_flags[Flag_Entities])
-   //   return;
+   // if (!window_flags[Flag_Entities])
+   //    return;
    static bool isSelected = true;
    if (ImGui::Begin("Properties", &window_flags[Flag_Entities]))
       {
          int i = 0;
-         auto aabbView = engine->m_registry.view<Material,Transform, AABB>();
+         auto aabbView = engine->m_registry.view<Material, Transform, AABB>();
          for (auto& entity : aabbView)
             {
                i++;
@@ -142,15 +144,24 @@ void Editor::ListEntities()
                      ImGui::PushID(i);
                      Matrix tr = transform.currentTransform;
                      Vector3 translation = tr.Translation();
+                     Quaternion q = Quaternion::CreateFromRotationMatrix(ExtractRoationMatrix(tr));
+                     Vector3 rotation = q.ToEuler();
+                     Vector3 scale = ExtractScaleFromMatrix(tr);
                      tr.Translation(Vector3(0.0f));
                      ImGui::SliderFloat3("Position", &translation.x, -5.0f, 5.0f);
+                     ImGui::SliderFloat3("Rotate", &rotation.x, -1.0f, 1.0f);
+                     ImGui::SliderFloat3("Scale", &scale.x, 0.1f, 10.0f);
                      ImGui::SliderFloat3("Albedo Color", &material.diffuse.x, 0.0f, 1.0f);
 
-                     aabb.boundingBox.Transform(aabb.boundingBox, transform.currentTransform.Invert());
+                     tr = Matrix::CreateScale(scale) * Matrix::CreateFromQuaternion(Quaternion::CreateFromYawPitchRoll(rotation)) *
+                          Matrix::CreateTranslation(translation);
 
-                     transform.currentTransform = tr * Matrix::CreateTranslation(translation);
-                     aabb.boundingBox.Transform(aabb.boundingBox, transform.currentTransform);
+                     //TODO : Rotation Optimize
+                     aabb.boundingBox.Transform(aabb.boundingBox, transform.currentTransform.Invert());
+                     aabb.boundingBox = aabb.orginalBox;
+                     aabb.boundingBox.Transform(aabb.boundingBox, tr);
                      aabb.UpdateBuffer(engine->GetDevice());
+                     transform.currentTransform = tr;
 
                      isSelected = true;
                      ImGui::PopID();

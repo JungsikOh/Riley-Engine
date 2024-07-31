@@ -102,6 +102,7 @@ struct COMPONENT Light
 struct COMPONENT AABB
 {
    DirectX::BoundingBox boundingBox;
+   DirectX::BoundingBox orginalBox;
    bool isCameraVisible = true;
    bool isLightVisible = true;
    bool isDrawAABB = false;
