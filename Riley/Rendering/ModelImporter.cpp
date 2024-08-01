@@ -228,6 +228,10 @@ std::vector<entt::entity> ModelImporter::LoadBox(const Vector3& pos, const float
    aabb.UpdateBuffer(m_device);
    m_registry.emplace<AABB>(entity, aabb);
 
+   Tag tag{};
+   tag.name = "Box";
+   m_registry.emplace<Tag>(entity, tag);
+
    return std::vector<entt::entity>{entity};
 }
 
@@ -298,14 +302,18 @@ std::vector<entt::entity> ModelImporter::LoadSqhere(Vector3 const& pos, float co
 
    m_registry.emplace<Transform>(entity, transform);
 
-   BoundingBox _boundingBox = AABBFromVertices(vertices);
-   _boundingBox.Transform(_boundingBox, transform.currentTransform);
-
    AABB aabb{};
+   BoundingBox _boundingBox = AABBFromVertices(vertices);
+   aabb.orginalBox = _boundingBox;
+   _boundingBox.Transform(_boundingBox, transform.currentTransform);
    aabb.boundingBox = _boundingBox;
    aabb.isDrawAABB = false;
    aabb.UpdateBuffer(m_device);
    m_registry.emplace<AABB>(entity, aabb);
+
+   Tag tag{};
+   tag.name = "Sphere";
+   m_registry.emplace<Tag>(entity, tag);
 
    return std::vector<entt::entity>{entity};
 }

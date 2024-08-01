@@ -22,7 +22,8 @@ class DXDepthStencilBuffer : public DXResource
    }
    void BindOnlyDSV(ID3D11DeviceContext* context) const
    {
-      context->OMSetRenderTargets(0, nullptr, m_dsv);
+      ID3D11RenderTargetView* nullViews[] = {nullptr};
+      context->OMSetRenderTargets(0, nullViews, m_dsv);
    }
    void Clear(ID3D11DeviceContext* context, float depth, uint8 stencil);
 

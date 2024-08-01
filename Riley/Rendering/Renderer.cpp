@@ -79,14 +79,12 @@ std::pair<Matrix, Matrix> DirectionalLightViewProjection(Light const& light, Cam
 }
 } // namespace
 
-Renderer::Renderer(Window* window, entt::registry& reg, ID3D11Device* device, ID3D11DeviceContext* context, IDXGISwapChain* swapChain,
-                   Camera* camera, uint32 width, uint32 height)
-    : m_window(window)
-    , m_reg(reg)
+Renderer::Renderer(entt::registry& reg, ID3D11Device* device, ID3D11DeviceContext* context, Camera* camera, uint32 width,
+                   uint32 height)
+    : m_reg(reg)
     , m_camera(camera)
     , m_device(device)
     , m_context(context)
-    , m_swapChain(swapChain)
     , m_width(width)
     , m_height(height)
 {
@@ -109,11 +107,46 @@ Renderer::Renderer(Window* window, entt::registry& reg, ID3D11Device* device, ID
 
 Renderer::~Renderer()
 {
+   forwardPass.Destroy();
+   gbufferPass.Destroy();
+   shadowMapPass.Destroy();
+   shadowCubeMapPass.Destroy();
+   ShaderManager::Destroy();
+
    SAFE_DELETE(frameBufferGPU);
    SAFE_DELETE(objectConstsGPU);
    SAFE_DELETE(materialConstsGPU);
    SAFE_DELETE(lightConstsGPU);
    SAFE_DELETE(shadowConstsGPU);
+
+   SAFE_DELETE(solidRS);
+   SAFE_DELETE(wireframeRS);
+   SAFE_DELETE(cullNoneRS);
+   SAFE_DELETE(cullFrontRS);
+   SAFE_DELETE(depthBiasRS);
+
+   SAFE_DELETE(solidDSS);
+   SAFE_DELETE(noneDepthDSS);
+
+   SAFE_DELETE(opaqueBS);
+   SAFE_DELETE(additiveBS);
+   SAFE_DELETE(alphaBS);
+
+   SAFE_DELETE(linearWrapSS);
+   SAFE_DELETE(linearClampSS);
+   SAFE_DELETE(linearBorderSS);
+   SAFE_DELETE(shadowLinearBorderSS);
+
+   SAFE_DELETE(hdrDSV);
+   SAFE_DELETE(gbufferDSV);
+   SAFE_DELETE(depthMapDSV);
+   SAFE_DELETE(shadowDepthMapDSV);
+   SAFE_DELETE(shadowDepthCubeMapDSV);
+
+   SAFE_DELETE(gbufferRTV);
+   SAFE_DELETE(postProcessRTV);
+   SAFE_DELETE(hdrRTV);
+
 }
 
 void Renderer::Update(float dt)
@@ -125,7 +158,7 @@ void Renderer::Render()
 {
    PassForward();
    PassAABB();
-   PassGBuffer();
+   // PassGBuffer();
 }
 
 void Renderer::OnResize(uint32 width, uint32 height)
@@ -142,39 +175,41 @@ void Renderer::OnResize(uint32 width, uint32 height)
 
 void Renderer::OnLeftMouseClicked(uint32 mx, uint32 my)
 {
-   float cursorNdcX = m_currentSceneViewport.m_mousePositionX * 2.0f / m_currentSceneViewport.m_widthImGui - 1.0f;
-   float cursorNdcY = -m_currentSceneViewport.m_mousePositionY * 2.0f / m_currentSceneViewport.m_heightImGui + 1.0f;
+   if (m_currentSceneViewport.isViewportFocused)
+      {
+         float cursorNdcX = m_currentSceneViewport.m_mousePositionX * 2.0f / m_currentSceneViewport.m_widthImGui - 1.0f;
+         float cursorNdcY = -m_currentSceneViewport.m_mousePositionY * 2.0f / m_currentSceneViewport.m_heightImGui + 1.0f;
 
-   cursorNdcX = std::clamp(cursorNdcX, -1.0f, 1.0f);
-   cursorNdcY = std::clamp(cursorNdcY, -1.0f, 1.0f);
+         std::cout << cursorNdcX << "," << cursorNdcY << std::endl;
 
-   Vector3 cursorNdcNear = Vector3(cursorNdcX, cursorNdcY, 0.0f);
-   Vector3 cursorNdcFar = Vector3(cursorNdcX, cursorNdcY, 1.0f);
+         Vector3 cursorNdcNear = Vector3(cursorNdcX, cursorNdcY, 0.0f);
+         Vector3 cursorNdcFar = Vector3(cursorNdcX, cursorNdcY, 1.0f);
 
-   //// NDC -> World
-   Vector3 cursorNearWS = Vector3::Transform(cursorNdcNear, frameBufferCPU.invViewProj.Transpose());
-   Vector3 cursorFarWS = Vector3::Transform(cursorNdcFar, frameBufferCPU.invViewProj.Transpose());
-   Vector3 cursorDir = (cursorFarWS - cursorNearWS);
-   cursorDir.Normalize();
+         //// NDC -> World
+         Vector3 cursorNearWS = Vector3::Transform(cursorNdcNear, frameBufferCPU.invViewProj.Transpose());
+         Vector3 cursorFarWS = Vector3::Transform(cursorNdcFar, frameBufferCPU.invViewProj.Transpose());
+         Vector3 cursorDir = (cursorFarWS - cursorNearWS);
+         cursorDir.Normalize();
 
-   Ray cursorRay = Ray(cursorNearWS, cursorDir);
-   {
-      auto aabbView = m_reg.view<Transform, AABB>();
-      for (auto& entity : aabbView)
+         Ray cursorRay = Ray(cursorNearWS, cursorDir);
          {
-            auto [transform, aabb] = aabbView.get<Transform, AABB>(entity);
-            float dist = 0.0f;
-            m_seleted = cursorRay.Intersects(aabb.boundingBox, dist);
-            if (m_seleted)
+            auto aabbView = m_reg.view<Transform, AABB>();
+            for (auto& entity : aabbView)
                {
-                  if (!aabb.isDrawAABB)
-                     aabb.isDrawAABB = true;
-                  else
-                     aabb.isDrawAABB = false;
-                  return;
+                  auto [transform, aabb] = aabbView.get<Transform, AABB>(entity);
+                  float dist = 0.0f;
+                  m_seleted = cursorRay.Intersects(aabb.boundingBox, dist);
+                  if (m_seleted)
+                     {
+                        if (!aabb.isDrawAABB)
+                           aabb.isDrawAABB = true;
+                        else
+                           aabb.isDrawAABB = false;
+                        return;
+                     }
                }
          }
-   }
+      }
 }
 
 void Renderer::Tick(Camera* camera)
@@ -287,20 +322,15 @@ void Renderer::CreateRenderStates()
 void Renderer::CreateDepthStencilBuffers(uint32 width, uint32 height)
 {
    /// DXDepthStencilBuffer Initialize
-   if (hdrDSV != nullptr)
-      SAFE_DELETE(hdrDSV);
+   SAFE_DELETE(hdrDSV);
    hdrDSV = new DXDepthStencilBuffer(m_device, width, height, true);
-   if (gbufferDSV != nullptr)
-      SAFE_DELETE(gbufferDSV);
+   SAFE_DELETE(gbufferDSV);
    gbufferDSV = new DXDepthStencilBuffer(m_device, width, height);
-   if (depthMapDSV != nullptr)
-      SAFE_DELETE(depthMapDSV);
+   SAFE_DELETE(depthMapDSV);
    depthMapDSV = new DXDepthStencilBuffer(m_device, width, height, false);
-   if (shadowDepthMapDSV != nullptr)
-      SAFE_DELETE(shadowDepthMapDSV);
+   SAFE_DELETE(shadowDepthMapDSV);
    shadowDepthMapDSV = new DXDepthStencilBuffer(m_device, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE, false, false);
-   if (shadowDepthCubeMapDSV != nullptr)
-      SAFE_DELETE(shadowDepthCubeMapDSV);
+   SAFE_DELETE(shadowDepthCubeMapDSV);
    shadowDepthCubeMapDSV = new DXDepthStencilBuffer(m_device, SHADOW_CUBE_SIZE, SHADOW_CUBE_SIZE, false, true);
 
    // SRV about Texture2D DSV
@@ -331,14 +361,12 @@ void Renderer::CreateDepthStencilBuffers(uint32 width, uint32 height)
 
 void Renderer::CreateRenderTargets(uint32 width, uint32 height)
 {
-   if (hdrRTV != nullptr)
-      SAFE_DELETE(hdrRTV);
+   SAFE_DELETE(hdrRTV);
    hdrRTV = new DXRenderTarget(m_device, width, height, DXFormat::R8G8B8A8_UNORM, hdrDSV);
    hdrRTV->CreateSRV(m_device, nullptr);
 
    // GBuffer Pass
-   if (gbufferRTV != nullptr)
-      SAFE_DELETE(gbufferRTV);
+   SAFE_DELETE(gbufferRTV);
    gbufferRTV = new DXRenderTarget(m_device, width, height, DXFormat::R8G8B8A8_UNORM, gbufferDSV);
    D3D11_SHADER_RESOURCE_VIEW_DESC gbufferSRVDesc;
    ZeroMemory(&gbufferSRVDesc, sizeof(gbufferSRVDesc));
@@ -521,8 +549,7 @@ void Renderer::PassGBuffer()
             mesh.Draw(m_context);
          }
    }
-   gbufferPass.attachmentRTVs->BindSRV(m_context, 4, DXShaderStage::PS);
-   gbufferPass.attachmentDSVs->BindSRV(m_context, 7, DXShaderStage::PS);
+   gbufferPass.EndRenderPass(m_context);
 }
 
 void Renderer::PassShadowMapDirectional(Light const& light)
@@ -659,6 +686,8 @@ void Renderer::PassAABB()
 {
    SetSceneViewport(static_cast<float>(forwardPass.width), static_cast<float>(forwardPass.height));
    forwardPass.BeginRenderPass(m_context, false, false);
+   wireframeRS->Bind(m_context);
+   noneDepthDSS->Bind(m_context, 0);
 
    // Mesh Render
    {
@@ -680,8 +709,6 @@ void Renderer::PassAABB()
                   materialConstsCPU.diffuse = Vector3(0.0f, 1.0f, 0.0f);
                   materialConstsGPU->Update(m_context, materialConstsCPU, sizeof(materialConstsCPU));
 
-                  wireframeRS->Bind(m_context);
-                  noneDepthDSS->Bind(m_context, 0);
                   m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
                   BindVertexBuffer(m_context, aabb.aabbVertexBuffer.get());
                   BindIndexBuffer(m_context, aabb.aabbIndexBuffer.get());

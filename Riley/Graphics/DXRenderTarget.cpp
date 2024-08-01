@@ -9,172 +9,171 @@ DXRenderTarget::DXRenderTarget(ID3D11Device* device, UINT width, UINT height, DX
     , m_format(format)
     , m_depthStencilBuffer(buffer)
 {
-    D3D11_TEXTURE2D_DESC texDesc;
-    ZeroMemory(&texDesc, sizeof(texDesc));
-    texDesc.Width = m_width;
-    texDesc.Height = m_height;
-    texDesc.MipLevels = 1;
-    texDesc.ArraySize = 1;
-    texDesc.Format = ConvertDXFormat(m_format);
-    texDesc.SampleDesc.Count = 1;
-    texDesc.SampleDesc.Quality = 0;
-    texDesc.Usage = D3D11_USAGE_DEFAULT;
-    texDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-    texDesc.CPUAccessFlags = 0;
-    texDesc.MiscFlags = 0;
+   D3D11_TEXTURE2D_DESC texDesc;
+   ZeroMemory(&texDesc, sizeof(texDesc));
+   texDesc.Width = m_width;
+   texDesc.Height = m_height;
+   texDesc.MipLevels = 1;
+   texDesc.ArraySize = 1;
+   texDesc.Format = ConvertDXFormat(m_format);
+   texDesc.SampleDesc.Count = 1;
+   texDesc.SampleDesc.Quality = 0;
+   texDesc.Usage = D3D11_USAGE_DEFAULT;
+   texDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+   texDesc.CPUAccessFlags = 0;
+   texDesc.MiscFlags = 0;
 
-    HR(device->CreateTexture2D(&texDesc, nullptr, reinterpret_cast<ID3D11Texture2D**>(&m_resource)));
+   HR(device->CreateTexture2D(&texDesc, nullptr, reinterpret_cast<ID3D11Texture2D**>(&m_resource)));
 
-    D3D11_RENDER_TARGET_VIEW_DESC rtvDesc;
-    ZeroMemory(&rtvDesc, sizeof(rtvDesc));
-    rtvDesc.Format = ConvertDXFormat(m_format);
-    rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-    rtvDesc.Texture2D.MipSlice = 0;
+   D3D11_RENDER_TARGET_VIEW_DESC rtvDesc;
+   ZeroMemory(&rtvDesc, sizeof(rtvDesc));
+   rtvDesc.Format = ConvertDXFormat(m_format);
+   rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+   rtvDesc.Texture2D.MipSlice = 0;
 
-    ID3D11RenderTargetView* rtv;
-    HR(device->CreateRenderTargetView(reinterpret_cast<ID3D11Texture2D*>(m_resource), &rtvDesc, &rtv));
+   ID3D11RenderTargetView* rtv;
+   HR(device->CreateRenderTargetView(reinterpret_cast<ID3D11Texture2D*>(m_resource), &rtvDesc, &rtv));
 
-    m_RTVs.push_back(rtv);
+   m_RTVs.push_back(rtv);
 }
 
 DXRenderTarget::DXRenderTarget(ID3D11Device* device, ID3D11RenderTargetView* rtv, DXDepthStencilBuffer* buffer)
     : m_depthStencilBuffer(buffer)
 {
-    ID3D11Resource* rtvResource = nullptr;
-    rtv->GetResource(&rtvResource);
-    m_resource = rtvResource;
-    if (rtvResource != nullptr)
-        {
-            ID3D11Texture2D* tex = reinterpret_cast<ID3D11Texture2D*>(rtvResource);
+   ID3D11Resource* rtvResource = nullptr;
+   rtv->GetResource(&rtvResource);
+   m_resource = rtvResource;
+   if (rtvResource != nullptr)
+      {
+         ID3D11Texture2D* tex = reinterpret_cast<ID3D11Texture2D*>(rtvResource);
 
-            D3D11_TEXTURE2D_DESC desc{};
-            ZeroMemory(&desc, sizeof(desc));
-            tex->GetDesc(&desc);
-            m_width = desc.Width;
-            m_height = desc.Height;
-            m_format = ConvertDXGIFormat(desc.Format);
+         D3D11_TEXTURE2D_DESC desc{};
+         ZeroMemory(&desc, sizeof(desc));
+         tex->GetDesc(&desc);
+         m_width = desc.Width;
+         m_height = desc.Height;
+         m_format = ConvertDXGIFormat(desc.Format);
 
-            SAFE_RELEASE(tex);
-        }
-    m_RTVs.push_back(rtv);
+         SAFE_RELEASE(tex);
+      }
+   m_RTVs.emplace_back(rtv);
 }
 
 DXRenderTarget::~DXRenderTarget()
 {
-    for (uint64 i = 0; i < m_RTVs.size(); ++i)
-        {
-            SAFE_RELEASE(m_RTVs[i]);
-        }
+   m_depthStencilBuffer = nullptr;
+   for (uint64 i = 0; i < m_RTVs.size(); ++i)
+      {
+         SAFE_RELEASE(m_RTVs[i]);
+         
+      }
 }
 
 void DXRenderTarget::Initalize(ID3D11Device* device, UINT width, UINT height, DXFormat format, DXDepthStencilBuffer* buffer)
 {
-    m_width = width;
-    m_height = height;
-    m_format = format;
-    m_depthStencilBuffer = buffer;
+   m_width = width;
+   m_height = height;
+   m_format = format;
+   m_depthStencilBuffer = buffer;
 
-    D3D11_TEXTURE2D_DESC texDesc;
-    ZeroMemory(&texDesc, sizeof(texDesc));
-    texDesc.Width = m_width;
-    texDesc.Height = m_height;
-    texDesc.MipLevels = 1;
-    texDesc.ArraySize = 1;
-    texDesc.Format = ConvertDXFormat(m_format);
-    texDesc.SampleDesc.Count = 1;
-    texDesc.SampleDesc.Quality = 0;
-    texDesc.Usage = D3D11_USAGE_DEFAULT;
-    texDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-    texDesc.CPUAccessFlags = 0;
-    texDesc.MiscFlags = 0;
+   D3D11_TEXTURE2D_DESC texDesc;
+   ZeroMemory(&texDesc, sizeof(texDesc));
+   texDesc.Width = m_width;
+   texDesc.Height = m_height;
+   texDesc.MipLevels = 1;
+   texDesc.ArraySize = 1;
+   texDesc.Format = ConvertDXFormat(m_format);
+   texDesc.SampleDesc.Count = 1;
+   texDesc.SampleDesc.Quality = 0;
+   texDesc.Usage = D3D11_USAGE_DEFAULT;
+   texDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+   texDesc.CPUAccessFlags = 0;
+   texDesc.MiscFlags = 0;
 
-    HR(device->CreateTexture2D(&texDesc, nullptr, reinterpret_cast<ID3D11Texture2D**>(&m_resource)));
+   HR(device->CreateTexture2D(&texDesc, nullptr, reinterpret_cast<ID3D11Texture2D**>(&m_resource)));
 
-    D3D11_RENDER_TARGET_VIEW_DESC rtvDesc;
-    ZeroMemory(&rtvDesc, sizeof(rtvDesc));
-    rtvDesc.Format = ConvertDXFormat(m_format);
-    rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-    rtvDesc.Texture2D.MipSlice = 0;
+   D3D11_RENDER_TARGET_VIEW_DESC rtvDesc;
+   ZeroMemory(&rtvDesc, sizeof(rtvDesc));
+   rtvDesc.Format = ConvertDXFormat(m_format);
+   rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+   rtvDesc.Texture2D.MipSlice = 0;
 
-    ID3D11RenderTargetView* rtv;
-    HR(device->CreateRenderTargetView(reinterpret_cast<ID3D11Texture2D*>(m_resource), &rtvDesc, &rtv));
-    m_RTVs.push_back(rtv);
+   ID3D11RenderTargetView* rtv;
+   HR(device->CreateRenderTargetView(reinterpret_cast<ID3D11Texture2D*>(m_resource), &rtvDesc, &rtv));
+   m_RTVs.push_back(rtv);
 }
 
 void DXRenderTarget::CreateRenderTarget(ID3D11Device* device, DXFormat format, D3D11_RENDER_TARGET_VIEW_DESC* rtvDesc /* = nullptr */)
 {
+   D3D11_TEXTURE2D_DESC texDesc;
+   ZeroMemory(&texDesc, sizeof(texDesc));
+   texDesc.Width = m_width;
+   texDesc.Height = m_height;
+   texDesc.MipLevels = 1;
+   texDesc.ArraySize = 1;
+   texDesc.Format = ConvertDXFormat(format);
+   texDesc.SampleDesc.Count = 1;
+   texDesc.SampleDesc.Quality = 0;
+   texDesc.Usage = D3D11_USAGE_DEFAULT;
+   texDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+   texDesc.CPUAccessFlags = 0;
+   texDesc.MiscFlags = 0;
 
-    D3D11_TEXTURE2D_DESC texDesc;
-    ZeroMemory(&texDesc, sizeof(texDesc));
-    texDesc.Width = m_width;
-    texDesc.Height = m_height;
-    texDesc.MipLevels = 1;
-    texDesc.ArraySize = 1;
-    texDesc.Format = ConvertDXFormat(format);
-    texDesc.SampleDesc.Count = 1;
-    texDesc.SampleDesc.Quality = 0;
-    texDesc.Usage = D3D11_USAGE_DEFAULT;
-    texDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-    texDesc.CPUAccessFlags = 0;
-    texDesc.MiscFlags = 0;
+   HR(device->CreateTexture2D(&texDesc, nullptr, reinterpret_cast<ID3D11Texture2D**>(&m_resource)));
 
-    HR(device->CreateTexture2D(&texDesc, nullptr, reinterpret_cast<ID3D11Texture2D**>(&m_resource)));
+   ID3D11RenderTargetView* rtv;
+   if (rtvDesc == nullptr)
+      {
+         D3D11_RENDER_TARGET_VIEW_DESC tempRTVDesc;
+         ZeroMemory(&tempRTVDesc, sizeof(tempRTVDesc));
+         tempRTVDesc.Format = ConvertDXFormat(m_format);
+         tempRTVDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+         tempRTVDesc.Texture2D.MipSlice = 0;
 
-    ID3D11RenderTargetView* rtv;
-    if (rtvDesc == nullptr)
-        {
-            D3D11_RENDER_TARGET_VIEW_DESC tempRTVDesc;
-            ZeroMemory(&tempRTVDesc, sizeof(tempRTVDesc));
-            tempRTVDesc.Format = ConvertDXFormat(m_format);
-            tempRTVDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-            tempRTVDesc.Texture2D.MipSlice = 0;
-
-            HR(device->CreateRenderTargetView(reinterpret_cast<ID3D11Texture2D*>(m_resource), &tempRTVDesc, &rtv));
-        }
-    else
-        {
-            HR(device->CreateRenderTargetView(reinterpret_cast<ID3D11Texture2D*>(m_resource), rtvDesc, &rtv));
-        }
-
-    m_RTVs.push_back(rtv);
+         HR(device->CreateRenderTargetView(reinterpret_cast<ID3D11Texture2D*>(m_resource), &tempRTVDesc, &rtv));
+      }
+   else
+      {
+         HR(device->CreateRenderTargetView(reinterpret_cast<ID3D11Texture2D*>(m_resource), rtvDesc, &rtv));
+      }
+   m_RTVs.push_back(rtv);
 }
 
 void DXRenderTarget::CreateRenderTarget(ID3D11Device* device, ID3D11RenderTargetView* rtv)
 {
+   ID3D11Resource* rtvResource = nullptr;
+   rtv->GetResource(&rtvResource);
+   m_resource = rtvResource;
 
-    ID3D11Resource* rtvResource = nullptr;
-    rtv->GetResource(&rtvResource);
-    m_resource = rtvResource;
+   if (rtvResource != nullptr)
+      {
+         ID3D11Texture2D* tex = reinterpret_cast<ID3D11Texture2D*>(rtvResource);
 
-    if (rtvResource != nullptr)
-        {
-            ID3D11Texture2D* tex = reinterpret_cast<ID3D11Texture2D*>(rtvResource);
+         D3D11_TEXTURE2D_DESC desc{};
+         ZeroMemory(&desc, sizeof(desc));
+         tex->GetDesc(&desc);
+         m_width = desc.Width;
+         m_height = desc.Height;
+         m_format = ConvertDXGIFormat(desc.Format);
 
-            D3D11_TEXTURE2D_DESC desc{};
-            ZeroMemory(&desc, sizeof(desc));
-            tex->GetDesc(&desc);
-            m_width = desc.Width;
-            m_height = desc.Height;
-            m_format = ConvertDXGIFormat(desc.Format);
+         SAFE_RELEASE(tex);
+      }
 
-            SAFE_RELEASE(tex);
-        }
-
-    m_RTVs.push_back(rtv);
+   m_RTVs.emplace_back(rtv);
 }
 
 void DXRenderTarget::BindRenderTargets(ID3D11DeviceContext* context)
 {
-    if (!m_RTVs.empty())
-        context->OMSetRenderTargets(uint32(m_RTVs.size()), m_RTVs.data(), m_depthStencilBuffer->DSV());
+   if (!m_RTVs.empty())
+      context->OMSetRenderTargets(uint32(m_RTVs.size()), m_RTVs.data(), m_depthStencilBuffer->DSV());
 }
 
 void DXRenderTarget::Clear(ID3D11DeviceContext* context, const float* clearColor)
 {
-    for (int i = 0; i < m_RTVs.size(); ++i)
-        {
-            context->ClearRenderTargetView(m_RTVs[i], clearColor);
-        }
+   for (int i = 0; i < m_RTVs.size(); ++i)
+      {
+         context->ClearRenderTargetView(m_RTVs[i], clearColor);
+      }
 }
 
 } // namespace Riley

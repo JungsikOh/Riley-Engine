@@ -37,7 +37,7 @@ Engine::Engine(EngineInit const& init)
 
    CameraParameters cp = ParseCameraParam();
    camera = new Camera(cp);
-   renderer = new Renderer(window, m_registry, m_device, m_context, m_swapChain, camera, window->Width(), window->Height());
+   renderer = new Renderer(m_registry, m_device, m_context, camera, window->Width(), window->Height());
    modelImporter = new ModelImporter(m_device, m_registry);
 
    InputEvents& inputEvents = g_Input.GetInputEvents();
@@ -82,13 +82,20 @@ Engine::Engine(EngineInit const& init)
 
 Engine::~Engine()
 {
-   SAFE_DELETE(renderer);
    SAFE_DELETE(camera);
    SAFE_DELETE(modelImporter);
+   m_registry.clear();
+
+   SAFE_DELETE(renderer);
+   SAFE_DELETE(backBufferDSV);
+   SAFE_DELETE(backBufferRTV);
 
    SAFE_RELEASE(m_swapChain);
-   SAFE_RELEASE(m_device);
    SAFE_RELEASE(m_context);
+   SAFE_RELEASE(m_device);
+
+   m_debugLayer->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
+   SAFE_RELEASE(m_debugLayer);
 }
 
 void Engine::OnWindowEvent(WindowEventData const& data)
@@ -128,15 +135,30 @@ void Engine::CreateSwapChainAndDevice()
 
    HR(D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, swapChainCreateFlags, featureLevels, 1,
                                     D3D11_SDK_VERSION, &sd, &m_swapChain, &m_device, &featureLevel, &m_context));
+
+   HRESULT hr = m_device->QueryInterface(__uuidof(ID3D11Debug),
+                                         reinterpret_cast<void**>(&m_debugLayer)); // Use device->QueryInterface if not using ComPtr
+   if (SUCCEEDED(hr))
+      {
+         OutputDebugString(L"Debug layer successfully enabled.\n");
+         //Microsoft::WRL::ComPtr<ID3D11InfoQueue> infoQueue;
+         //if (SUCCEEDED(m_device->QueryInterface(infoQueue.GetAddressOf())))
+         //   {
+         //      infoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_CORRUPTION, true);
+         //      infoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_ERROR, true);
+         //   }
+      }
+   else
+      {
+         OutputDebugString(L"Failed to enable debug layer.\n");
+      }
 }
 
 void Engine::CreateBackBufferResources(uint32 width, uint32 height)
 {
-   if (backBufferRTV)
-      SAFE_DELETE(backBufferRTV);
-   if (backBufferDSV)
-      SAFE_DELETE(backBufferDSV);
-
+   SAFE_DELETE(backBufferDSV);
+   SAFE_DELETE(backBufferRTV);
+   m_context->Flush();
    m_swapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
 
    ID3D11Texture2D* backBuffer = nullptr;

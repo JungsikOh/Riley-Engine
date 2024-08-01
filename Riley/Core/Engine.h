@@ -55,6 +55,7 @@ namespace Riley
     ID3D11Device* m_device = nullptr;
     ID3D11DeviceContext* m_context = nullptr;
     IDXGISwapChain* m_swapChain = nullptr;
+    ID3D11Debug* m_debugLayer;
 
     /* App Level APIs */
     entt::registry m_registry;
@@ -70,9 +71,6 @@ namespace Riley
     bool vsync;
     bool editor_active = true;
     SceneViewport sceneViewportData;
-
-    // GUI
-    LayerStack layerStack;
 
   private:
     void InitializeScene();

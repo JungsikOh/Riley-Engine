@@ -233,6 +233,7 @@ void ShaderManager::Destroy()
       std::swap(container, empty);
    };
    FreeContainer(DXShaderProgramMap);
+   FreeContainer(inputLayoutMap);
    FreeContainer(vsShaderMap);
    FreeContainer(psShaderMap);
    FreeContainer(gsShaderMap);

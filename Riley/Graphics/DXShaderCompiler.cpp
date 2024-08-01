@@ -59,8 +59,8 @@ bool CompileShader(DXShaderDesc const& input, DXShaderCompileOutput& output)
    ID3DBlob* bytecode_blob = nullptr;
    ID3DBlob* error_blob = nullptr;
 
-   HRESULT hr = D3DCompileFromFile(ToWideString(input.sourceFile).c_str(), 0, D3D_COMPILE_STANDARD_FILE_INCLUDE,
-                                   default_entrypoint.c_str(), model.c_str(), shader_compile_flags, 0, &bytecode_blob, &error_blob);
+   HRESULT hr = D3DCompileFromFile(ToWideString(input.sourceFile).c_str(), 0, D3D_COMPILE_STANDARD_FILE_INCLUDE, default_entrypoint.c_str(),
+                        model.c_str(), shader_compile_flags, 0, &bytecode_blob, &error_blob);
 
    if (FAILED(hr))
       {

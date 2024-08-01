@@ -24,6 +24,10 @@ class DXInputLayout {
     DXInputLayout(ID3D11Device* device, DXShaderBytecode const& vs_blob);
     DXInputLayout(ID3D11Device* device, DXShaderBytecode const& vs_blob,
                   DXInputLayoutDesc const& desc);
+    ~DXInputLayout()
+    {
+       SAFE_RELEASE(m_inputLayout);
+    }
 
     operator ID3D11InputLayout*() const { return m_inputLayout; }
 

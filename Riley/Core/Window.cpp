@@ -1,6 +1,7 @@
 #include "Window.h"
 #include "../Utilities/Timer.h"
 #include "Rendering.h"
+#include "../Utilities/StringUtil.h"
 
 namespace Riley {
 
@@ -36,7 +37,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM w_param, LPARAM l_param) {
 
 Window::Window(WindowInit const& init) {
     hinstance = init.instance;
-    const std::wstring window_title = std::wstring(GetWC(init.title));
+   const std::wstring window_title = ToWideString(init.title);
     const uint32 window_width = init.width;
     const uint32 window_height = init.height;
     const LPCWSTR class_name = L"WindowClass";

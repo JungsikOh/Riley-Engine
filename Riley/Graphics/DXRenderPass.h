@@ -18,5 +18,6 @@ struct DXRenderPassDesc
 
    void BeginRenderPass(ID3D11DeviceContext* context, bool isClearRTVs = true, bool isClearDSV = true, uint8 isStencil = 0);
    void EndRenderPass(ID3D11DeviceContext* context);
+   void Destroy();
 };
 } // namespace Riley

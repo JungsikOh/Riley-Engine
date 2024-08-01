@@ -21,10 +21,9 @@ Editor::Editor(EngineInit const& init)
 
 Editor::~Editor()
 {
-   SAFE_DELETE(engine);
-
    gui->OnDetach();
    SAFE_DELETE(gui);
+   SAFE_DELETE(engine);
 }
 
 void Editor::OnWindowEvent(WindowEventData const& msg_data)
@@ -113,8 +112,8 @@ void Editor::Scene()
       ImGui::GetForegroundDrawList()->AddRect(v_min, v_max, IM_COL32(255, 0, 0, 255));
 
       ImVec2 mouse_pos = ImGui::GetMousePos();
-      sceneViewportData.m_mousePositionX = std::clamp(mouse_pos.x - v_min.x, 0.0f, size.x);
-      sceneViewportData.m_mousePositionY = std::clamp(mouse_pos.y - v_min.y, 0.0f, size.y);
+      sceneViewportData.m_mousePositionX = mouse_pos.x - v_min.x;
+      sceneViewportData.m_mousePositionY = mouse_pos.y - v_min.y;
       sceneViewportData.isViewportFocused = isSceneFocused;
       sceneViewportData.SetTopLeftX(v_min.x);
       sceneViewportData.SetTopLeftY(v_min.y);
@@ -134,20 +133,28 @@ void Editor::ListEntities()
    if (ImGui::Begin("Properties", &window_flags[Flag_Entities]))
       {
          int i = 0;
-         auto aabbView = engine->m_registry.view<Material, Transform, AABB>();
+         auto aabbView = engine->m_registry.view<Material, Transform, AABB, Tag>();
          for (auto& entity : aabbView)
             {
                i++;
-               auto [material, transform, aabb] = aabbView.get<Material, Transform, AABB>(entity);
+               auto [material, transform, aabb, tag] = aabbView.get<Material, Transform, AABB, Tag>(entity);
                if (aabb.isDrawAABB && isSelected)
                   {
                      ImGui::PushID(i);
+                     if (tag.name != "default")
+                        {
+                           char buffer[256];
+                           memset(buffer, 0, sizeof(buffer));
+                           std::strncpy(buffer, tag.name.c_str(), sizeof(buffer));
+                           if (ImGui::InputText("##Tag", buffer, sizeof(buffer)))
+                              tag.name = std::string(buffer);
+                        }
                      Matrix tr = transform.currentTransform;
                      Vector3 translation = tr.Translation();
                      Quaternion q = Quaternion::CreateFromRotationMatrix(ExtractRoationMatrix(tr));
                      Vector3 rotation = q.ToEuler();
                      Vector3 scale = ExtractScaleFromMatrix(tr);
-                     tr.Translation(Vector3(0.0f));
+
                      ImGui::SliderFloat3("Position", &translation.x, -5.0f, 5.0f);
                      ImGui::SliderFloat3("Rotate", &rotation.x, -1.0f, 1.0f);
                      ImGui::SliderFloat3("Scale", &scale.x, 0.1f, 10.0f);
@@ -156,8 +163,12 @@ void Editor::ListEntities()
                      tr = Matrix::CreateScale(scale) * Matrix::CreateFromQuaternion(Quaternion::CreateFromYawPitchRoll(rotation)) *
                           Matrix::CreateTranslation(translation);
 
-                     //TODO : Rotation Optimize
-                     aabb.boundingBox.Transform(aabb.boundingBox, transform.currentTransform.Invert());
+                     if (tag.name == "Sphere" && (scale.x == scale.y && scale.y == scale.z && scale.x == scale.z))
+                        {
+                           tr = Matrix::CreateScale(scale) * Matrix::CreateTranslation(translation);
+                        }
+
+                     // TODO : Rotation Optimize
                      aabb.boundingBox = aabb.orginalBox;
                      aabb.boundingBox.Transform(aabb.boundingBox, tr);
                      aabb.UpdateBuffer(engine->GetDevice());

@@ -6,6 +6,9 @@
 #include <assert.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog\spdlog.h>
+#define _CRTDBG_MAP_ALLOC
+#include <crtdbg.h>
+
 
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "dxguid.lib")
@@ -14,6 +17,12 @@ using namespace Riley;
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow)
 {
+   _CrtDumpMemoryLeaks();
+   _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+   _CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
+   // memory new check, you can use writing memory leak number.
+   //_CrtSetBreakAlloc(349);
+
    Log::Initialize();
 
    WindowInit window_init{};
@@ -41,6 +50,5 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
       {
          editor.Run();
       }
-
    return 0;
 }
