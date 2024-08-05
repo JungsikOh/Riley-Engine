@@ -6,6 +6,7 @@ struct DXShaderProgram;
 
 enum ShaderId : uint8
 {
+   VS_ScreenQuad,
    VS_Solid,
    VS_Phong,
    VS_GBuffer,
@@ -14,6 +15,8 @@ enum ShaderId : uint8
    PS_Solid,
    PS_Phong,
    PS_GBuffer,
+   PS_Ambient,
+   PS_DeferredLighting,
    PS_Shadow,
    PS_ShadowCube,
    GS_ShadowCube,
@@ -25,6 +28,8 @@ enum class ShaderProgram : uint8
    Solid,
    ForwardPhong,
    GBuffer,
+   Ambient,
+   DeferredLighting,
    ShadowDepthMap,
    ShadowDepthCubeMap,
    UnKnown

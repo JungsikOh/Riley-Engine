@@ -108,7 +108,7 @@ void Editor::Scene()
       ImVec2 size(v_max.x - v_min.x, v_max.y - v_min.y);
 
       isSceneFocused = ImGui::IsWindowFocused();
-      ImGui::Image(engine->GetRenderer()->hdrRTV->SRV(), size);
+      ImGui::Image(engine->renderer->GetOffScreenRTV()->SRV(), size);
       ImGui::GetForegroundDrawList()->AddRect(v_min, v_max, IM_COL32(255, 0, 0, 255));
 
       ImVec2 mouse_pos = ImGui::GetMousePos();

@@ -19,11 +19,14 @@ class DXBlendState;
 class DXRasterizerState;
 class DXDepthStencilState;
 
+class Engine;
 class Camera;
 class Input;
 
 class Renderer
 {
+   friend class Engine;
+
    public:
    Renderer() = default;
    Renderer(entt::registry& reg, ID3D11Device* device, ID3D11DeviceContext* context, Camera* camera, uint32 width, uint32 height);
@@ -36,13 +39,15 @@ class Renderer
                          const float& maxDepth = 1.0f, const float& topLeftX = 0.0f, const float& topLeftY = 0.0f);
 
    void SetSceneViewport(SceneViewport const& viewport);
+   DXRenderTarget* GetOffScreenRTV()
+   {
+      return ambientLightingRTV;
+   }
 
    void Render();
 
    void OnResize(uint32 width, uint32 height);
    void OnLeftMouseClicked(uint32 mx, uint32 my);
-
-   DXRenderTarget* hdrRTV;
 
    private:
    uint32 m_width, m_height;
@@ -95,12 +100,15 @@ class Renderer
    DXSampler* shadowLinearBorderSS;
 
    // Render Target Views
+   DXRenderTarget* hdrRTV;
    DXRenderTarget* gbufferRTV;
+   DXRenderTarget* ambientLightingRTV;
    DXRenderTarget* postProcessRTV;
 
    // Depth Stencil Buffers(View)
    DXDepthStencilBuffer* hdrDSV;
    DXDepthStencilBuffer* gbufferDSV;
+   DXDepthStencilBuffer* ambientLightingDSV;
    DXDepthStencilBuffer* depthMapDSV;
    DXDepthStencilBuffer* shadowDepthMapDSV;
    DXDepthStencilBuffer* shadowDepthCubeMapDSV;
@@ -108,6 +116,7 @@ class Renderer
    // Render Pass
    DXRenderPassDesc forwardPass;
    DXRenderPassDesc gbufferPass;
+   DXRenderPassDesc deferredLightingPass;
    DXRenderPassDesc shadowMapPass;
    DXRenderPassDesc shadowCubeMapPass;
    DXRenderPassDesc postProcessPass;
@@ -129,6 +138,8 @@ class Renderer
    void PassSolid();
    void PassForwardPhong();
    void PassGBuffer();
+   void PassAmbient();
+   void PassDeferredLighting();
 
    void PassShadowMapDirectional(Light const& light);
    void PassShadowMapSpot(Light const& light);

@@ -49,6 +49,7 @@ constexpr DXShaderStage GetStage(ShaderId shader)
 {
    switch (shader)
       {
+      case VS_ScreenQuad:
       case VS_Solid:
       case VS_Phong:
       case VS_GBuffer:
@@ -58,6 +59,8 @@ constexpr DXShaderStage GetStage(ShaderId shader)
       case PS_Solid:
       case PS_Phong:
       case PS_GBuffer:
+      case PS_Ambient:
+      case PS_DeferredLighting:
       case PS_Shadow:
       case PS_ShadowCube:
          return DXShaderStage::PS;
@@ -72,6 +75,8 @@ constexpr std::string GetShaderSource(ShaderId shader)
 {
    switch (shader)
       {
+      case VS_ScreenQuad:
+         return "Resources/Shaders/ScreenQuad.hlsl";
       case VS_Solid:
       case PS_Solid:
          return "Resources/Shaders/Solid.hlsl";
@@ -81,6 +86,10 @@ constexpr std::string GetShaderSource(ShaderId shader)
       case VS_GBuffer:
       case PS_GBuffer:
          return "Resources/Shaders/GBuffer.hlsl";
+      case PS_Ambient:
+         return "Resources/Shaders/Ambient.hlsl";
+      case PS_DeferredLighting:
+         return "Resources/Shaders/DeferredLighting.hlsl";
       case VS_Shadow:
       case PS_Shadow:
          return "Resources/Shaders/Shadow.hlsl";
@@ -97,6 +106,8 @@ constexpr std::string GetEntryPoint(ShaderId shader)
 {
    switch (shader)
       {
+      case VS_ScreenQuad:
+         return "ScreenQuad";
       case VS_Solid:
          return "SolidVS";
       case PS_Solid:
@@ -109,6 +120,10 @@ constexpr std::string GetEntryPoint(ShaderId shader)
          return "GBufferVS";
       case PS_GBuffer:
          return "GBUfferPS";
+      case PS_Ambient:
+         return "AmbientPS";
+      case PS_DeferredLighting:
+         return "DeferredLightingPS";
       case VS_Shadow:
          return "ShadowVS";
       case PS_Shadow:
@@ -190,6 +205,14 @@ void CreateAllPrograms()
      .SetVertexShader(vsShaderMap[VS_GBuffer].get())
      .SetPixelShader(psShaderMap[PS_GBuffer].get())
      .SetInputLayout(inputLayoutMap[VS_GBuffer].get());
+   DXShaderProgramMap[ShaderProgram::Ambient]
+     .SetVertexShader(vsShaderMap[VS_ScreenQuad].get())
+     .SetPixelShader(psShaderMap[PS_Ambient].get())
+     .SetInputLayout(inputLayoutMap[VS_ScreenQuad].get());
+   DXShaderProgramMap[ShaderProgram::DeferredLighting]
+     .SetVertexShader(vsShaderMap[VS_ScreenQuad].get())
+     .SetPixelShader(psShaderMap[PS_DeferredLighting].get())
+     .SetInputLayout(inputLayoutMap[VS_ScreenQuad].get());
    DXShaderProgramMap[ShaderProgram::ShadowDepthMap]
      .SetVertexShader(vsShaderMap[VS_Shadow].get())
      .SetPixelShader(psShaderMap[PS_Shadow].get())

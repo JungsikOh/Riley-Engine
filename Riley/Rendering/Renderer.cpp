@@ -146,7 +146,6 @@ Renderer::~Renderer()
    SAFE_DELETE(gbufferRTV);
    SAFE_DELETE(postProcessRTV);
    SAFE_DELETE(hdrRTV);
-
 }
 
 void Renderer::Update(float dt)
@@ -156,9 +155,11 @@ void Renderer::Update(float dt)
 
 void Renderer::Render()
 {
-   PassForward();
+   // PassForward();
    PassAABB();
-   // PassGBuffer();
+   PassGBuffer();
+   PassAmbient();
+   PassDeferredLighting();
 }
 
 void Renderer::OnResize(uint32 width, uint32 height)
@@ -194,10 +195,11 @@ void Renderer::OnLeftMouseClicked(uint32 mx, uint32 my)
          Ray cursorRay = Ray(cursorNearWS, cursorDir);
          {
             auto aabbView = m_reg.view<Transform, AABB>();
+            float dist = 0.0f;
+
             for (auto& entity : aabbView)
                {
                   auto [transform, aabb] = aabbView.get<Transform, AABB>(entity);
-                  float dist = 0.0f;
                   m_seleted = cursorRay.Intersects(aabb.boundingBox, dist);
                   if (m_seleted)
                      {
@@ -326,6 +328,8 @@ void Renderer::CreateDepthStencilBuffers(uint32 width, uint32 height)
    hdrDSV = new DXDepthStencilBuffer(m_device, width, height, true);
    SAFE_DELETE(gbufferDSV);
    gbufferDSV = new DXDepthStencilBuffer(m_device, width, height);
+   SAFE_DELETE(ambientLightingDSV);
+   ambientLightingDSV = new DXDepthStencilBuffer(m_device, width, height);
    SAFE_DELETE(depthMapDSV);
    depthMapDSV = new DXDepthStencilBuffer(m_device, width, height, false);
    SAFE_DELETE(shadowDepthMapDSV);
@@ -361,6 +365,12 @@ void Renderer::CreateDepthStencilBuffers(uint32 width, uint32 height)
 
 void Renderer::CreateRenderTargets(uint32 width, uint32 height)
 {
+   D3D11_SHADER_RESOURCE_VIEW_DESC tex2dSRVDesc;
+   ZeroMemory(&tex2dSRVDesc, sizeof(tex2dSRVDesc));
+   tex2dSRVDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+   tex2dSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+   tex2dSRVDesc.Texture2D.MipLevels = 1;
+
    SAFE_DELETE(hdrRTV);
    hdrRTV = new DXRenderTarget(m_device, width, height, DXFormat::R8G8B8A8_UNORM, hdrDSV);
    hdrRTV->CreateSRV(m_device, nullptr);
@@ -368,16 +378,16 @@ void Renderer::CreateRenderTargets(uint32 width, uint32 height)
    // GBuffer Pass
    SAFE_DELETE(gbufferRTV);
    gbufferRTV = new DXRenderTarget(m_device, width, height, DXFormat::R8G8B8A8_UNORM, gbufferDSV);
-   D3D11_SHADER_RESOURCE_VIEW_DESC gbufferSRVDesc;
-   ZeroMemory(&gbufferSRVDesc, sizeof(gbufferSRVDesc));
-   gbufferSRVDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-   gbufferSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-   gbufferSRVDesc.Texture2D.MipLevels = 1;
-   gbufferRTV->CreateSRV(m_device, &gbufferSRVDesc);
+   gbufferRTV->CreateSRV(m_device, &tex2dSRVDesc);
    gbufferRTV->CreateRenderTarget(m_device);
-   gbufferRTV->CreateSRV(m_device, &gbufferSRVDesc);
+   gbufferRTV->CreateSRV(m_device, &tex2dSRVDesc);
    gbufferRTV->CreateRenderTarget(m_device);
-   gbufferRTV->CreateSRV(m_device, &gbufferSRVDesc);
+   gbufferRTV->CreateSRV(m_device, &tex2dSRVDesc);
+
+   // DeferredLighting
+   SAFE_DELETE(ambientLightingRTV);
+   ambientLightingRTV = new DXRenderTarget(m_device, width, height, DXFormat::R8G8B8A8_UNORM, ambientLightingDSV);
+   ambientLightingRTV->CreateSRV(m_device, &tex2dSRVDesc);
 }
 
 void Renderer::CreateRenderPasses(uint32 width, uint32 height)
@@ -399,6 +409,14 @@ void Renderer::CreateRenderPasses(uint32 width, uint32 height)
    gbufferPass.clearColor = clearBlack;
    gbufferPass.width = width;
    gbufferPass.height = height;
+
+   deferredLightingPass.attachmentRTVs = ambientLightingRTV;
+   deferredLightingPass.attachmentDSVs = ambientLightingDSV;
+   deferredLightingPass.attachmentRS = solidRS;
+   deferredLightingPass.attachmentDSS = solidDSS;
+   deferredLightingPass.clearColor = clearBlack;
+   deferredLightingPass.width = width;
+   deferredLightingPass.height = height;
 
    shadowMapPass.attachmentDSVs = shadowDepthMapDSV;
    shadowMapPass.attachmentRS = depthBiasRS;
@@ -494,8 +512,8 @@ void Renderer::PassForwardPhong()
 
          // Render Mesh
          {
-            shadowDepthMapDSV->BindSRV(m_context, 0, DXShaderStage::PS);
-            shadowDepthCubeMapDSV->BindSRV(m_context, 1, DXShaderStage::PS);
+            shadowMapPass.attachmentDSVs->BindSRV(m_context, 0, DXShaderStage::PS);
+            shadowCubeMapPass.attachmentDSVs->BindSRV(m_context, 1, DXShaderStage::PS);
 
             auto entityView = m_reg.view<Mesh, Material, Transform>(entt::exclude<Light>);
             for (auto& entity : entityView)
@@ -515,6 +533,9 @@ void Renderer::PassForwardPhong()
 
                   mesh.Draw(m_context);
                }
+
+            shadowMapPass.attachmentDSVs->UnbindSRV(m_context, 0, DXShaderStage::PS);
+            shadowCubeMapPass.attachmentDSVs->UnbindSRV(m_context, 1, DXShaderStage::PS);
          }
       }
    additiveBS->Unbind(m_context);
@@ -550,6 +571,91 @@ void Renderer::PassGBuffer()
          }
    }
    gbufferPass.EndRenderPass(m_context);
+}
+
+void Renderer::PassAmbient()
+{
+   SetSceneViewport(static_cast<float>(deferredLightingPass.width), static_cast<float>(deferredLightingPass.height));
+   deferredLightingPass.BeginRenderPass(m_context);
+
+   // Mesh Render
+   {
+      gbufferPass.attachmentRTVs->BindSRV(m_context, 0, DXShaderStage::PS);
+
+      ShaderManager::GetShaderProgram(ShaderProgram::Ambient)->Bind(m_context);
+
+      m_context->IASetInputLayout(nullptr);
+      m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+      m_context->Draw(4, 0);
+
+      gbufferPass.attachmentRTVs->UnbindSRV(m_context, 0, DXShaderStage::PS);
+   }
+   deferredLightingPass.EndRenderPass(m_context);
+}
+
+void Renderer::PassDeferredLighting()
+{
+   auto lightView = m_reg.view<Light>();
+   for (auto& e : lightView)
+      {
+         auto lightData = lightView.get<Light>(e);
+         if (!lightData.active)
+            continue;
+
+         // Update Cbuffer
+         {
+            lightConstsCPU.position = lightData.position;
+            lightConstsCPU.direction = lightData.direction;
+            lightConstsCPU.range = lightData.range;
+            lightConstsCPU.lightColor = lightData.color * lightData.energy;
+            lightConstsCPU.type = static_cast<int32>(lightData.type);
+            lightConstsCPU.innerCosine = lightData.inner_cosine;
+            lightConstsCPU.outerCosine = lightData.outer_cosine;
+            lightConstsCPU.castShadows = 1;
+
+            Matrix cameraView = m_camera->GetView();
+            lightConstsCPU.position = Vector4::Transform(lightConstsCPU.position, cameraView.Transpose());
+            lightConstsCPU.direction = Vector4::Transform(lightConstsCPU.direction, cameraView.Transpose());
+            lightConstsGPU->Update(m_context, lightConstsCPU, sizeof(lightConstsCPU));
+         }
+
+         if (lightData.type == LightType::Spot)
+            {
+               PassShadowMapSpot(lightData);
+            }
+         else if (lightData.type == LightType::Directional)
+            {
+               PassShadowMapDirectional(lightData);
+            }
+         else if (lightData.type == LightType::Point)
+            {
+               PassShadowMapPoint(lightData);
+            }
+
+         additiveBS->Bind(m_context);
+         SetSceneViewport(static_cast<float>(deferredLightingPass.width), static_cast<float>(deferredLightingPass.height));
+         deferredLightingPass.BeginRenderPass(m_context, false, false);
+
+         // Render Mesh
+         {
+            gbufferPass.attachmentRTVs->BindSRV(m_context, 0, DXShaderStage::PS);
+            gbufferPass.attachmentDSVs->BindSRV(m_context, 3, DXShaderStage::PS);
+            shadowMapPass.attachmentDSVs->BindSRV(m_context, 4, DXShaderStage::PS);
+            shadowCubeMapPass.attachmentDSVs->BindSRV(m_context, 5, DXShaderStage::PS);
+
+            ShaderManager::GetShaderProgram(ShaderProgram::DeferredLighting)->Bind(m_context);
+
+            m_context->IASetInputLayout(nullptr);
+            m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+            m_context->Draw(4, 0);
+
+            gbufferPass.attachmentRTVs->UnbindSRV(m_context, 0, DXShaderStage::PS);
+            gbufferPass.attachmentDSVs->UnbindSRV(m_context, 3, DXShaderStage::PS);
+            shadowMapPass.attachmentDSVs->UnbindSRV(m_context, 4, DXShaderStage::PS);
+            shadowCubeMapPass.attachmentDSVs->UnbindSRV(m_context, 5, DXShaderStage::PS);
+         }
+      }
+   additiveBS->Unbind(m_context);
 }
 
 void Renderer::PassShadowMapDirectional(Light const& light)

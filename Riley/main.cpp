@@ -17,11 +17,10 @@ using namespace Riley;
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPWSTR lpCmdLine, _In_ int nCmdShow)
 {
-   _CrtDumpMemoryLeaks();
    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
    _CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
    // memory new check, you can use writing memory leak number.
-   //_CrtSetBreakAlloc(349);
+   _CrtSetBreakAlloc(226);
 
    Log::Initialize();
 

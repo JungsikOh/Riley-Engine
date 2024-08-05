@@ -55,27 +55,28 @@ void DXResource::UnbindSRV(ID3D11DeviceContext* context, unsigned int boundSlot,
 {
    if (!m_SRVs.empty())
       {
-         ID3D11ShaderResourceView* nullSRV = nullptr;
+         std::vector<ID3D11ShaderResourceView*> nullSRV;
+         nullSRV.resize(m_SRVs.size());
 
          switch (boundShader)
             {
             case DXShaderStage::VS:
-               context->VSSetShaderResources(boundSlot, uint32(m_SRVs.size()), &nullSRV);
+               context->VSSetShaderResources(boundSlot, uint32(m_SRVs.size()), nullSRV.data());
                break;
             case DXShaderStage::PS:
-               context->PSSetShaderResources(boundSlot, uint32(m_SRVs.size()), &nullSRV);
+               context->PSSetShaderResources(boundSlot, uint32(m_SRVs.size()), nullSRV.data());
                break;
             case DXShaderStage::HS:
-               context->HSSetShaderResources(boundSlot, uint32(m_SRVs.size()), &nullSRV);
+               context->HSSetShaderResources(boundSlot, uint32(m_SRVs.size()), nullSRV.data());
                break;
             case DXShaderStage::DS:
-               context->DSSetShaderResources(boundSlot, uint32(m_SRVs.size()), &nullSRV);
+               context->DSSetShaderResources(boundSlot, uint32(m_SRVs.size()), nullSRV.data());
                break;
             case DXShaderStage::GS:
-               context->GSSetShaderResources(boundSlot, uint32(m_SRVs.size()), &nullSRV);
+               context->GSSetShaderResources(boundSlot, uint32(m_SRVs.size()), nullSRV.data());
                break;
             case DXShaderStage::CS:
-               context->CSSetShaderResources(boundSlot, uint32(m_SRVs.size()), &nullSRV);
+               context->CSSetShaderResources(boundSlot, uint32(m_SRVs.size()), nullSRV.data());
                break;
             default:
                break;
