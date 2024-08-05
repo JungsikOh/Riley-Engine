@@ -605,6 +605,12 @@
     <ClInclude Include="Math\MatrixMath.h">
       <Filter>Utilities</Filter>
     </ClInclude>
+    <ClInclude Include="Rendering\RenderSetting.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\Enums.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include=".clang-format" />

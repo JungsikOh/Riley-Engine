@@ -40,7 +40,7 @@ void Editor::Run()
    if (started)
       {
          engine->SetSceneViewportData(sceneViewportData);
-         engine->Run();
+         engine->Run(renderSetting);
          engine->GetCamera()->SetAspectRatio(sceneViewportData.GetWidth() / sceneViewportData.GetHeight());
          engine->GetBackbufferRTV()->Clear(engine->GetDeviceContext(), clearDarkBlue);
          engine->GetBackbufferRTV()->BindRenderTargets(engine->GetDeviceContext());
@@ -48,7 +48,7 @@ void Editor::Run()
    else
       {
          engine->SetSceneViewportData(std::nullopt);
-         engine->Run();
+         engine->Run(renderSetting);
          engine->GetBackbufferRTV()->Clear(engine->GetDeviceContext(), clearDarkBlue);
          engine->GetBackbufferRTV()->BindRenderTargets(engine->GetDeviceContext());
          started = true;
@@ -59,7 +59,8 @@ void Editor::Run()
       MenuBar();
       Camera();
       Scene();
-      ListEntities();
+      RenderSetting();
+      //ListEntities();
    }
    gui->End();
    engine->Present();
@@ -121,6 +122,39 @@ void Editor::Scene()
       sceneViewportData.SetHeight(size.y);
       sceneViewportData.m_widthImGui = size.x;
       sceneViewportData.m_heightImGui = size.y;
+   }
+   ImGui::End();
+}
+
+void Editor::RenderSetting()
+{
+   ImGui::Begin("Postprocessing");
+   {
+      if (ImGui::TreeNode("AO"))
+         {
+            const char* aoTypes[] = {"None", "SSAO"};
+            static int currentAoType = 1;
+            const char* comboLabel = aoTypes[currentAoType];
+            if (ImGui::BeginCombo("AO", comboLabel, 0))
+               {
+                  for (int n = 0; n < IM_ARRAYSIZE(aoTypes); ++n)
+                     {
+                        const bool isSelected = (currentAoType == n);
+                        if (ImGui::Selectable(aoTypes[n], isSelected))
+                           currentAoType = n;
+                        if (isSelected)
+                           ImGui::SetItemDefaultFocus();
+                     }
+                  ImGui::EndCombo();
+               }
+            renderSetting.ao = static_cast<AmbientOcclusion>(currentAoType);
+            if (renderSetting.ao == AmbientOcclusion::SSAO)
+               {
+                  ImGui::SliderFloat("Power", &renderSetting.ssaoPower, 1.0f, 16.0f);
+                  ImGui::SliderFloat("Radius", &renderSetting.ssaoRadius, 0.1f, 4.0f);
+               }
+            ImGui::TreePop();
+         }
    }
    ImGui::End();
 }

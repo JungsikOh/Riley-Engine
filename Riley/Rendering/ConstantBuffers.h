@@ -69,6 +69,16 @@ namespace Riley
     float emissiveFactor;
   };
 
+  DECLSPEC_ALIGN(16) struct PostprocessConsts
+  {
+     int32 AO;
+     Vector2 noiseScale;
+     float ssaoRadius;
+     float ssaoPower;
+     Vector4 samples[16];
+
+  };
+
   struct ShadowConsts
   {
     Matrix lightView;

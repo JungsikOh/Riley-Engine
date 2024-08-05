@@ -3,6 +3,7 @@
 Texture2D DiffuseRoughnessTex : register(t0);
 Texture2D NormalMetallicTex : register(t1);
 Texture2D EmissiveTex : register(t2);
+Texture2D AoTex : register(t3);
 
 struct VSToPS
 {
@@ -15,5 +16,16 @@ float4 AmbientPS(VSToPS input) : SV_TARGET
     float4 albeoRoughness = DiffuseRoughnessTex.Sample(LinearWrapSampler, input.texcoord);
     float3 albedo = albeoRoughness.rgb;
     
-    return float4(albedo, 1.0f);
+    float ao = 1.0;
+    switch (postData.AO)
+    {
+        case NONE_AO:
+            ao = 1.0;
+            break;
+        case SSAO_AO:
+            ao = AoTex.Sample(LinearWrapSampler, input.texcoord).r;
+            break;
+    }
+    
+    return float4(albedo * ao, 1.0f);
 }

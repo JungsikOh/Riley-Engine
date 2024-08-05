@@ -1,6 +1,7 @@
 #include "ModelImporter.h"
 #include "../Math/ComputeVectors.h"
 #include "../Math/BoundingVolume.h"
+#include "Enums.h"
 
 namespace Riley
 {

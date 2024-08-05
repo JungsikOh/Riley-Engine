@@ -6,6 +6,7 @@
 #include "../Math/ComputeVectors.h"
 #include "Camera.h"
 #include "ModelImporter.h"
+#include <random>
 
 namespace Riley
 {
@@ -93,6 +94,7 @@ Renderer::Renderer(entt::registry& reg, ID3D11Device* device, ID3D11DeviceContex
    CreateBuffers();
    RI_TRACE("Create Buffers {:f}s", AppTimer.ElapsedInSeconds());
    AppTimer.Mark();
+   CreateOtherResources();
    CreateRenderStates();
 
    CreateDepthStencilBuffers(m_width, m_height);
@@ -113,11 +115,14 @@ Renderer::~Renderer()
    shadowCubeMapPass.Destroy();
    ShaderManager::Destroy();
 
+   SAFE_DELETE(ssaoNoiseTex);
+
    SAFE_DELETE(frameBufferGPU);
    SAFE_DELETE(objectConstsGPU);
    SAFE_DELETE(materialConstsGPU);
    SAFE_DELETE(lightConstsGPU);
    SAFE_DELETE(shadowConstsGPU);
+   SAFE_DELETE(postProcessGPU);
 
    SAFE_DELETE(solidRS);
    SAFE_DELETE(wireframeRS);
@@ -139,11 +144,15 @@ Renderer::~Renderer()
 
    SAFE_DELETE(hdrDSV);
    SAFE_DELETE(gbufferDSV);
+   SAFE_DELETE(ambientLightingDSV);
+   SAFE_DELETE(ssaoDSV);
    SAFE_DELETE(depthMapDSV);
    SAFE_DELETE(shadowDepthMapDSV);
    SAFE_DELETE(shadowDepthCubeMapDSV);
 
    SAFE_DELETE(gbufferRTV);
+   SAFE_DELETE(ambientLightingRTV);
+   SAFE_DELETE(ssaoRTV);
    SAFE_DELETE(postProcessRTV);
    SAFE_DELETE(hdrRTV);
 }
@@ -153,13 +162,16 @@ void Renderer::Update(float dt)
    m_currentDeltaTime = dt;
 }
 
-void Renderer::Render()
+void Renderer::Render(RenderSetting& _setting)
 {
+   renderSetting = _setting;
+
    // PassForward();
-   PassAABB();
    PassGBuffer();
+   PassSSAO();
    PassAmbient();
    PassDeferredLighting();
+   PassAABB();
 }
 
 void Renderer::OnResize(uint32 width, uint32 height)
@@ -272,6 +284,7 @@ void Renderer::CreateBuffers()
    materialConstsGPU = new DXConstantBuffer<MaterialConsts>(m_device, true);
    lightConstsGPU = new DXConstantBuffer<LightConsts>(m_device, true);
    shadowConstsGPU = new DXConstantBuffer<ShadowConsts>(m_device, true);
+   postProcessGPU = new DXConstantBuffer<PostprocessConsts>(m_device, true);
 }
 
 void Renderer::CreateRenderStates()
@@ -306,10 +319,19 @@ void Renderer::CreateRenderStates()
    linearWrapSS = new DXSampler(m_device, SamplerDesc(DXFilter::MIN_MAG_MIP_LINEAR, DXTextureAddressMode::Wrap));
    linearClampSS = new DXSampler(m_device, SamplerDesc(DXFilter::MIN_MAG_MIP_LINEAR, DXTextureAddressMode::Clamp));
 
+   DXSamplerDesc pointWrapDesc{};
+   pointWrapDesc.filter = DXFilter::MIN_MAG_MIP_POINT;
+   pointWrapDesc.addressU = pointWrapDesc.addressV = pointWrapDesc.addressW = DXTextureAddressMode::Wrap;
+   pointWrapDesc.borderColor[0] = 1.0f;
+   pointWrapSS = new DXSampler(m_device, pointWrapDesc);
+
    DXSamplerDesc shadowPointDesc{};
-   shadowPointDesc.filter = DXFilter::MIN_MAG_MIP_POINT;
+   shadowPointDesc.filter = DXFilter::MIN_MAG_MIP_LINEAR;
    shadowPointDesc.addressU = shadowPointDesc.addressV = shadowPointDesc.addressW = DXTextureAddressMode::Border;
    shadowPointDesc.borderColor[0] = 1.0f;
+   shadowPointDesc.borderColor[1] = 1.0f;
+   shadowPointDesc.borderColor[2] = 1.0f;
+   shadowPointDesc.borderColor[3] = 1.0f;
    linearBorderSS = new DXSampler(m_device, shadowPointDesc);
 
    DXSamplerDesc comparisonSamplerDesc{};
@@ -330,6 +352,10 @@ void Renderer::CreateDepthStencilBuffers(uint32 width, uint32 height)
    gbufferDSV = new DXDepthStencilBuffer(m_device, width, height);
    SAFE_DELETE(ambientLightingDSV);
    ambientLightingDSV = new DXDepthStencilBuffer(m_device, width, height);
+   SAFE_DELETE(ssaoDSV);
+   ssaoDSV = new DXDepthStencilBuffer(m_device, width, height);
+   SAFE_DELETE(ssaoBlurDSV);
+   ssaoBlurDSV = new DXDepthStencilBuffer(m_device, width, height);
    SAFE_DELETE(depthMapDSV);
    depthMapDSV = new DXDepthStencilBuffer(m_device, width, height, false);
    SAFE_DELETE(shadowDepthMapDSV);
@@ -388,6 +414,46 @@ void Renderer::CreateRenderTargets(uint32 width, uint32 height)
    SAFE_DELETE(ambientLightingRTV);
    ambientLightingRTV = new DXRenderTarget(m_device, width, height, DXFormat::R8G8B8A8_UNORM, ambientLightingDSV);
    ambientLightingRTV->CreateSRV(m_device, &tex2dSRVDesc);
+
+   SAFE_DELETE(ssaoRTV);
+   ssaoRTV = new DXRenderTarget(m_device, width, height, DXFormat::R8G8B8A8_UNORM, ssaoDSV);
+   ssaoRTV->CreateSRV(m_device, &tex2dSRVDesc);
+
+   SAFE_DELETE(ssaoBlurRTV);
+   ssaoBlurRTV = new DXRenderTarget(m_device, width, height, DXFormat::R8G8B8A8_UNORM, ssaoBlurDSV);
+   ssaoBlurRTV->CreateSRV(m_device, &tex2dSRVDesc);
+}
+
+void Renderer::CreateOtherResources()
+{
+   // AO random
+   std::vector<float> randomTextureData;
+   randomTextureData.reserve(AO_NOISE_DIM * AO_NOISE_DIM * 4);
+   std::uniform_real_distribution<float> randomFloats(0.0f, 1.0f);
+   std::default_random_engine generator;
+   for (uint32 i = 0; i < SSAO_KERNEL_SIZE; ++i)
+      {
+         Vector4 offset(randomFloats(generator) * 2.0f - 1.0f, randomFloats(generator) * 2.0f - 1.0f, randomFloats(generator), 0.0f);
+         offset.Normalize();
+         offset *= randomFloats(generator);
+         float scale = static_cast<float>(i) / ssaoKernel.size();
+         offset *= scale;
+         ssaoKernel[i] = offset;
+      }
+   for (uint32 i = 0; i < AO_NOISE_DIM * AO_NOISE_DIM; ++i)
+      {
+         randomTextureData.push_back(randomFloats(generator) * 2.0f - 1.0f);
+         randomTextureData.push_back(randomFloats(generator) * 2.0f - 1.0f);
+         randomTextureData.push_back(0.0f);
+         randomTextureData.push_back(1.0f);
+      }
+
+   D3D11_SUBRESOURCE_DATA initData{};
+   initData.pSysMem = (void*)randomTextureData.data();
+   initData.SysMemPitch = AO_NOISE_DIM * 4 * sizeof(float);
+   ssaoNoiseTex = new DXResource();
+   ssaoNoiseTex->Initialize(m_device, AO_NOISE_DIM, AO_NOISE_DIM, DXFormat::R32G32B32A32_FLOAT, &initData);
+   ssaoNoiseTex->CreateSRV(m_device, nullptr);
 }
 
 void Renderer::CreateRenderPasses(uint32 width, uint32 height)
@@ -418,6 +484,14 @@ void Renderer::CreateRenderPasses(uint32 width, uint32 height)
    deferredLightingPass.width = width;
    deferredLightingPass.height = height;
 
+   ssaoPass.attachmentRTVs = ssaoRTV;
+   ssaoPass.attachmentDSVs = ssaoDSV;
+   ssaoPass.attachmentRS = solidRS;
+   ssaoPass.attachmentDSS = solidDSS;
+   ssaoPass.clearColor = clearBlack;
+   ssaoPass.width = width;
+   ssaoPass.height = height;
+
    shadowMapPass.attachmentDSVs = shadowDepthMapDSV;
    shadowMapPass.attachmentRS = depthBiasRS;
    shadowMapPass.attachmentDSS = solidDSS;
@@ -446,6 +520,7 @@ void Renderer::BindGlobals()
          materialConstsGPU->Bind(m_context, DXShaderStage::PS, 1);
          lightConstsGPU->Bind(m_context, DXShaderStage::PS, 2);
          shadowConstsGPU->Bind(m_context, DXShaderStage::PS, 3);
+         postProcessGPU->Bind(m_context, DXShaderStage::PS, 4);
 
          // GS
          shadowConstsGPU->Bind(m_context, DXShaderStage::GS, 3);
@@ -454,7 +529,8 @@ void Renderer::BindGlobals()
          linearWrapSS->Bind(m_context, 0, DXShaderStage::PS);
          linearClampSS->Bind(m_context, 1, DXShaderStage::PS);
          linearBorderSS->Bind(m_context, 2, DXShaderStage::PS);
-         shadowLinearBorderSS->Bind(m_context, 3, DXShaderStage::PS);
+         pointWrapSS->Bind(m_context, 3, DXShaderStage::PS);
+         shadowLinearBorderSS->Bind(m_context, 4, DXShaderStage::PS);
 
          called = true;
       }
@@ -581,6 +657,7 @@ void Renderer::PassAmbient()
    // Mesh Render
    {
       gbufferPass.attachmentRTVs->BindSRV(m_context, 0, DXShaderStage::PS);
+      ssaoBlurRTV->BindSRV(m_context, 3, DXShaderStage::PS);
 
       ShaderManager::GetShaderProgram(ShaderProgram::Ambient)->Bind(m_context);
 
@@ -589,6 +666,7 @@ void Renderer::PassAmbient()
       m_context->Draw(4, 0);
 
       gbufferPass.attachmentRTVs->UnbindSRV(m_context, 0, DXShaderStage::PS);
+      ssaoBlurRTV->UnbindSRV(m_context, 3, DXShaderStage::PS);
    }
    deferredLightingPass.EndRenderPass(m_context);
 }
@@ -656,6 +734,57 @@ void Renderer::PassDeferredLighting()
          }
       }
    additiveBS->Unbind(m_context);
+}
+
+void Renderer::PassSSAO()
+{
+   // 1. SSAO
+   SetSceneViewport(static_cast<float>(ssaoPass.width), static_cast<float>(ssaoPass.height));
+   ssaoPass.BeginRenderPass(m_context);
+
+   // Render Mesh
+   {
+      gbufferPass.attachmentRTVs->BindSRV(m_context, 0, DXShaderStage::PS);
+      gbufferPass.attachmentDSVs->BindSRV(m_context, 3, DXShaderStage::PS);
+      ssaoNoiseTex->BindSRV(m_context, 4, DXShaderStage::PS);
+
+      ShaderManager::GetShaderProgram(ShaderProgram::SSAO)->Bind(m_context);
+
+      for (uint32 i = 0; i < ssaoKernel.size(); ++i)
+         postProcessCPU.samples[i] = ssaoKernel[i];
+      postProcessCPU.AO = static_cast<int32>(renderSetting.ao);
+      postProcessCPU.noiseScale = Vector2(m_width / 8.0f, m_height / 8.0f);
+      postProcessCPU.ssaoPower = renderSetting.ssaoPower;
+      postProcessCPU.ssaoRadius = renderSetting.ssaoRadius;
+      postProcessGPU->Update(m_context, postProcessCPU, sizeof(postProcessCPU));
+
+      m_context->IASetInputLayout(nullptr);
+      m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+      m_context->Draw(4, 0);
+
+      gbufferPass.attachmentRTVs->UnbindSRV(m_context, 0, DXShaderStage::PS);
+      gbufferPass.attachmentDSVs->UnbindSRV(m_context, 3, DXShaderStage::PS);
+      ssaoNoiseTex->UnbindSRV(m_context, 4, DXShaderStage::PS);
+   }
+   ssaoPass.EndRenderPass(m_context);
+
+   // 2. SSAO Blur
+   {
+      static float clearColor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+      ssaoBlurDSV->Clear(m_context, 1.0f, 0);
+      ssaoBlurRTV->Clear(m_context, clearColor);
+      ssaoBlurRTV->BindRenderTargets(m_context);
+
+      ssaoPass.attachmentRTVs->BindSRV(m_context, 0, DXShaderStage::PS);
+
+      ShaderManager::GetShaderProgram(ShaderProgram::SSAOBlur)->Bind(m_context);
+
+      m_context->IASetInputLayout(nullptr);
+      m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+      m_context->Draw(4, 0);
+
+      ssaoPass.attachmentRTVs->UnbindSRV(m_context, 0, DXShaderStage::PS);
+   }
 }
 
 void Renderer::PassShadowMapDirectional(Light const& light)
@@ -790,11 +919,10 @@ void Renderer::PassShadowMapPoint(Light const& light)
 
 void Renderer::PassAABB()
 {
-   SetSceneViewport(static_cast<float>(forwardPass.width), static_cast<float>(forwardPass.height));
-   forwardPass.BeginRenderPass(m_context, false, false);
+   SetSceneViewport(static_cast<float>(deferredLightingPass.width), static_cast<float>(deferredLightingPass.height));
+   deferredLightingPass.BeginRenderPass(m_context, false, false);
    wireframeRS->Bind(m_context);
    noneDepthDSS->Bind(m_context, 0);
-
    // Mesh Render
    {
       auto aabbView = m_reg.view<AABB>();
@@ -822,7 +950,7 @@ void Renderer::PassAABB()
                }
          }
    }
-   forwardPass.EndRenderPass(m_context);
+   deferredLightingPass.EndRenderPass(m_context);
 }
 
 } // namespace Riley

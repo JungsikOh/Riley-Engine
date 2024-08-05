@@ -1,6 +1,7 @@
 #pragma once
 #include "../Utilities/Singleton.h"
 #include "../Rendering/SceneViewport.h"
+#include "../Rendering/RenderSetting.h"
 
 namespace Riley {
 
@@ -31,6 +32,7 @@ class Editor {
     Engine* engine;
     ImGuiLayer* gui;
     entt::entity selected_entity = entt::null;
+    RenderSetting renderSetting;
     bool isSceneFocused = false;
     SceneViewport sceneViewportData;
 
@@ -40,6 +42,7 @@ class Editor {
     void MenuBar(); 
     void Camera();
     void ListEntities();
+    void RenderSetting();
     void Scene();
 };
 } // namespace Riley

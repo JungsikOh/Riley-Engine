@@ -2,6 +2,7 @@
 #include "../Rendering/Components.h"
 #include "../Rendering/Renderer.h"
 #include "../Rendering/ShaderManager.h"
+#include "../Rendering/RenderSetting.h"
 #include "../Utilities/Timer.h"
 #include "Engine.h"
 #include "Window.h"
@@ -178,7 +179,7 @@ void Engine::ResizeBackbuffer(uint32 width, uint32 height)
       }
 }
 
-void Engine::Run()
+void Engine::Run(RenderSetting& _setting)
 {
    static RileyTimer timer;
    float const dt = timer.MarkInSeconds();
@@ -187,7 +188,7 @@ void Engine::Run()
    if (true)
       {
          Update(dt);
-         Render();
+         Render(_setting);
       }
 }
 
@@ -232,9 +233,9 @@ void Engine::Update(float dt)
    renderer->Update(dt);
 }
 
-void Engine::Render()
+void Engine::Render(RenderSetting& _setting)
 {
-   renderer->Render();
+   renderer->Render(_setting);
 }
 
 void Engine::SetSceneViewportData(std::optional<SceneViewport> viewportData)

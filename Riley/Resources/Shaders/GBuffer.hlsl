@@ -35,6 +35,7 @@ VSToPS GBufferVS(VSInput input)
     return output;
 }
 
+
 struct PSOutput
 {
     float4 DiffuseRoughness      : SV_Target0;

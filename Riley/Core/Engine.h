@@ -13,6 +13,7 @@ namespace Riley
 class Renderer;
 class Camera;
 
+struct RenderSetting;
 struct WindowEventData;
 struct EngineInit
 {
@@ -38,7 +39,7 @@ class Engine
    void CreateBackBufferResources(uint32 width, uint32 height);
    void ResizeBackbuffer(uint32 width, uint32 height);
 
-   void Run();
+   void Run(RenderSetting& _setting);
    void Present();
 
    void SetSceneViewportData(std::optional<SceneViewport> viewportData);
@@ -75,6 +76,6 @@ class Engine
    private:
    void InitializeScene();
    void Update(float dt);
-   void Render();
+   void Render(RenderSetting& _setting);
 };
 } // namespace Riley

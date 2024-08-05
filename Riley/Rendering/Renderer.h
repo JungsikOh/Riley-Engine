@@ -10,6 +10,7 @@
 #include "Components.h"
 #include "SceneViewport.h"
 #include "ShaderManager.h"
+#include "RenderSetting.h"
 
 namespace Riley
 {
@@ -26,6 +27,9 @@ class Input;
 class Renderer
 {
    friend class Engine;
+   static constexpr uint32 AO_NOISE_DIM = 8;
+   static constexpr uint32 SSAO_KERNEL_SIZE = 16;
+
 
    public:
    Renderer() = default;
@@ -44,7 +48,7 @@ class Renderer
       return ambientLightingRTV;
    }
 
-   void Render();
+   void Render(RenderSetting& _setting);
 
    void OnResize(uint32 width, uint32 height);
    void OnLeftMouseClicked(uint32 mx, uint32 my);
@@ -66,7 +70,12 @@ class Renderer
 
    // Others
    ////////////////////////////
+   RenderSetting renderSetting; // It's created in Editor Class
    DirectX::BoundingBox lightBoundingBox;
+   std::array<Vector4, SSAO_KERNEL_SIZE> ssaoKernel;
+
+   // Resources
+   DXResource* ssaoNoiseTex = nullptr;
 
    // cbuffers
    FrameBufferConsts frameBufferCPU;
@@ -75,6 +84,8 @@ class Renderer
    DXConstantBuffer<ObjectConsts>* objectConstsGPU = nullptr;
    MaterialConsts materialConstsCPU;
    DXConstantBuffer<MaterialConsts>* materialConstsGPU = nullptr;
+   PostprocessConsts postProcessCPU;
+   DXConstantBuffer<PostprocessConsts>* postProcessGPU = nullptr;
    LightConsts lightConstsCPU;
    DXConstantBuffer<LightConsts>* lightConstsGPU = nullptr;
    ShadowConsts shadowConstsCPU;
@@ -97,18 +108,23 @@ class Renderer
    DXSampler* linearWrapSS;
    DXSampler* linearClampSS;
    DXSampler* linearBorderSS;
+   DXSampler* pointWrapSS;
    DXSampler* shadowLinearBorderSS;
 
    // Render Target Views
    DXRenderTarget* hdrRTV;
    DXRenderTarget* gbufferRTV;
    DXRenderTarget* ambientLightingRTV;
+   DXRenderTarget* ssaoRTV;
+   DXRenderTarget* ssaoBlurRTV;
    DXRenderTarget* postProcessRTV;
 
    // Depth Stencil Buffers(View)
    DXDepthStencilBuffer* hdrDSV;
    DXDepthStencilBuffer* gbufferDSV;
    DXDepthStencilBuffer* ambientLightingDSV;
+   DXDepthStencilBuffer* ssaoDSV;
+   DXDepthStencilBuffer* ssaoBlurDSV;
    DXDepthStencilBuffer* depthMapDSV;
    DXDepthStencilBuffer* shadowDepthMapDSV;
    DXDepthStencilBuffer* shadowDepthCubeMapDSV;
@@ -117,6 +133,7 @@ class Renderer
    DXRenderPassDesc forwardPass;
    DXRenderPassDesc gbufferPass;
    DXRenderPassDesc deferredLightingPass;
+   DXRenderPassDesc ssaoPass;
    DXRenderPassDesc shadowMapPass;
    DXRenderPassDesc shadowCubeMapPass;
    DXRenderPassDesc postProcessPass;
@@ -131,6 +148,7 @@ class Renderer
    void CreateRenderPasses(uint32 width, uint32 height);
 
    void CreateGBuffer(uint32 width, uint32 height);
+   void CreateOtherResources();
 
    void BindGlobals();
 
@@ -140,6 +158,7 @@ class Renderer
    void PassGBuffer();
    void PassAmbient();
    void PassDeferredLighting();
+   void PassSSAO();
 
    void PassShadowMapDirectional(Light const& light);
    void PassShadowMapSpot(Light const& light);

@@ -1,9 +1,11 @@
 #pragma once
 #include "../Core/Rendering.h"
 #include "DXShader.h"
+#include "DXFormat.h"
 
 namespace Riley
 {
+
 class DXResource
 {
    public:
@@ -37,6 +39,9 @@ class DXResource
    {
       return m_UAVs;
    }
+
+   void Initialize(ID3D11Device* device, UINT width, UINT height, DXFormat format, D3D11_SUBRESOURCE_DATA* initData = nullptr);
+   void Initialize(ID3D11Device* device, D3D11_TEXTURE2D_DESC& desc, D3D11_SUBRESOURCE_DATA* initData = nullptr);
 
    void CreateSRV(ID3D11Device* device, D3D11_SHADER_RESOURCE_VIEW_DESC* desc);
    void CreateUAV(ID3D11Device* device, D3D11_UNORDERED_ACCESS_VIEW_DESC* desc);

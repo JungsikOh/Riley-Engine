@@ -3,6 +3,31 @@
 namespace Riley
 {
 
+void DXResource::Initialize(ID3D11Device* device, UINT width, UINT height, DXFormat format, D3D11_SUBRESOURCE_DATA* initData)
+{
+
+   D3D11_TEXTURE2D_DESC texDesc;
+   ZeroMemory(&texDesc, sizeof(texDesc));
+   texDesc.Width = width;
+   texDesc.Height = height;
+   texDesc.MipLevels = 1;
+   texDesc.ArraySize = 1;
+   texDesc.Format = ConvertDXFormat(format);
+   texDesc.SampleDesc.Count = 1;
+   texDesc.SampleDesc.Quality = 0;
+   texDesc.Usage = D3D11_USAGE_DEFAULT;
+   texDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+   texDesc.CPUAccessFlags = 0;
+   texDesc.MiscFlags = 0;
+
+   HR(device->CreateTexture2D(&texDesc, initData, reinterpret_cast<ID3D11Texture2D**>(&m_resource)));
+}
+
+void DXResource::Initialize(ID3D11Device* device, D3D11_TEXTURE2D_DESC& desc, D3D11_SUBRESOURCE_DATA* initData)
+{
+   HR(device->CreateTexture2D(&desc, initData, reinterpret_cast<ID3D11Texture2D**>(&m_resource)));
+}
+
 void DXResource::CreateSRV(ID3D11Device* device, D3D11_SHADER_RESOURCE_VIEW_DESC* desc)
 {
    ID3D11ShaderResourceView* srv;
@@ -56,7 +81,7 @@ void DXResource::UnbindSRV(ID3D11DeviceContext* context, unsigned int boundSlot,
    if (!m_SRVs.empty())
       {
          std::vector<ID3D11ShaderResourceView*> nullSRV;
-         nullSRV.resize(m_SRVs.size());
+         nullSRV.resize(m_SRVs.size(), nullptr);
 
          switch (boundShader)
             {

@@ -1,4 +1,5 @@
 #pragma once
+#include "Enums.h"
 
 namespace Riley
 {
@@ -17,6 +18,8 @@ enum ShaderId : uint8
    PS_GBuffer,
    PS_Ambient,
    PS_DeferredLighting,
+   PS_SSAO,
+   PS_SSAOBlur,
    PS_Shadow,
    PS_ShadowCube,
    GS_ShadowCube,
@@ -30,16 +33,11 @@ enum class ShaderProgram : uint8
    GBuffer,
    Ambient,
    DeferredLighting,
+   SSAO,
+   SSAOBlur,
    ShadowDepthMap,
    ShadowDepthCubeMap,
    UnKnown
-};
-
-enum class LightType : int32
-{
-   Directional,
-   Point,
-   Spot
 };
 
 namespace ShaderManager

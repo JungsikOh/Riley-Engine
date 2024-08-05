@@ -24,12 +24,8 @@ void DXRenderPassDesc::EndRenderPass(ID3D11DeviceContext* context)
 {
    // https://stackoverflow.com/questions/69996893/d3d11-warning-when-resizing-the-window
    ID3D11RenderTargetView* nullViews[1] = {nullptr};
-   ID3D11DepthStencilView* nullDSV = nullptr;
-   ID3D11RasterizerState* nullRS = nullptr;
 
-   context->OMSetRenderTargets(1, nullViews, nullDSV);
-   context->RSSetState(nullRS);
-   context->OMSetDepthStencilState(nullptr, 0);
+   context->OMSetRenderTargets(1, nullViews, nullptr);
 }
 
 void DXRenderPassDesc::Destroy () 

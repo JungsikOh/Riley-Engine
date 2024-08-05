@@ -1,6 +1,8 @@
 #ifndef _CONSTNAN_DATA_
 #define _CONSTNAN_DATA_
 
+static const int SSAO_KERNEL_SIZE = 16;
+
 struct FrameData
 {
     matrix view;
@@ -65,6 +67,15 @@ struct MaterialData
     float metallicFactor;
     float roughnessFactor;
     float emissiveFactor;
+};
+
+struct PostprocessData
+{
+    int AO;
+    float2 noiseScale;
+    float ssaoRadius;
+    float ssaoPower;
+    float4 samples[16];
 };
 
 struct ShadowData
