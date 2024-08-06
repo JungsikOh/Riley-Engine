@@ -74,6 +74,16 @@ std::vector<entt::entity> ModelImporter::LoadSquare(const Vector3& pos, const fl
 
    m_registry.emplace<Transform>(entity, transform);
 
+   AABB aabb{};
+   BoundingBox _boundingBox = AABBFromVertices(vertices);
+   aabb.orginalBox = _boundingBox;
+   _boundingBox.Transform(_boundingBox, transform.currentTransform);
+   aabb.boundingBox = _boundingBox;
+   aabb.isDrawAABB = false;
+   aabb.UpdateBuffer(m_device);
+
+   m_registry.emplace<AABB>(entity, aabb);
+
    return std::vector{entity};
 }
 

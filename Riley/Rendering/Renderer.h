@@ -90,6 +90,7 @@ class Renderer
    DXConstantBuffer<LightConsts>* lightConstsGPU = nullptr;
    ShadowConsts shadowConstsCPU;
    DXConstantBuffer<ShadowConsts>* shadowConstsGPU = nullptr;
+   DXConstantBuffer<EntityIDConsts>* entityIDConstsGPU = nullptr;
 
    // Render States
    DXRasterizerState* solidRS;
@@ -165,6 +166,7 @@ class Renderer
    void PassShadowMapPoint(Light const& light);
 
    void PassAABB();
+   void PassLight();
 };
 
 } // namespace Riley

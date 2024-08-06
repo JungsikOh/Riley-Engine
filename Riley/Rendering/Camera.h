@@ -59,7 +59,7 @@ namespace Riley
 
     DirectX::BoundingFrustum Frustum()
     {
-      DirectX::BoundingFrustum frustum(GetProj());
+      DirectX::BoundingFrustum frustum(GetProj().Transpose());
       frustum.Transform(frustum, viewRow.Invert());
       return frustum;
     }

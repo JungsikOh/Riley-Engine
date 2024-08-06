@@ -122,6 +122,7 @@ Renderer::~Renderer()
    SAFE_DELETE(materialConstsGPU);
    SAFE_DELETE(lightConstsGPU);
    SAFE_DELETE(shadowConstsGPU);
+   SAFE_DELETE(entityIDConstsGPU);
    SAFE_DELETE(postProcessGPU);
 
    SAFE_DELETE(solidRS);
@@ -140,12 +141,14 @@ Renderer::~Renderer()
    SAFE_DELETE(linearWrapSS);
    SAFE_DELETE(linearClampSS);
    SAFE_DELETE(linearBorderSS);
+   SAFE_DELETE(pointWrapSS);
    SAFE_DELETE(shadowLinearBorderSS);
 
    SAFE_DELETE(hdrDSV);
    SAFE_DELETE(gbufferDSV);
    SAFE_DELETE(ambientLightingDSV);
    SAFE_DELETE(ssaoDSV);
+   SAFE_DELETE(ssaoBlurDSV);
    SAFE_DELETE(depthMapDSV);
    SAFE_DELETE(shadowDepthMapDSV);
    SAFE_DELETE(shadowDepthCubeMapDSV);
@@ -153,6 +156,7 @@ Renderer::~Renderer()
    SAFE_DELETE(gbufferRTV);
    SAFE_DELETE(ambientLightingRTV);
    SAFE_DELETE(ssaoRTV);
+   SAFE_DELETE(ssaoBlurRTV);
    SAFE_DELETE(postProcessRTV);
    SAFE_DELETE(hdrRTV);
 }
@@ -172,6 +176,7 @@ void Renderer::Render(RenderSetting& _setting)
    PassAmbient();
    PassDeferredLighting();
    PassAABB();
+   PassLight();
 }
 
 void Renderer::OnResize(uint32 width, uint32 height)
@@ -285,6 +290,7 @@ void Renderer::CreateBuffers()
    lightConstsGPU = new DXConstantBuffer<LightConsts>(m_device, true);
    shadowConstsGPU = new DXConstantBuffer<ShadowConsts>(m_device, true);
    postProcessGPU = new DXConstantBuffer<PostprocessConsts>(m_device, true);
+   entityIDConstsGPU = new DXConstantBuffer<EntityIDConsts>(m_device, true);
 }
 
 void Renderer::CreateRenderStates()
@@ -624,27 +630,34 @@ void Renderer::PassGBuffer()
 
    // Mesh Render
    {
-      auto entityView = m_reg.view<Mesh, Material, Transform>();
+      int draw = 0, total = 0;
+      auto entityView = m_reg.view<Mesh, Material, Transform, AABB>();
       for (auto& entity : entityView)
          {
-            auto [mesh, material, transform] = entityView.get<Mesh, Material, Transform>(entity);
+            auto [mesh, material, transform, aabb] = entityView.get<Mesh, Material, Transform, AABB>(entity);
 
-            ShaderManager::GetShaderProgram(ShaderProgram::GBuffer)->Bind(m_context);
+            if (m_camera->Frustum().Contains(aabb.boundingBox))
+               {
+                  draw++;
+                  ShaderManager::GetShaderProgram(ShaderProgram::GBuffer)->Bind(m_context);
 
-            objectConstsCPU.world = transform.currentTransform.Transpose();
-            objectConstsCPU.worldInvTranspose = transform.currentTransform.Invert().Transpose();
-            objectConstsGPU->Update(m_context, objectConstsCPU, sizeof(objectConstsCPU));
+                  objectConstsCPU.world = transform.currentTransform.Transpose();
+                  objectConstsCPU.worldInvTranspose = transform.currentTransform.Invert().Transpose();
+                  objectConstsGPU->Update(m_context, objectConstsCPU, sizeof(objectConstsCPU));
 
-            materialConstsCPU.diffuse = material.diffuse;
-            materialConstsCPU.albedoFactor = material.albedoFactor;
-            materialConstsCPU.metallicFactor = 0.5f;
-            materialConstsCPU.roughnessFactor = 0.3f;
-            materialConstsCPU.emissiveFactor = material.emissiveFactor;
-            materialConstsCPU.ambient = material.diffuse;
-            materialConstsGPU->Update(m_context, materialConstsCPU, sizeof(materialConstsCPU));
+                  materialConstsCPU.diffuse = material.diffuse;
+                  materialConstsCPU.albedoFactor = material.albedoFactor;
+                  materialConstsCPU.metallicFactor = 0.5f;
+                  materialConstsCPU.roughnessFactor = 0.3f;
+                  materialConstsCPU.emissiveFactor = material.emissiveFactor;
+                  materialConstsCPU.ambient = material.diffuse;
+                  materialConstsGPU->Update(m_context, materialConstsCPU, sizeof(materialConstsCPU));
 
-            mesh.Draw(m_context);
+                  mesh.Draw(m_context);
+               }
+            total++;
          }
+      std::cout << draw << "," << total << std::endl;
    }
    gbufferPass.EndRenderPass(m_context);
 }
@@ -948,6 +961,33 @@ void Renderer::PassAABB()
                   BindIndexBuffer(m_context, aabb.aabbIndexBuffer.get());
                   m_context->DrawIndexed(aabb.aabbIndexBuffer->GetCount(), 0, 0);
                }
+         }
+   }
+   deferredLightingPass.EndRenderPass(m_context);
+}
+
+void Renderer::PassLight()
+{
+   SetSceneViewport(static_cast<float>(deferredLightingPass.width), static_cast<float>(deferredLightingPass.height));
+   deferredLightingPass.BeginRenderPass(m_context, false, false);
+
+   // Mesh Render
+   {
+      auto lightView = m_reg.view<Mesh, Material, Transform, Light>();
+      for (auto& entity : lightView)
+         {
+            auto [mesh, material, transform, light] = lightView.get<Mesh, Material, Transform, Light>(entity);
+
+            ShaderManager::GetShaderProgram(ShaderProgram::Solid)->Bind(m_context);
+
+            objectConstsCPU.world = transform.currentTransform.Transpose();
+            objectConstsCPU.worldInvTranspose = transform.currentTransform.Invert().Transpose();
+            objectConstsGPU->Update(m_context, objectConstsCPU, sizeof(objectConstsCPU));
+
+            materialConstsCPU.diffuse = Vector3(light.color);
+            materialConstsGPU->Update(m_context, materialConstsCPU, sizeof(materialConstsCPU));
+
+            mesh.Draw(m_context);
          }
    }
    deferredLightingPass.EndRenderPass(m_context);
