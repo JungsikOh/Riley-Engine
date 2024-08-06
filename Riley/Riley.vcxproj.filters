@@ -123,6 +123,9 @@
     <ClCompile Include="Core\Log.cpp">
       <Filter>Core</Filter>
     </ClCompile>
+    <ClCompile Include="Rendering\TextureManager.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\CoreTypes.h">
@@ -609,6 +612,9 @@
       <Filter>Utilities</Filter>
     </ClInclude>
     <ClInclude Include="Rendering\Enums.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Rendering\TextureManager.h">
       <Filter>Utilities</Filter>
     </ClInclude>
   </ItemGroup>

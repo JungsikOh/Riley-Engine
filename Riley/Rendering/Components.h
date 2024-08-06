@@ -2,6 +2,7 @@
 #include "../Graphics/DXBuffer.h"
 #include "../Graphics/DXShaderProgram.h"
 #include "../Rendering/ShaderManager.h"
+#include "../Rendering/TextureManager.h"
 
 #define COMPONENT
 
@@ -33,6 +34,11 @@ struct COMPONENT Transform
 
 struct COMPONENT Material
 {
+    TextureHandle albedoTexture = INVALID_TEXTURE_HANDLE;
+    TextureHandle normalTexture = INVALID_TEXTURE_HANDLE;
+    TextureHandle metallicRoughnessTexture = INVALID_TEXTURE_HANDLE;
+    TextureHandle emissiveTexture = INVALID_TEXTURE_HANDLE;
+
    float albedoFactor = 1.0f;
    float metallicFactor = 1.0f;
    float roughnessFactor = 1.0f;

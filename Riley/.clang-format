@@ -1,39 +1,6 @@
-﻿BasedOnStyle: LLVM
+BasedOnStyle: Microsoft
 Language: Cpp
 Standard: Cpp11
 
 ColumnLimit: 135
-
-AccessModifierOffset: -4
-IndentWidth: 3
-UseTab: Never
-
-AlignEscapedNewlines: Left
-AllowShortFunctionsOnASingleLine: Empty
-AllowShortLambdasOnASingleLine: Empty
-AlwaysBreakTemplateDeclarations: true
-BreakConstructorInitializers: BeforeComma
-IndentPPDirectives: AfterHash
 PointerAlignment: Left
-BreakBeforeBraces: Custom
-BraceWrapping:
-  AfterClass:      true
-  AfterControlStatement: true
-  AfterEnum:       true
-  AfterFunction:   true
-  AfterNamespace:  true
-  AfterStruct:     true
-  AfterUnion:      true
-  AfterExternBlock: true
-  BeforeCatch:     true
-  BeforeElse:      true
-  IndentBraces:    true
-  SplitEmptyFunction: false
-  SplitEmptyRecord: false
-  SplitEmptyNamespace: false
-SpaceBeforeParens: ControlStatements
-ContinuationIndentWidth: 2
-Cpp11BracedListStyle: true
-KeepEmptyLinesAtTheStartOfBlocks: false
-SortIncludes: false
-AllowAllParametersOfDeclarationOnNextLine: false

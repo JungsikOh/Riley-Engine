@@ -173,6 +173,7 @@
     <ClCompile Include="Rendering\Components.cpp" />
     <ClCompile Include="Rendering\Renderer.cpp" />
     <ClCompile Include="Rendering\ShaderManager.cpp" />
+    <ClCompile Include="Rendering\TextureManager.cpp" />
     <ClCompile Include="Utilities\StringUtil.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -328,6 +329,7 @@
     <ClInclude Include="Rendering\RenderSetting.h" />
     <ClInclude Include="Rendering\SceneViewport.h" />
     <ClInclude Include="Rendering\ShaderManager.h" />
+    <ClInclude Include="Rendering\TextureManager.h" />
     <ClInclude Include="Utilities\ConcurrentQueue.h" />
     <ClInclude Include="Utilities\EnumUtil.h" />
     <ClInclude Include="Utilities\Event.h" />
