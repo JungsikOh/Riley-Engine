@@ -16,6 +16,10 @@ float4 AmbientPS(VSToPS input) : SV_TARGET
     float4 albeoRoughness = DiffuseRoughnessTex.Sample(LinearWrapSampler, input.texcoord);
     float3 albedo = albeoRoughness.rgb;
     
+    float4 emissiveData = EmissiveTex.Sample(LinearWrapSampler, input.texcoord);
+    float emissiveFactor = emissiveData.a * 256.0;
+    float3 emissive = emissiveData.rgb * emissiveFactor;
+    
     float ao = 1.0;
     switch (postData.AO)
     {
@@ -27,5 +31,5 @@ float4 AmbientPS(VSToPS input) : SV_TARGET
             break;
     }
     
-    return float4(albedo * ao, 1.0f);
+    return float4(albedo * ao, 1.0) + float4(emissive.rgb, 1.0);
 }

@@ -52,9 +52,7 @@ Engine::Engine(EngineInit const& init)
    std::ignore = inputEvents.window_resized_event.AddMember(&Camera::OnResize, *camera);
 
    // testing Add entity
-   modelImporter->LoadBox(Vector3(0.3f, 0.2f, 0.0f), 0.2f);
-   modelImporter->LoadBox(Vector3(-0.3f, -0.1f, 0.0f), 0.4f);
-   modelImporter->LoadSqhere(Vector3(0.2f, 0.05f, 0.3f), 0.3f, 40, 20);
+   modelImporter->LoadBox(Vector3(0.9f, 0.2f, 0.0f), 0.3f);
    modelImporter->LoadSqhere(Vector3(0.2f, 0.05f, 1.3f), 0.5f, 40, 20);
    modelImporter->LoadSquare(Vector3(0.0f, -1.0f, 0.0f), 2.0f, 90.0f);
    modelImporter->LoadModel("Resources/Models/DamagedHelmet/", "DamagedHelmet.gltf", false);

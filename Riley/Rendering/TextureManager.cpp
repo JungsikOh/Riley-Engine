@@ -87,6 +87,11 @@ void TextureManager::Destroy()
     FreeContainer(textureMap);
 }
 
+DXResource* TextureManager::GetTextureView(TextureHandle texHandle) const
+{
+    return textureMap.find(texHandle)->second.get();
+}
+
 TextureHandle TextureManager::LoadTexture(std::wstring const& name)
 {
     TextureFormat format = GetTextureFormat(name);
@@ -128,7 +133,6 @@ TextureHandle TextureManager::LoadWICTexture(std::wstring const& name)
         loadedTextures.insert({name, handle});
         textureMap[handle] = std::make_unique<DXResource>();
         textureMap[handle]->Initialize(reinterpret_cast<ID3D11Resource*>(_tex), _srv);
-        SAFE_RELEASE(_tex);
 
         return handle;
     }

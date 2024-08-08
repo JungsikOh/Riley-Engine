@@ -172,7 +172,7 @@ void Editor::ListEntities()
         {
             i++;
             auto [material, transform, aabb, tag] = aabbView.get<Material, Transform, AABB, Tag>(entity);
-            if (aabb.isDrawAABB && isSelected)
+            if (aabb.isDrawAABB)
             {
                 ImGui::PushID(i);
                 //auto tag = engine->m_registry.get<Tag>(entity);

@@ -35,6 +35,10 @@ VSToPS GBufferVS(VSInput input)
     return output;
 }
 
+Texture2D AlbedoTex : register(t0);
+Texture2D NormalTex : register(t1);
+Texture2D MetallicRoughnessTex : register(t2);
+Texture2D EmissiveTex : register(t3);
 
 struct PSOutput
 {
@@ -54,15 +58,15 @@ PSOutput PackGBuffer(float3 baseColor, float3 normalVS, float4 emissive, float r
 
 PSOutput GBUfferPS(VSToPS input)
 {
-    float3 albedoColor = materialData.ambient;
+    float3 albedoColor = AlbedoTex.Sample(LinearWrapSampler, input.texcoord);
     float3 normalVS = normalize(mul(input.normalWS, (float3x3) frameData.view));
     
     float ao = materialData.albedoFactor;
-    float metallic = materialData.metallicFactor;
-    float roughness = materialData.roughnessFactor;
+    float metallic = MetallicRoughnessTex.Sample(LinearWrapSampler, input.texcoord).b;
+    float roughness = MetallicRoughnessTex.Sample(LinearWrapSampler, input.texcoord).g;
     float3 aoRoughnessMetallic = float3(ao, roughness, metallic);
     
-    float3 emissive = materialData.emissiveFactor;
+    float3 emissive = EmissiveTex.Sample(LinearWrapSampler, input.texcoord);
     
     return PackGBuffer(albedoColor.xyz, normalize(normalVS), float4(emissive, materialData.emissiveFactor), aoRoughnessMetallic.g, aoRoughnessMetallic.b);
 

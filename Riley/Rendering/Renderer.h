@@ -10,6 +10,7 @@
 #include "Components.h"
 #include "SceneViewport.h"
 #include "ShaderManager.h"
+#include "TextureManager.h"
 #include "RenderSetting.h"
 
 namespace Riley
@@ -52,6 +53,10 @@ class Renderer
 
    void OnResize(uint32 width, uint32 height);
    void OnLeftMouseClicked(uint32 mx, uint32 my);
+   entt::entity GetSelectedEntity() const
+   {
+       return selectedEntity;
+   }
 
    private:
    uint32 m_width, m_height;
@@ -71,6 +76,7 @@ class Renderer
    // Others
    ////////////////////////////
    RenderSetting renderSetting; // It's created in Editor Class
+   entt::entity selectedEntity = entt::null;
    DirectX::BoundingBox lightBoundingBox;
    std::array<Vector4, SSAO_KERNEL_SIZE> ssaoKernel;
 
@@ -90,7 +96,8 @@ class Renderer
    DXConstantBuffer<LightConsts>* lightConstsGPU = nullptr;
    ShadowConsts shadowConstsCPU;
    DXConstantBuffer<ShadowConsts>* shadowConstsGPU = nullptr;
-   DXConstantBuffer<EntityIDConsts>* entityIDConstsGPU = nullptr;
+   EntityIdConsts entityIdConstsCPU{};
+   DXConstantBuffer<EntityIdConsts>* entityIdConstsGPU = nullptr;
 
    // Render States
    DXRasterizerState* solidRS;
@@ -119,6 +126,7 @@ class Renderer
    DXRenderTarget* ssaoRTV;
    DXRenderTarget* ssaoBlurRTV;
    DXRenderTarget* postProcessRTV;
+   DXRenderTarget* entityIdRTV;
 
    // Depth Stencil Buffers(View)
    DXDepthStencilBuffer* hdrDSV;
@@ -129,6 +137,7 @@ class Renderer
    DXDepthStencilBuffer* depthMapDSV;
    DXDepthStencilBuffer* shadowDepthMapDSV;
    DXDepthStencilBuffer* shadowDepthCubeMapDSV;
+   DXDepthStencilBuffer* entityIdDSV;
 
    // Render Pass
    DXRenderPassDesc forwardPass;
@@ -167,6 +176,7 @@ class Renderer
 
    void PassAABB();
    void PassLight();
+   void PassEntityID();
 };
 
 } // namespace Riley

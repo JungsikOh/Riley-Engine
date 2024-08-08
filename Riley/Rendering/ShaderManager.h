@@ -7,37 +7,40 @@ struct DXShaderProgram;
 
 enum ShaderId : uint8
 {
-   VS_ScreenQuad,
-   VS_Solid,
-   VS_Phong,
-   VS_GBuffer,
-   VS_Shadow,
-   VS_ShadowCube,
-   PS_Solid,
-   PS_Phong,
-   PS_GBuffer,
-   PS_Ambient,
-   PS_DeferredLighting,
-   PS_SSAO,
-   PS_SSAOBlur,
-   PS_Shadow,
-   PS_ShadowCube,
-   GS_ShadowCube,
-   ShaderIdCount
+    VS_ScreenQuad,
+    VS_Solid,
+    VS_Phong,
+    VS_GBuffer,
+    VS_Shadow,
+    VS_ShadowCube,
+    VS_Picking,
+    PS_Solid,
+    PS_Phong,
+    PS_GBuffer,
+    PS_Ambient,
+    PS_DeferredLighting,
+    PS_SSAO,
+    PS_SSAOBlur,
+    PS_Shadow,
+    PS_ShadowCube,
+    PS_Picking,
+    GS_ShadowCube,
+    ShaderIdCount
 };
 
 enum class ShaderProgram : uint8
 {
-   Solid,
-   ForwardPhong,
-   GBuffer,
-   Ambient,
-   DeferredLighting,
-   SSAO,
-   SSAOBlur,
-   ShadowDepthMap,
-   ShadowDepthCubeMap,
-   UnKnown
+    Solid,
+    ForwardPhong,
+    GBuffer,
+    Ambient,
+    DeferredLighting,
+    SSAO,
+    SSAOBlur,
+    ShadowDepthMap,
+    ShadowDepthCubeMap,
+    Picking,
+    UnKnown
 };
 
 namespace ShaderManager

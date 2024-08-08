@@ -18,7 +18,7 @@ class TextureManager : public Singleton<TextureManager>
     TextureHandle LoadTexture(std::wstring const& name);
     TextureHandle LoadTexture(std::string const& name);
 
-    ID3D11ShaderResourceView* GetTextureView(TextureHandle texHandle) const;
+    DXResource* GetTextureView(TextureHandle texHandle) const;
     void SetMipMaps(bool mipmaps);
 
   private:

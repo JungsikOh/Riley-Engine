@@ -28,14 +28,14 @@ std::pair<Matrix, Matrix> DirectionalLightViewProjection(Light const& light, Cam
     BoundingSphere frustumSphere;
     BoundingSphere::CreateFromFrustum(frustumSphere, frustum);
 
-    // 
+    //
     Vector3 frustumCenter(0.0f, 0.0f, 0.0f);
     for (uint32 i = 0; i < corners.size(); ++i)
     {
         frustumCenter = frustumCenter + corners[i];
     }
     frustumCenter /= static_cast<float>(corners.size());
-    // 
+    //
     float radius = 0.0f;
     for (Vector3 const& corner : corners)
     {
@@ -52,8 +52,8 @@ std::pair<Matrix, Matrix> DirectionalLightViewProjection(Light const& light, Cam
     lightDir.Normalize();
     Vector3 up = Vector3::Up;
 
-     if (abs(up.Dot(Vector3(lightDir)) + 1.0f) < 1e-5)
-         up = Vector3(1.0f, 0.0f, 0.0f);
+    if (abs(up.Dot(Vector3(lightDir)) + 1.0f) < 1e-5)
+        up = Vector3(1.0f, 0.0f, 0.0f);
 
     Matrix lightViewRow = XMMatrixLookAtLH(frustumCenter, frustumCenter + 1.0f * lightDir * radius, up);
 
@@ -69,8 +69,8 @@ std::pair<Matrix, Matrix> DirectionalLightViewProjection(Light const& light, Cam
     Matrix lightViewProjRow = lightViewRow * lightProjRow;
 
     // viewport °æ°è¸¦ Á¤ÀÇÇÏ´Â bounding box »ý¼º
-    //BoundingBox::CreateFromPoints(cullBox, Vector4(l, b, n, 1.0f), Vector4(r, t, f, 1.0f));
-    //cullBox.Transform(cullBox, lightViewRow.Invert()); // Camera View Space -> world Space
+    // BoundingBox::CreateFromPoints(cullBox, Vector4(l, b, n, 1.0f), Vector4(r, t, f, 1.0f));
+    // cullBox.Transform(cullBox, lightViewRow.Invert()); // Camera View Space -> world Space
     return {lightViewRow, lightProjRow};
 }
 } // namespace
@@ -79,8 +79,8 @@ Renderer::Renderer(entt::registry& reg, ID3D11Device* device, ID3D11DeviceContex
                    uint32 height)
     : m_reg(reg), m_camera(camera), m_device(device), m_context(context), m_width(width), m_height(height)
 {
-    timer.Mark();
     ShaderManager::Initialize(m_device);
+    timer.Mark();
 
     CreateBuffers();
     RI_TRACE("Create Buffers {:f}s", AppTimer.ElapsedInSeconds());
@@ -113,7 +113,7 @@ Renderer::~Renderer()
     SAFE_DELETE(materialConstsGPU);
     SAFE_DELETE(lightConstsGPU);
     SAFE_DELETE(shadowConstsGPU);
-    SAFE_DELETE(entityIDConstsGPU);
+    SAFE_DELETE(entityIdConstsGPU);
     SAFE_DELETE(postProcessGPU);
 
     SAFE_DELETE(solidRS);
@@ -143,6 +143,7 @@ Renderer::~Renderer()
     SAFE_DELETE(depthMapDSV);
     SAFE_DELETE(shadowDepthMapDSV);
     SAFE_DELETE(shadowDepthCubeMapDSV);
+    SAFE_DELETE(entityIdDSV);
 
     SAFE_DELETE(gbufferRTV);
     SAFE_DELETE(ambientLightingRTV);
@@ -150,6 +151,7 @@ Renderer::~Renderer()
     SAFE_DELETE(ssaoBlurRTV);
     SAFE_DELETE(postProcessRTV);
     SAFE_DELETE(hdrRTV);
+    SAFE_DELETE(entityIdRTV);
 }
 
 void Renderer::Update(float dt)
@@ -168,6 +170,7 @@ void Renderer::Render(RenderSetting& _setting)
     PassDeferredLighting();
     PassAABB();
     PassLight();
+    PassEntityID();
 }
 
 void Renderer::OnResize(uint32 width, uint32 height)
@@ -186,39 +189,83 @@ void Renderer::OnLeftMouseClicked(uint32 mx, uint32 my)
 {
     if (m_currentSceneViewport.isViewportFocused)
     {
-        float cursorNdcX = m_currentSceneViewport.m_mousePositionX * 2.0f / m_currentSceneViewport.m_widthImGui - 1.0f;
-        float cursorNdcY = -m_currentSceneViewport.m_mousePositionY * 2.0f / m_currentSceneViewport.m_heightImGui + 1.0f;
+        //float cursorNdcX = m_currentSceneViewport.m_mousePositionX * 2.0f / m_currentSceneViewport.m_widthImGui - 1.0f;
+        //float cursorNdcY = -m_currentSceneViewport.m_mousePositionY * 2.0f / m_currentSceneViewport.m_heightImGui + 1.0f;
 
-        std::cout << cursorNdcX << "," << cursorNdcY << std::endl;
+        // std::cout << cursorNdcX << "," << cursorNdcY << std::endl;
 
-        Vector3 cursorNdcNear = Vector3(cursorNdcX, cursorNdcY, 0.0f);
-        Vector3 cursorNdcFar = Vector3(cursorNdcX, cursorNdcY, 1.0f);
+        // Vector3 cursorNdcNear = Vector3(cursorNdcX, cursorNdcY, 0.0f);
+        // Vector3 cursorNdcFar = Vector3(cursorNdcX, cursorNdcY, 1.0f);
 
         //// NDC -> World
-        Vector3 cursorNearWS = Vector3::Transform(cursorNdcNear, frameBufferCPU.invViewProj.Transpose());
-        Vector3 cursorFarWS = Vector3::Transform(cursorNdcFar, frameBufferCPU.invViewProj.Transpose());
-        Vector3 cursorDir = (cursorFarWS - cursorNearWS);
-        cursorDir.Normalize();
+        // Vector3 cursorNearWS = Vector3::Transform(cursorNdcNear, frameBufferCPU.invViewProj.Transpose());
+        // Vector3 cursorFarWS = Vector3::Transform(cursorNdcFar, frameBufferCPU.invViewProj.Transpose());
+        // Vector3 cursorDir = (cursorFarWS - cursorNearWS);
+        // cursorDir.Normalize();
 
-        Ray cursorRay = Ray(cursorNearWS, cursorDir);
-        {
-            auto aabbView = m_reg.view<Transform, AABB>();
-            float dist = 0.0f;
+        // Ray cursorRay = Ray(cursorNearWS, cursorDir);
+        //{
+        //     auto aabbView = m_reg.view<Transform, AABB>();
+        //     float dist = 0.0f;
 
-            for (auto& entity : aabbView)
-            {
-                auto [transform, aabb] = aabbView.get<Transform, AABB>(entity);
-                m_seleted = cursorRay.Intersects(aabb.boundingBox, dist);
-                if (m_seleted)
-                {
-                    if (!aabb.isDrawAABB)
-                        aabb.isDrawAABB = true;
-                    else
-                        aabb.isDrawAABB = false;
-                    return;
-                }
-            }
-        }
+        //    for (auto& entity : aabbView)
+        //    {
+        //        auto [transform, aabb] = aabbView.get<Transform, AABB>(entity);
+        //        m_seleted = cursorRay.Intersects(aabb.boundingBox, dist);
+        //        if (m_seleted)
+        //        {
+        //            if (!aabb.isDrawAABB)
+        //                aabb.isDrawAABB = true;
+        //            else
+        //                aabb.isDrawAABB = false;
+        //        }
+        //    }
+        //}
+
+        D3D11_TEXTURE2D_DESC stagedDesc = {
+            1,                              // UINT Width;
+            1,                              // UINT Height;
+            1,                              // UINT MipLevels;
+            1,                              // UINT ArraySize;
+            DXGI_FORMAT_R32G32B32A32_FLOAT, // DXGI_FORMAT Format;
+            1,
+            0,                     // DXGI_SAMPLE_DESC SampleDesc;
+            D3D11_USAGE_STAGING,   // D3D11_USAGE Usage;
+            0,                     // UINT BindFlags;
+            D3D11_CPU_ACCESS_READ, // UINT CPUAccessFlags;
+            0                      // UINT MiscFlags;
+        };
+
+        ID3D11Texture2D* stagingTexture = nullptr;
+        m_device->CreateTexture2D(&stagedDesc, nullptr, &stagingTexture);
+
+        D3D11_BOX srcBox;
+        srcBox.left = (UINT)(m_currentSceneViewport.m_mousePositionX / m_currentSceneViewport.m_widthImGui * m_width);
+        srcBox.right = srcBox.left + 1;
+        srcBox.top = (UINT)(m_currentSceneViewport.m_mousePositionY / m_currentSceneViewport.m_heightImGui * m_height);
+        srcBox.bottom = srcBox.top + 1;
+        srcBox.front = 0;
+        srcBox.back = 1;
+
+        m_context->CopySubresourceRegion(reinterpret_cast<ID3D11Resource*>(stagingTexture), 0, 0, 0, 0, entityIdRTV->GetResource(), 0,
+                                         &srcBox);
+
+        D3D11_MAPPED_SUBRESOURCE ms;
+        m_context->Map(reinterpret_cast<ID3D11Resource*>(stagingTexture), 0, D3D11_MAP_READ, 0, &ms);
+        auto pData = *(Vector4*)ms.pData;
+        m_context->Unmap(reinterpret_cast<ID3D11Resource*>(stagingTexture), 0);
+
+        if (pData.x == uint32(-1))
+            return;
+
+        selectedEntity = static_cast<entt::entity>(pData.x);
+        auto& aabb = m_reg.get<AABB>(selectedEntity);
+        if (!aabb.isDrawAABB)
+            aabb.isDrawAABB = true;
+        else
+            aabb.isDrawAABB = false;
+
+        SAFE_RELEASE(stagingTexture);
     }
 }
 
@@ -281,7 +328,7 @@ void Renderer::CreateBuffers()
     lightConstsGPU = new DXConstantBuffer<LightConsts>(m_device, true);
     shadowConstsGPU = new DXConstantBuffer<ShadowConsts>(m_device, true);
     postProcessGPU = new DXConstantBuffer<PostprocessConsts>(m_device, true);
-    entityIDConstsGPU = new DXConstantBuffer<EntityIDConsts>(m_device, true);
+    entityIdConstsGPU = new DXConstantBuffer<EntityIdConsts>(m_device, true);
 }
 
 void Renderer::CreateRenderStates()
@@ -359,6 +406,8 @@ void Renderer::CreateDepthStencilBuffers(uint32 width, uint32 height)
     shadowDepthMapDSV = new DXDepthStencilBuffer(m_device, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE, false, false);
     SAFE_DELETE(shadowDepthCubeMapDSV);
     shadowDepthCubeMapDSV = new DXDepthStencilBuffer(m_device, SHADOW_CUBE_SIZE, SHADOW_CUBE_SIZE, false, true);
+    SAFE_DELETE(entityIdDSV);
+    entityIdDSV = new DXDepthStencilBuffer(m_device, width, height, false);
 
     // SRV about Texture2D DSV
     D3D11_SHADER_RESOURCE_VIEW_DESC gbufferSRVDesc;
@@ -419,6 +468,9 @@ void Renderer::CreateRenderTargets(uint32 width, uint32 height)
     SAFE_DELETE(ssaoBlurRTV);
     ssaoBlurRTV = new DXRenderTarget(m_device, width, height, DXFormat::R8G8B8A8_UNORM, ssaoBlurDSV);
     ssaoBlurRTV->CreateSRV(m_device, &tex2dSRVDesc);
+
+    SAFE_DELETE(entityIdRTV);
+    entityIdRTV = new DXRenderTarget(m_device, width, height, DXFormat::R32G32B32A32_FLOAT, entityIdDSV);
 }
 
 void Renderer::CreateOtherResources()
@@ -620,36 +672,52 @@ void Renderer::PassGBuffer()
     gbufferPass.BeginRenderPass(m_context);
 
     // Mesh Render
+    int draw = 0, total = 0;
+    auto entityView = m_reg.view<Mesh, Material, Transform, AABB>();
+    for (auto& entity : entityView)
     {
-        int draw = 0, total = 0;
-        auto entityView = m_reg.view<Mesh, Material, Transform, AABB>();
-        for (auto& entity : entityView)
+        auto [mesh, material, transform, aabb] = entityView.get<Mesh, Material, Transform, AABB>(entity);
+
+        if (m_camera->Frustum().Contains(aabb.boundingBox)) // m_camera->Frustum().Contains(aabb.boundingBox)
         {
-            auto [mesh, material, transform, aabb] = entityView.get<Mesh, Material, Transform, AABB>(entity);
+            if (material.albedoTexture != INVALID_TEXTURE_HANDLE)
+                g_TextureManager.GetTextureView(material.albedoTexture)->BindSRV(m_context, 0, DXShaderStage::PS);
+            if (material.normalTexture != INVALID_TEXTURE_HANDLE)
+                g_TextureManager.GetTextureView(material.normalTexture)->BindSRV(m_context, 1, DXShaderStage::PS);
+            if (material.metallicRoughnessTexture != INVALID_TEXTURE_HANDLE)
+                g_TextureManager.GetTextureView(material.metallicRoughnessTexture)->BindSRV(m_context, 2, DXShaderStage::PS);
+            if (material.emissiveTexture != INVALID_TEXTURE_HANDLE)
+                g_TextureManager.GetTextureView(material.emissiveTexture)->BindSRV(m_context, 3, DXShaderStage::PS);
 
-            if (m_camera->Frustum().Contains(aabb.boundingBox)) // m_camera->Frustum().Contains(aabb.boundingBox)
-            {
-                draw++;
-                ShaderManager::GetShaderProgram(ShaderProgram::GBuffer)->Bind(m_context);
+            draw++;
+            ShaderManager::GetShaderProgram(ShaderProgram::GBuffer)->Bind(m_context);
 
-                objectConstsCPU.world = transform.currentTransform.Transpose();
-                objectConstsCPU.worldInvTranspose = transform.currentTransform.Invert().Transpose();
-                objectConstsGPU->Update(m_context, objectConstsCPU, sizeof(objectConstsCPU));
+            objectConstsCPU.world = transform.currentTransform.Transpose();
+            objectConstsCPU.worldInvTranspose = transform.currentTransform.Invert().Transpose();
+            objectConstsGPU->Update(m_context, objectConstsCPU, sizeof(objectConstsCPU));
 
-                materialConstsCPU.diffuse = material.diffuse;
-                materialConstsCPU.albedoFactor = material.albedoFactor;
-                materialConstsCPU.metallicFactor = 0.5f;
-                materialConstsCPU.roughnessFactor = 0.3f;
-                materialConstsCPU.emissiveFactor = material.emissiveFactor;
-                materialConstsCPU.ambient = material.diffuse;
-                materialConstsGPU->Update(m_context, materialConstsCPU, sizeof(materialConstsCPU));
+            materialConstsCPU.diffuse = material.diffuse;
+            materialConstsCPU.albedoFactor = material.albedoFactor;
+            materialConstsCPU.metallicFactor = 0.5f;
+            materialConstsCPU.roughnessFactor = 0.3f;
+            materialConstsCPU.emissiveFactor = material.emissiveFactor;
+            materialConstsCPU.ambient = material.diffuse;
+            materialConstsGPU->Update(m_context, materialConstsCPU, sizeof(materialConstsCPU));
 
-                mesh.Draw(m_context);
-            }
-            total++;
+            mesh.Draw(m_context);
+
+            if (material.albedoTexture != INVALID_TEXTURE_HANDLE)
+                g_TextureManager.GetTextureView(material.albedoTexture)->UnbindSRV(m_context, 0, DXShaderStage::PS);
+            if (material.normalTexture != INVALID_TEXTURE_HANDLE)
+                g_TextureManager.GetTextureView(material.normalTexture)->UnbindSRV(m_context, 1, DXShaderStage::PS);
+            if (material.metallicRoughnessTexture != INVALID_TEXTURE_HANDLE)
+                g_TextureManager.GetTextureView(material.metallicRoughnessTexture)->UnbindSRV(m_context, 2, DXShaderStage::PS);
+            if (material.emissiveTexture != INVALID_TEXTURE_HANDLE)
+                g_TextureManager.GetTextureView(material.emissiveTexture)->UnbindSRV(m_context, 3, DXShaderStage::PS);
         }
-        //std::cout << draw << "," << total << std::endl;
+        total++;
     }
+    // std::cout << draw << "," << total << std::endl;
     gbufferPass.EndRenderPass(m_context);
 }
 
@@ -961,7 +1029,7 @@ void Renderer::PassLight()
 {
     SetSceneViewport(static_cast<float>(deferredLightingPass.width), static_cast<float>(deferredLightingPass.height));
     deferredLightingPass.BeginRenderPass(m_context, false, false);
-
+    noneDepthDSS->Bind(m_context, 0);
     // Mesh Render
     {
         auto lightView = m_reg.view<Mesh, Material, Transform, Light>();
@@ -982,6 +1050,35 @@ void Renderer::PassLight()
         }
     }
     deferredLightingPass.EndRenderPass(m_context);
+}
+
+void Renderer::PassEntityID()
+{
+    SetSceneViewport(static_cast<float>(deferredLightingPass.width), static_cast<float>(deferredLightingPass.height));
+    static float color[4] = {(float)uint32(-1), 0.0f, 0.0f, 0.0f};
+    entityIdDSV->Clear(m_context, 1.0f, 0);
+    entityIdRTV->Clear(m_context, color);
+    entityIdRTV->BindRenderTargets(m_context);
+    solidRS->Bind(m_context);
+    solidDSS->Bind(m_context, 0);
+
+    entityIdConstsGPU->Bind(m_context, DXShaderStage::PS, 10);
+
+    auto entityView = m_reg.view<Mesh, Transform, AABB>();
+    for (auto& e : entityView)
+    {
+        auto [mesh, transform] = entityView.get<Mesh, Transform>(e);
+        ShaderManager::GetShaderProgram(ShaderProgram::Picking)->Bind(m_context);
+
+        objectConstsCPU.world = transform.currentTransform.Transpose();
+        objectConstsCPU.worldInvTranspose = transform.currentTransform.Invert().Transpose();
+        objectConstsGPU->Update(m_context, objectConstsCPU, sizeof(objectConstsCPU));
+
+        entityIdConstsCPU.entityID = entt::to_entity(e);
+        entityIdConstsGPU->Update(m_context, entityIdConstsCPU, sizeof(entityIdConstsCPU));
+
+        mesh.Draw(m_context);
+    }
 }
 
 } // namespace Riley

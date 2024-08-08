@@ -97,9 +97,9 @@ namespace Riley
     float _padding1;
   };
 
-  DECLSPEC_ALIGN(16) struct EntityIDConsts
+  DECLSPEC_ALIGN(16) struct EntityIdConsts
   {
-     uint32 entityID;
+     uint32 entityID = uint32(-1);
   };
 
 } // namespace Riley

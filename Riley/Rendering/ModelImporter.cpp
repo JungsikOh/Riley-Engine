@@ -544,6 +544,8 @@ std::vector<entt::entity> ModelImporter::LoadModel(std::string basePath, std::st
         Mesh meshComponent{};
         meshComponent.indexCount = static_cast<uint32>(indices.size());
         meshComponent.vertexCount = static_cast<uint32>(vertices.size());
+
+        // TODO : Mesh가 많은 모델이 올 경우 어떻게 모델 로드를 설계해야할지 고민해야함.
         // meshComponent.startIndexLoc = static_cast<uint32>(indices.size());
         // meshComponent.baseVertexLoc = static_cast<uint32>(vertices.size());
 
@@ -589,7 +591,7 @@ std::vector<entt::entity> ModelImporter::LoadModel(std::string basePath, std::st
         m_registry.emplace<Relationship>(e, root);
     }
 
-    RI_INFO("Mesh {:f}s sucessfully loaded!", timer.MarkInSeconds());
+    RI_INFO("{:s} {:f}s sucessfully loaded!", filename, timer.MarkInSeconds());
     return entities;
 }
 
