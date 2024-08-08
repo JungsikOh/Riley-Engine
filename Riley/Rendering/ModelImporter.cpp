@@ -1,9 +1,11 @@
 #include "ModelImporter.h"
+#include "../Core/Log.h"
 #include "../Math/BoundingVolume.h"
 #include "../Math/ComputeVectors.h"
-#include "../Utilities/StringUtil.h"
 #include "../Utilities/FileUtil.h"
+#include "../Utilities/StringUtil.h"
 #include "Enums.h"
+#include "ModelLoader.h"
 
 namespace Riley
 {
@@ -84,6 +86,10 @@ std::vector<entt::entity> ModelImporter::LoadSquare(const Vector3& pos, const fl
     aabb.UpdateBuffer(m_device);
 
     m_registry.emplace<AABB>(entity, aabb);
+
+    Tag tag{};
+    tag.name = "Square";
+    m_registry.emplace<Tag>(entity, tag);
 
     return std::vector{entity};
 }
@@ -443,14 +449,8 @@ std::vector<entt::entity> ModelImporter::LoadLight(Light& lightData, LightMesh m
             vertices.push_back(v);
         }
 
-        std::vector<uint32> indices{
-            0,  1,  2,  0,  2,  3,  // À­¸é
-            4,  5,  6,  4,  6,  7,  // ¾Æ·§
-            8,  9,  10, 8,  10, 11, // ¾Õ¸é
-            12, 13, 14, 12, 14, 15, // µÞ¸é
-            16, 17, 18, 16, 18, 19, // ¿ÞÂÊ
-            20, 21, 22, 20, 22, 23  // ¿À¸¥
-        };
+        std::vector<uint32> indices{0,  1,  2,  0,  2,  3,  4,  5,  6,  4,  6,  7,  8,  9,  10, 8,  10, 11,
+                                    12, 13, 14, 12, 14, 15, 16, 17, 18, 16, 18, 19, 20, 21, 22, 20, 22, 23};
 
         Mesh mesh{};
         mesh.vertexBuffer =
@@ -488,16 +488,109 @@ std::vector<entt::entity> ModelImporter::LoadLight(Light& lightData, LightMesh m
     return std::vector<entt::entity>{light};
 }
 
-//std::vector<entt::entity> LoadModel()
-//{
-//    std::string path;
-//
-//    std::string modelName = GetFilename(path);
-//
-//    std::vector<Vertex> vertices{};
-//    std::vector<uint32> indices{};
-//    std::vector<entt::entity> entities{};
-//    std::unordered_map<std::string, std::vector<entt::entity>> meshNameToEntitiesMap;
-//}
+std::vector<entt::entity> ModelImporter::LoadModel(std::string basePath, std::string filename, bool revertNormals)
+{
+    timer.Mark();
+
+    std::vector<Model> model = ReadFromFile(basePath, filename, revertNormals);
+
+    std::vector<Vertex> vertices{};
+    std::vector<uint32> indices{};
+    std::vector<entt::entity> entities{};
+    std::unordered_map<std::string, std::vector<entt::entity>> meshNameToEntitiesMap;
+
+    for (auto& data : model)
+    {
+        std::vector<entt::entity>& meshEntities = meshNameToEntitiesMap[data.meshData.name];
+        assert(data.meshData.indices.size() >= 0);
+        vertices = data.meshData.vertices;
+        indices = data.meshData.indices;
+
+        entt::entity e = m_registry.create();
+        entities.push_back(e);
+        meshEntities.push_back(e);
+
+        Material material{};
+        if (!data.materialData.albeodoTextureFilename.empty())
+        {
+            material.albedoTexture = g_TextureManager.LoadTexture(ToWideString(data.materialData.albeodoTextureFilename));
+        }
+        if (!data.materialData.normalTextureFilename.empty())
+        {
+            material.normalTexture = g_TextureManager.LoadTexture(ToWideString(data.materialData.normalTextureFilename));
+        }
+        if (!data.materialData.pbrMetallicRoughnessTextureFilename.empty())
+        {
+            material.metallicRoughnessTexture =
+                g_TextureManager.LoadTexture(ToWideString(data.materialData.pbrMetallicRoughnessTextureFilename));
+        }
+        if (!data.materialData.emissiveTextureFilename.empty())
+        {
+            material.emissiveTexture = g_TextureManager.LoadTexture(ToWideString(data.materialData.emissiveTextureFilename));
+        }
+
+        material.shader = ShaderProgram::GBuffer;
+        material.alphaCutoff = data.materialData.alphaCutoff;
+        material.doubleSided = data.materialData.doubleSided;
+        if (data.materialData.alphaMode == "OPAQUE")
+        {
+            material.alphaMode = MaterialAlphaMode::Opaque;
+            material.shader = ShaderProgram::GBuffer;
+        }
+        // TODO : Add the AlphaMode(Blend, Mask)
+
+        m_registry.emplace<Material>(e, material);
+
+        Mesh meshComponent{};
+        meshComponent.indexCount = static_cast<uint32>(indices.size());
+        meshComponent.vertexCount = static_cast<uint32>(vertices.size());
+        // meshComponent.startIndexLoc = static_cast<uint32>(indices.size());
+        // meshComponent.baseVertexLoc = static_cast<uint32>(vertices.size());
+
+        meshComponent.vertexBuffer =
+            std::make_shared<DXBuffer>(m_device, VertexBufferDesc(vertices.size(), sizeof(Vertex)), vertices.data());
+        meshComponent.indexBuffer = std::make_shared<DXBuffer>(m_device, IndexBufferDesc(indices.size(), false), indices.data());
+
+        m_registry.emplace<Mesh>(e, meshComponent);
+
+        // TODO : transform을 node 형태로 만들어, 모델의 각 부위의 matrix를 변환시킬 수 있도록 설정.
+        Transform transform{};
+        transform.currentTransform = Matrix::CreateScale(1.0f) * Matrix::CreateTranslation(Vector3(0.0f));
+        transform.startingTransform = Matrix::CreateScale(1.0f) * Matrix::CreateTranslation(Vector3(0.0f));
+
+        m_registry.emplace<Transform>(e, transform);
+
+        AABB aabb{};
+        BoundingBox _boundingBox = AABBFromVertices(vertices);
+        aabb.orginalBox = _boundingBox;
+        _boundingBox.Transform(_boundingBox, transform.currentTransform);
+        aabb.boundingBox = _boundingBox;
+        aabb.isDrawAABB = false;
+        aabb.UpdateBuffer(m_device);
+        m_registry.emplace<AABB>(e, aabb);
+    }
+    entt::entity root = m_registry.create();
+    m_registry.emplace<Transform>(root);
+    m_registry.emplace<Tag>(root, filename);
+
+    Relationship relationship;
+    relationship.childrenCount = static_cast<uint32>(entities.size());
+    assert(relationship.childrenCount <= Relationship::MAX_CHILDREN);
+    for (size_t i = 0; i < relationship.childrenCount; ++i)
+    {
+        relationship.children[i] = entities[i];
+    }
+    m_registry.emplace<Relationship>(root, relationship);
+
+    size_t i = 0;
+    for (entt::entity& e : entities)
+    {
+        m_registry.emplace<Tag>(e, filename + " submesh" + std::to_string(i++));
+        m_registry.emplace<Relationship>(e, root);
+    }
+
+    RI_INFO("Mesh {:f}s sucessfully loaded!", timer.MarkInSeconds());
+    return entities;
+}
 
 } // namespace Riley

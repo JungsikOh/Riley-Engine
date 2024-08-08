@@ -23,10 +23,11 @@ float CalcShadowMapPCF3x3(LightData light, float3 viewPos, Texture2D shadowMap)
         {
             for (int y = -1; y <= 1; ++y)
             {
-                shadow += shadowMap.SampleCmpLevelZero(ShadowSampler, UVD.xy + float2(x, y) * texelSize, UVD.z - 0.05).r;
+                shadow += shadowMap.SampleCmpLevelZero(ShadowSampler, UVD.xy + float2(x, y) * texelSize, UVD.z).r;
             }
         }
         shadow /= 9.0;
+
     }
     return shadow;
 }

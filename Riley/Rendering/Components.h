@@ -44,6 +44,7 @@ struct COMPONENT Material
    float roughnessFactor = 1.0f;
    float emissiveFactor = 1.0f;
 
+   MaterialAlphaMode alphaMode;
    float alphaCutoff = 0.5f;
    bool doubleSided = false;
 
@@ -130,6 +131,14 @@ struct COMPONENT AABB
       const uint16 aabb_indices[] = {0, 1, 1, 2, 2, 3, 3, 0, 0, 4, 1, 5, 2, 6, 3, 7, 4, 5, 5, 6, 6, 7, 7, 4};
       aabbIndexBuffer = std::make_shared<DXBuffer>(device, IndexBufferDesc(ARRAYSIZE(aabb_indices), true), aabb_indices);
    }
+};
+
+struct COMPONENT Relationship
+{
+    static constexpr size_t MAX_CHILDREN = 2048;
+    entt::entity parent = entt::null;
+    uint32 childrenCount = 0;
+    entt::entity children[MAX_CHILDREN] = {entt::null};
 };
 
 struct COMPONENT Tag

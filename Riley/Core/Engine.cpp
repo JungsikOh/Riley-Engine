@@ -36,6 +36,8 @@ Engine::Engine(EngineInit const& init)
    CreateSwapChainAndDevice();
    CreateBackBufferResources(window->Width(), window->Height());
 
+   g_TextureManager.Initialize(m_device, m_context);
+
    CameraParameters cp = ParseCameraParam();
    camera = new Camera(cp);
    renderer = new Renderer(m_registry, m_device, m_context, camera, window->Width(), window->Height());
@@ -55,12 +57,13 @@ Engine::Engine(EngineInit const& init)
    modelImporter->LoadSqhere(Vector3(0.2f, 0.05f, 0.3f), 0.3f, 40, 20);
    modelImporter->LoadSqhere(Vector3(0.2f, 0.05f, 1.3f), 0.5f, 40, 20);
    modelImporter->LoadSquare(Vector3(0.0f, -1.0f, 0.0f), 2.0f, 90.0f);
+   modelImporter->LoadModel("Resources/Models/DamagedHelmet/", "DamagedHelmet.gltf", false);
 
    Light light;
    light.position = Vector4(0.5f, 0.2f, 0.5f, 1.0f);
    light.color = Vector4(0.7f, 0.7f, 0.7f, 0.0f);
    light.direction = Vector4(0.0f, -1.0f, 0.0f, 0.0f);
-   light.energy = 0.3f;
+   light.energy = 0.2f;
    light.type = LightType::Directional;
    modelImporter->LoadLight(light, LightMesh::Cube, 0.03f);
 
@@ -90,6 +93,8 @@ Engine::~Engine()
    SAFE_DELETE(renderer);
    SAFE_DELETE(backBufferDSV);
    SAFE_DELETE(backBufferRTV);
+
+   g_TextureManager.Destroy();
 
    SAFE_RELEASE(m_swapChain);
    SAFE_RELEASE(m_context);

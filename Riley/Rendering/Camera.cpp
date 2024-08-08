@@ -100,6 +100,7 @@ namespace Riley
       rightVector, sensitivity * DirectX::XMConvertToRadians((float)dy));
     upVector = Vector3::TransformNormal(upVector, rotate);
     lookVector = Vector3::TransformNormal(lookVector, rotate);
+    UpdateviewRow();
   }
 
   void Camera::RotateYaw(int64 dx)
@@ -109,6 +110,7 @@ namespace Riley
     rightVector = Vector3::TransformNormal(rightVector, rotate);
     upVector = Vector3::TransformNormal(upVector, rotate);
     lookVector = Vector3::TransformNormal(lookVector, rotate);
+    UpdateviewRow();
   }
 
   void Camera::SetprojRow(float fov, float aspect, float zn, float zf)

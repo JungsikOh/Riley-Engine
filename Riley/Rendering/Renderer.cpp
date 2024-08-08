@@ -8,83 +8,78 @@
 #include "ModelImporter.h"
 #include <random>
 
-namespace Riley {
+namespace Riley
+{
 constexpr uint32 SHADOW_MAP_SIZE = 2048;
 constexpr uint32 SHADOW_CUBE_SIZE = 512;
-static bool tmp = false;
-static int i = 0;
 
-namespace {
-    using namespace DirectX;
+namespace
+{
+using namespace DirectX;
 
-    std::pair<Matrix, Matrix> DirectionalLightViewProjection(Light const& light, Camera* camera, BoundingBox& cullBox)
+std::pair<Matrix, Matrix> DirectionalLightViewProjection(Light const& light, Camera* camera, BoundingBox& cullBox)
+{
+    // [1] Camera view frustum
+    BoundingFrustum frustum = camera->Frustum();
+    std::array<Vector3, BoundingFrustum::CORNER_COUNT> corners = {};
+    frustum.GetCorners(corners.data());
+
+    //
+    BoundingSphere frustumSphere;
+    BoundingSphere::CreateFromFrustum(frustumSphere, frustum);
+
+    // 
+    Vector3 frustumCenter(0.0f, 0.0f, 0.0f);
+    for (uint32 i = 0; i < corners.size(); ++i)
     {
-        // [1] Camera view frustum »ý¼º
-        BoundingFrustum frustum = camera->Frustum();
-        std::array<Vector3, BoundingFrustum::CORNER_COUNT> corners = {};
-        frustum.GetCorners(corners.data());
-
-        // ÁÖ¾îÁø [1]frustumÀ» Æ÷ÇÔÇÏ´Â [2]shpere¸¦ »ý¼º
-        BoundingSphere frustumSphere;
-        BoundingSphere::CreateFromFrustum(frustumSphere, frustum);
-
-        // ¸ðµç ÄÚ³ÊÀÇ Æò±ÕÀ» ÅëÇØ frustumÀÇ Áß½ÉÁ¡À» °è»ê
-        Vector3 frustumCenter(0.0f, 0.0f, 0.0f);
-        for (uint32 i = 0; i < corners.size(); ++i) {
-            frustumCenter = frustumCenter + corners[i];
-        }
-        frustumCenter /= static_cast<float>(corners.size());
-        // ¹ÝÁö¸§ °è»ê
-        float radius = 0.0f;
-        for (Vector3 const& corner : corners) {
-            float distance = Vector3::Distance(corner, frustumCenter);
-            radius = std::max(radius, distance);
-        }
-        radius = std::ceil(radius * 8.0f) / 8.0f; // ±×¸²ÀÚ ¸Ê ÇØ»óµµ¿¡ ¸ÂÃã.
-
-        Vector3 const max_extents(radius, radius, radius);
-        Vector3 const min_extents = -max_extents;
-        Vector3 const cascade_extents = max_extents - min_extents;
-
-        Vector4 lightDir = light.direction;
-        lightDir.Normalize();
-        Vector3 up = Vector3::Up;
-
-        if (abs(up.Dot(Vector3(lightDir)) + 1.0f) < 1e-5)
-            up = Vector3(1.0f, 0.0f, 0.0f);
-
-        Matrix lightViewRow = XMMatrixLookAtLH(frustumCenter, frustumCenter + 1.0f * Vector3(lightDir) * radius, up);
-
-        float l = min_extents.x * 50.0f;
-        float b = min_extents.y * 50.0f;
-        float n = min_extents.z * 40.0f;
-        float r = max_extents.x * 50.0f;
-        float t = max_extents.y * 50.0f;
-        float f = max_extents.z * 40.0f * 1.5f; // far´Â Ãß°¡ÀûÀÎ ¿©À¯¸¦ ÁÖ¾î ¼³Á¤
-
-        float fovAngle = 2.0f * acos(light.outer_cosine);
-
-        Matrix lightProjRow = XMMatrixOrthographicOffCenterLH(l, r, b, t, n, f);
-        // Matrix lightProjRow = XMMatrixPerspectiveFovLH(fovAngle, 1.0f, 0.05f,
-        // f);
-        Matrix lightViewProjRow = lightViewRow * lightProjRow;
-
-        // viewport °æ°è¸¦ Á¤ÀÇÇÏ´Â bounding box »ý¼º
-        BoundingBox::CreateFromPoints(cullBox, Vector4(l, b, n, 1.0f), Vector4(r, t, f, 1.0f));
-        cullBox.Transform(cullBox, lightViewRow.Invert()); // Camera View Space -> world Space
-        return { lightViewRow, lightProjRow };
+        frustumCenter = frustumCenter + corners[i];
     }
+    frustumCenter /= static_cast<float>(corners.size());
+    // 
+    float radius = 0.0f;
+    for (Vector3 const& corner : corners)
+    {
+        float distance = Vector3::Distance(corner, frustumCenter);
+        radius = std::max(radius, distance);
+    }
+    radius = std::ceil(radius * 8.0f) / 8.0f; // ±×¸²ÀÚ ¸Ê ÇØ»óµµ¿¡ ¸ÂÃã.
+
+    const Vector3 max_extents(radius, radius, radius);
+    const Vector3 min_extents = -max_extents;
+    const Vector3 cascade_extents = max_extents - min_extents;
+
+    Vector4 lightDir = light.direction;
+    lightDir.Normalize();
+    Vector3 up = Vector3::Up;
+
+     if (abs(up.Dot(Vector3(lightDir)) + 1.0f) < 1e-5)
+         up = Vector3(1.0f, 0.0f, 0.0f);
+
+    Matrix lightViewRow = XMMatrixLookAtLH(frustumCenter, frustumCenter + 1.0f * lightDir * radius, up);
+
+    float l = min_extents.x;
+    float b = min_extents.y;
+    float n = min_extents.z;
+    float r = max_extents.x;
+    float t = max_extents.y;
+    float f = max_extents.z * 1.5f; // far´Â Ãß°¡ÀûÀÎ ¿©À¯¸¦ ÁÖ¾î ¼³Á¤
+
+    Matrix lightProjRow = XMMatrixOrthographicOffCenterLH(l, r, b, t, n, f);
+    // Matrix lightProjRow = XMMatrixPerspectiveFovLH(fovAngle, 1.0f, 0.05f, f);
+    Matrix lightViewProjRow = lightViewRow * lightProjRow;
+
+    // viewport °æ°è¸¦ Á¤ÀÇÇÏ´Â bounding box »ý¼º
+    //BoundingBox::CreateFromPoints(cullBox, Vector4(l, b, n, 1.0f), Vector4(r, t, f, 1.0f));
+    //cullBox.Transform(cullBox, lightViewRow.Invert()); // Camera View Space -> world Space
+    return {lightViewRow, lightProjRow};
+}
 } // namespace
 
-Renderer::Renderer(
-    entt::registry& reg, ID3D11Device* device, ID3D11DeviceContext* context, Camera* camera, uint32 width, uint32 height)
-    : m_reg(reg)
-    , m_camera(camera)
-    , m_device(device)
-    , m_context(context)
-    , m_width(width)
-    , m_height(height)
+Renderer::Renderer(entt::registry& reg, ID3D11Device* device, ID3D11DeviceContext* context, Camera* camera, uint32 width,
+                   uint32 height)
+    : m_reg(reg), m_camera(camera), m_device(device), m_context(context), m_width(width), m_height(height)
 {
+    timer.Mark();
     ShaderManager::Initialize(m_device);
 
     CreateBuffers();
@@ -157,7 +152,10 @@ Renderer::~Renderer()
     SAFE_DELETE(hdrRTV);
 }
 
-void Renderer::Update(float dt) { m_currentDeltaTime = dt; }
+void Renderer::Update(float dt)
+{
+    m_currentDeltaTime = dt;
+}
 
 void Renderer::Render(RenderSetting& _setting)
 {
@@ -174,7 +172,8 @@ void Renderer::Render(RenderSetting& _setting)
 
 void Renderer::OnResize(uint32 width, uint32 height)
 {
-    if ((m_width != width || m_height != height) && width > 0 && height > 0) {
+    if ((m_width != width || m_height != height) && width > 0 && height > 0)
+    {
         m_width = width;
         m_height = height;
         CreateDepthStencilBuffers(width, height);
@@ -185,7 +184,8 @@ void Renderer::OnResize(uint32 width, uint32 height)
 
 void Renderer::OnLeftMouseClicked(uint32 mx, uint32 my)
 {
-    if (m_currentSceneViewport.isViewportFocused) {
+    if (m_currentSceneViewport.isViewportFocused)
+    {
         float cursorNdcX = m_currentSceneViewport.m_mousePositionX * 2.0f / m_currentSceneViewport.m_widthImGui - 1.0f;
         float cursorNdcY = -m_currentSceneViewport.m_mousePositionY * 2.0f / m_currentSceneViewport.m_heightImGui + 1.0f;
 
@@ -205,10 +205,12 @@ void Renderer::OnLeftMouseClicked(uint32 mx, uint32 my)
             auto aabbView = m_reg.view<Transform, AABB>();
             float dist = 0.0f;
 
-            for (auto& entity : aabbView) {
+            for (auto& entity : aabbView)
+            {
                 auto [transform, aabb] = aabbView.get<Transform, AABB>(entity);
                 m_seleted = cursorRay.Intersects(aabb.boundingBox, dist);
-                if (m_seleted) {
+                if (m_seleted)
+                {
                     if (!aabb.isDrawAABB)
                         aabb.isDrawAABB = true;
                     else
@@ -254,7 +256,7 @@ void Renderer::Tick(Camera* camera)
 }
 
 void Renderer::SetSceneViewport(const float& width, const float& height, const float& minDepth, const float& maxDepth,
-    const float& topLeftX, const float& topLeftY)
+                                const float& topLeftX, const float& topLeftY)
 {
     m_currentSceneViewport.SetWidth(width);
     m_currentSceneViewport.SetHeight(height);
@@ -292,7 +294,7 @@ void Renderer::CreateRenderStates()
     cullFrontRS = new DXRasterizerState(m_device, CullCWDesc());
 
     // Depth RS
-    DXRasterizerStateDesc shadow_depth_bias_state {};
+    DXRasterizerStateDesc shadow_depth_bias_state{};
     shadow_depth_bias_state.cull_mode = DXCullMode::Front;
     shadow_depth_bias_state.fill_mode = DXFillMode::Solid;
     shadow_depth_bias_state.depth_clip_enable = true;
@@ -314,13 +316,13 @@ void Renderer::CreateRenderStates()
     linearWrapSS = new DXSampler(m_device, SamplerDesc(DXFilter::MIN_MAG_MIP_LINEAR, DXTextureAddressMode::Wrap));
     linearClampSS = new DXSampler(m_device, SamplerDesc(DXFilter::MIN_MAG_MIP_LINEAR, DXTextureAddressMode::Clamp));
 
-    DXSamplerDesc pointWrapDesc {};
+    DXSamplerDesc pointWrapDesc{};
     pointWrapDesc.filter = DXFilter::MIN_MAG_MIP_POINT;
     pointWrapDesc.addressU = pointWrapDesc.addressV = pointWrapDesc.addressW = DXTextureAddressMode::Wrap;
     pointWrapDesc.borderColor[0] = 1.0f;
     pointWrapSS = new DXSampler(m_device, pointWrapDesc);
 
-    DXSamplerDesc shadowPointDesc {};
+    DXSamplerDesc shadowPointDesc{};
     shadowPointDesc.filter = DXFilter::MIN_MAG_MIP_LINEAR;
     shadowPointDesc.addressU = shadowPointDesc.addressV = shadowPointDesc.addressW = DXTextureAddressMode::Border;
     shadowPointDesc.borderColor[0] = 1.0f;
@@ -329,11 +331,11 @@ void Renderer::CreateRenderStates()
     shadowPointDesc.borderColor[3] = 1.0f;
     linearBorderSS = new DXSampler(m_device, shadowPointDesc);
 
-    DXSamplerDesc comparisonSamplerDesc {};
+    DXSamplerDesc comparisonSamplerDesc{};
     comparisonSamplerDesc.filter = DXFilter::COMPARISON_MIN_MAG_MIP_LINEAR;
     comparisonSamplerDesc.addressU = comparisonSamplerDesc.addressV = comparisonSamplerDesc.addressW = DXTextureAddressMode::Border;
-    comparisonSamplerDesc.borderColor[0] = comparisonSamplerDesc.borderColor[1] = comparisonSamplerDesc.borderColor[2]
-        = comparisonSamplerDesc.borderColor[3] = 1.0f;
+    comparisonSamplerDesc.borderColor[0] = comparisonSamplerDesc.borderColor[1] = comparisonSamplerDesc.borderColor[2] =
+        comparisonSamplerDesc.borderColor[3] = 1.0f;
     comparisonSamplerDesc.comparisonFunc = DXComparisonFunc::LessEqual;
     shadowLinearBorderSS = new DXSampler(m_device, comparisonSamplerDesc);
 }
@@ -426,7 +428,8 @@ void Renderer::CreateOtherResources()
     randomTextureData.reserve(AO_NOISE_DIM * AO_NOISE_DIM * 4);
     std::uniform_real_distribution<float> randomFloats(0.0f, 1.0f);
     std::default_random_engine generator;
-    for (uint32 i = 0; i < SSAO_KERNEL_SIZE; ++i) {
+    for (uint32 i = 0; i < SSAO_KERNEL_SIZE; ++i)
+    {
         Vector4 offset(randomFloats(generator) * 2.0f - 1.0f, randomFloats(generator) * 2.0f - 1.0f, randomFloats(generator), 0.0f);
         offset.Normalize();
         offset *= randomFloats(generator);
@@ -434,14 +437,15 @@ void Renderer::CreateOtherResources()
         offset *= scale;
         ssaoKernel[i] = offset;
     }
-    for (uint32 i = 0; i < AO_NOISE_DIM * AO_NOISE_DIM; ++i) {
+    for (uint32 i = 0; i < AO_NOISE_DIM * AO_NOISE_DIM; ++i)
+    {
         randomTextureData.push_back(randomFloats(generator) * 2.0f - 1.0f);
         randomTextureData.push_back(randomFloats(generator) * 2.0f - 1.0f);
         randomTextureData.push_back(0.0f);
         randomTextureData.push_back(1.0f);
     }
 
-    D3D11_SUBRESOURCE_DATA initData {};
+    D3D11_SUBRESOURCE_DATA initData{};
     initData.pSysMem = (void*)randomTextureData.data();
     initData.SysMemPitch = AO_NOISE_DIM * 4 * sizeof(float);
     ssaoNoiseTex = new DXResource();
@@ -451,7 +455,7 @@ void Renderer::CreateOtherResources()
 
 void Renderer::CreateRenderPasses(uint32 width, uint32 height)
 {
-    static constexpr float clearBlack[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+    static constexpr float clearBlack[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 
     forwardPass.attachmentRTVs = hdrRTV;
     forwardPass.attachmentDSVs = hdrDSV;
@@ -501,7 +505,8 @@ void Renderer::CreateRenderPasses(uint32 width, uint32 height)
 void Renderer::BindGlobals()
 {
     static bool called = false;
-    if (!called) {
+    if (!called)
+    {
         // VS
         frameBufferGPU->Bind(m_context, DXShaderStage::VS, 0);
         objectConstsGPU->Bind(m_context, DXShaderStage::VS, 1);
@@ -538,7 +543,8 @@ void Renderer::PassForward()
 void Renderer::PassForwardPhong()
 {
     auto lightView = m_reg.view<Light>();
-    for (auto& e : lightView) {
+    for (auto& e : lightView)
+    {
         auto lightData = lightView.get<Light>(e);
         if (!lightData.active)
             continue;
@@ -560,11 +566,16 @@ void Renderer::PassForwardPhong()
             lightConstsGPU->Update(m_context, lightConstsCPU, sizeof(lightConstsCPU));
         }
 
-        if (lightData.type == LightType::Spot) {
+        if (lightData.type == LightType::Spot)
+        {
             PassShadowMapSpot(lightData);
-        } else if (lightData.type == LightType::Directional) {
+        }
+        else if (lightData.type == LightType::Directional)
+        {
             PassShadowMapDirectional(lightData);
-        } else if (lightData.type == LightType::Point) {
+        }
+        else if (lightData.type == LightType::Point)
+        {
             PassShadowMapPoint(lightData);
         }
 
@@ -578,7 +589,8 @@ void Renderer::PassForwardPhong()
             shadowCubeMapPass.attachmentDSVs->BindSRV(m_context, 1, DXShaderStage::PS);
 
             auto entityView = m_reg.view<Mesh, Material, Transform>(entt::exclude<Light>);
-            for (auto& entity : entityView) {
+            for (auto& entity : entityView)
+            {
                 auto [mesh, material, transform] = entityView.get<Mesh, Material, Transform>(entity);
 
                 ShaderManager::GetShaderProgram(material.shader)->Bind(m_context);
@@ -611,10 +623,12 @@ void Renderer::PassGBuffer()
     {
         int draw = 0, total = 0;
         auto entityView = m_reg.view<Mesh, Material, Transform, AABB>();
-        for (auto& entity : entityView) {
+        for (auto& entity : entityView)
+        {
             auto [mesh, material, transform, aabb] = entityView.get<Mesh, Material, Transform, AABB>(entity);
 
-            if (m_camera->Frustum().Contains(aabb.boundingBox)) {
+            if (m_camera->Frustum().Contains(aabb.boundingBox)) // m_camera->Frustum().Contains(aabb.boundingBox)
+            {
                 draw++;
                 ShaderManager::GetShaderProgram(ShaderProgram::GBuffer)->Bind(m_context);
 
@@ -664,7 +678,8 @@ void Renderer::PassAmbient()
 void Renderer::PassDeferredLighting()
 {
     auto lightView = m_reg.view<Light>();
-    for (auto& e : lightView) {
+    for (auto& e : lightView)
+    {
         auto lightData = lightView.get<Light>(e);
         if (!lightData.active)
             continue;
@@ -686,11 +701,16 @@ void Renderer::PassDeferredLighting()
             lightConstsGPU->Update(m_context, lightConstsCPU, sizeof(lightConstsCPU));
         }
 
-        if (lightData.type == LightType::Spot) {
+        if (lightData.type == LightType::Spot)
+        {
             PassShadowMapSpot(lightData);
-        } else if (lightData.type == LightType::Directional) {
+        }
+        else if (lightData.type == LightType::Directional)
+        {
             PassShadowMapDirectional(lightData);
-        } else if (lightData.type == LightType::Point) {
+        }
+        else if (lightData.type == LightType::Point)
+        {
             PassShadowMapPoint(lightData);
         }
 
@@ -754,7 +774,7 @@ void Renderer::PassSSAO()
 
     // 2. SSAO Blur
     {
-        static float clearColor[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+        static float clearColor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
         ssaoBlurDSV->Clear(m_context, 1.0f, 0);
         ssaoBlurRTV->Clear(m_context, clearColor);
         ssaoBlurRTV->BindRenderTargets(m_context);
@@ -780,7 +800,7 @@ void Renderer::PassShadowMapDirectional(Light const& light)
         auto const& [V, P] = DirectionalLightViewProjection(light, m_camera, lightBoundingBox);
 
         shadowConstsCPU.lightViewProj = (V * P).Transpose();
-        shadowConstsCPU.lightView = V;
+        shadowConstsCPU.lightView = V.Transpose();
         shadowConstsCPU.shadow_map_size = SHADOW_MAP_SIZE;
         shadowConstsCPU.shadow_matrices[0] = shadowConstsCPU.lightViewProj * m_camera->GetView().Invert();
         shadowConstsGPU->Update(m_context, shadowConstsCPU, sizeof(shadowConstsCPU));
@@ -791,7 +811,8 @@ void Renderer::PassShadowMapDirectional(Light const& light)
 
     {
         auto entityView = m_reg.view<Mesh, Material, Transform>(entt::exclude<Light>);
-        for (auto& entity : entityView) {
+        for (auto& entity : entityView)
+        {
             auto [mesh, material, transform] = entityView.get<Mesh, Material, Transform>(entity);
             ShaderManager::GetShaderProgram(ShaderProgram::ShadowDepthMap)->Bind(m_context);
 
@@ -837,7 +858,8 @@ void Renderer::PassShadowMapSpot(Light const& light)
     // Render Mesh
     {
         auto entityView = m_reg.view<Mesh, Material, Transform>(entt::exclude<Light>);
-        for (auto& entity : entityView) {
+        for (auto& entity : entityView)
+        {
             auto [mesh, material, transform] = entityView.get<Mesh, Material, Transform>(entity);
             ShaderManager::GetShaderProgram(ShaderProgram::ShadowDepthMap)->Bind(m_context);
 
@@ -860,15 +882,16 @@ void Renderer::PassShadowMapPoint(Light const& light)
         Matrix lightViewRow = Matrix::Identity;
         Matrix lightProjRow = Matrix::Identity;
 
-        Vector3 directions[6] = { { 1.0f, 0.0f, 0.0f }, { -1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, -1.0f, 0.0f },
-            { 0.0f, 0.0f, 1.0f }, { 0.0f, 0.0f, -1.0f } };
-        Vector3 up[6] = { { 0.0f, 1.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, { 0.0f, 0.0f, -1.0f }, { 0.0f, 0.0f, 1.0f },
-            { 0.0f, 1.0f, 1.0f }, { 0.0f, 1.0f, 0.0f } };
+        Vector3 directions[6] = {{1.0f, 0.0f, 0.0f},  {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f},
+                                 {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 1.0f},  {0.0f, 0.0f, -1.0f}};
+        Vector3 up[6] = {{0.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, -1.0f},
+                         {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}};
 
         float fovAngle = 2.0f * acos(light.outer_cosine);
         lightProjRow = DirectX::XMMatrixPerspectiveFovLH(fovAngle, 1.0f, 0.5f, light.range);
 
-        for (uint32 face = 0; face < 6; ++face) {
+        for (uint32 face = 0; face < 6; ++face)
+        {
             lightViewRow = DirectX::XMMatrixLookAtLH(light.position, light.position + directions[face] * light.range, up[face]);
             shadowConstsCPU.shadowCubeMapViewProj[face] = (lightViewRow * lightProjRow).Transpose();
         }
@@ -882,7 +905,8 @@ void Renderer::PassShadowMapPoint(Light const& light)
     // Render Mesh
     {
         auto entityView = m_reg.view<Mesh, Material, Transform>(entt::exclude<Light>);
-        for (auto& entity : entityView) {
+        for (auto& entity : entityView)
+        {
             auto [mesh, material, transform] = entityView.get<Mesh, Material, Transform>(entity);
             ShaderManager::GetShaderProgram(ShaderProgram::ShadowDepthCubeMap)->Bind(m_context);
 
@@ -906,10 +930,12 @@ void Renderer::PassAABB()
     // Mesh Render
     {
         auto aabbView = m_reg.view<AABB>();
-        for (auto& entity : aabbView) {
+        for (auto& entity : aabbView)
+        {
             auto& aabb = aabbView.get<AABB>(entity);
 
-            if (aabb.isDrawAABB) {
+            if (aabb.isDrawAABB)
+            {
                 ShaderManager::GetShaderProgram(ShaderProgram::Solid)->Bind(m_context);
 
                 aabb.SetAABBIndexBuffer(m_device);
@@ -939,7 +965,8 @@ void Renderer::PassLight()
     // Mesh Render
     {
         auto lightView = m_reg.view<Mesh, Material, Transform, Light>();
-        for (auto& entity : lightView) {
+        for (auto& entity : lightView)
+        {
             auto [mesh, material, transform, light] = lightView.get<Mesh, Material, Transform, Light>(entity);
 
             ShaderManager::GetShaderProgram(ShaderProgram::Solid)->Bind(m_context);

@@ -15,4 +15,11 @@ enum class AmbientOcclusion : int32
 	SSAO
 };
 
+enum class MaterialAlphaMode : int8
+{
+	Opaque,
+	Blend,
+	Mask
+};
+
 }

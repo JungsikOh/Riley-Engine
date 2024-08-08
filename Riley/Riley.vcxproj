@@ -171,6 +171,7 @@
     <ClCompile Include="Rendering\Camera.cpp" />
     <ClCompile Include="Rendering\ModelImporter.cpp" />
     <ClCompile Include="Rendering\Components.cpp" />
+    <ClCompile Include="Rendering\ModelLoader.cpp" />
     <ClCompile Include="Rendering\Renderer.cpp" />
     <ClCompile Include="Rendering\ShaderManager.cpp" />
     <ClCompile Include="Rendering\TextureManager.cpp" />
@@ -321,10 +322,12 @@
     <ClInclude Include="Rendering\Camera.h" />
     <ClInclude Include="Rendering\ConstantBuffers.h" />
     <ClInclude Include="Rendering\Enums.h" />
+    <ClInclude Include="Rendering\MeshData.h" />
     <ClInclude Include="Rendering\ModelImporter.h" />
     <ClInclude Include="Rendering\Components.h" />
     <ClInclude Include="Graphics\DXResource.h" />
     <ClInclude Include="Graphics\DXShader.h" />
+    <ClInclude Include="Rendering\ModelLoader.h" />
     <ClInclude Include="Rendering\Renderer.h" />
     <ClInclude Include="Rendering\RenderSetting.h" />
     <ClInclude Include="Rendering\SceneViewport.h" />

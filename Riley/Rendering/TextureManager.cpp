@@ -107,22 +107,22 @@ TextureHandle TextureManager::LoadWICTexture(std::wstring const& name)
     {
         ++handle;
 
-        std::unique_ptr<ID3D11ShaderResourceView> viewPtr = nullptr;
+        ID3D11ShaderResourceView* viewPtr = nullptr;
 
         ID3D11ShaderResourceView* tempViewPtr = nullptr;
         ID3D11Texture2D* texPtr = nullptr;
         if (mipmaps)
         {
-            HR(CreateWICTextureFromFile(m_device, m_context, name.c_str(), reinterpret_cast<ID3D11Resource**>(&texPtr), &tempViewPtr));
+            HR(CreateWICTextureFromFile(m_device, m_context, name.c_str(), reinterpret_cast<ID3D11Resource**>(&texPtr), &viewPtr));
         }
         else
         {
-            HR(CreateWICTextureFromFile(m_device, name.c_str(), reinterpret_cast<ID3D11Resource**>(&texPtr), &tempViewPtr));
+            HR(CreateWICTextureFromFile(m_device, name.c_str(), reinterpret_cast<ID3D11Resource**>(&texPtr), &viewPtr));
         }
-        viewPtr.reset(tempViewPtr);
+        //viewPtr.reset(tempViewPtr);
 
         loadedTextures.insert({name, handle});
-        textureMap.insert({handle, viewPtr.get()});
+        textureMap.insert({handle, viewPtr});
         texPtr->Release();
 
         return handle;
