@@ -1,4 +1,5 @@
 #pragma once
+#include "../Graphics/DXResource.h"
 #include "../Utilities/Singleton.h"
 
 namespace Riley
@@ -25,7 +26,7 @@ class TextureManager : public Singleton<TextureManager>
     ID3D11DeviceContext* m_context;
     bool mipmaps = true;
     TextureHandle handle = INVALID_TEXTURE_HANDLE;
-    std::unordered_map<TextureHandle, ID3D11ShaderResourceView*> textureMap{};
+    std::unordered_map<TextureHandle, std::unique_ptr<DXResource>> textureMap{};
     std::unordered_map<std::wstring, TextureHandle> loadedTextures{};
 
   private:

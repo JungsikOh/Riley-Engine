@@ -28,6 +28,15 @@ void DXResource::Initialize(ID3D11Device* device, D3D11_TEXTURE2D_DESC& desc, D3
    HR(device->CreateTexture2D(&desc, initData, reinterpret_cast<ID3D11Texture2D**>(&m_resource)));
 }
 
+void DXResource::Initialize( ID3D11Resource* resource , ID3D11ShaderResourceView* srv , ID3D11UnorderedAccessView* uav)
+{
+    m_resource = resource;
+    if (srv)
+        m_SRVs.push_back(srv);
+    if (uav)
+        m_UAVs.push_back(uav);
+}
+
 void DXResource::CreateSRV(ID3D11Device* device, D3D11_SHADER_RESOURCE_VIEW_DESC* desc)
 {
    ID3D11ShaderResourceView* srv;

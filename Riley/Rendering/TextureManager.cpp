@@ -79,6 +79,12 @@ void TextureManager::Destroy()
 {
     m_device = nullptr;
     m_context = nullptr;
+    auto FreeContainer = []<typename T>(T& container) {
+        container.clear();
+        T empty;
+        std::swap(container, empty);
+    };
+    FreeContainer(textureMap);
 }
 
 TextureHandle TextureManager::LoadTexture(std::wstring const& name)
@@ -107,23 +113,22 @@ TextureHandle TextureManager::LoadWICTexture(std::wstring const& name)
     {
         ++handle;
 
-        ID3D11ShaderResourceView* viewPtr = nullptr;
+        ID3D11ShaderResourceView* _srv = nullptr;
+        ID3D11Texture2D* _tex = nullptr;
 
-        ID3D11ShaderResourceView* tempViewPtr = nullptr;
-        ID3D11Texture2D* texPtr = nullptr;
         if (mipmaps)
         {
-            HR(CreateWICTextureFromFile(m_device, m_context, name.c_str(), reinterpret_cast<ID3D11Resource**>(&texPtr), &viewPtr));
+            HR(CreateWICTextureFromFile(m_device, m_context, name.c_str(), reinterpret_cast<ID3D11Resource**>(&_tex), &_srv));
         }
         else
         {
-            HR(CreateWICTextureFromFile(m_device, name.c_str(), reinterpret_cast<ID3D11Resource**>(&texPtr), &viewPtr));
+            HR(CreateWICTextureFromFile(m_device, name.c_str(), reinterpret_cast<ID3D11Resource**>(&_tex), &_srv));
         }
-        //viewPtr.reset(tempViewPtr);
 
         loadedTextures.insert({name, handle});
-        textureMap.insert({handle, viewPtr});
-        texPtr->Release();
+        textureMap[handle] = std::make_unique<DXResource>();
+        textureMap[handle]->Initialize(reinterpret_cast<ID3D11Resource*>(_tex), _srv);
+        SAFE_RELEASE(_tex);
 
         return handle;
     }

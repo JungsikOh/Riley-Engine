@@ -42,6 +42,7 @@ class DXResource
 
    void Initialize(ID3D11Device* device, UINT width, UINT height, DXFormat format, D3D11_SUBRESOURCE_DATA* initData = nullptr);
    void Initialize(ID3D11Device* device, D3D11_TEXTURE2D_DESC& desc, D3D11_SUBRESOURCE_DATA* initData = nullptr);
+   void Initialize(ID3D11Resource* resource, ID3D11ShaderResourceView* srv = nullptr, ID3D11UnorderedAccessView* uav = nullptr);
 
    void CreateSRV(ID3D11Device* device, D3D11_SHADER_RESOURCE_VIEW_DESC* desc);
    void CreateUAV(ID3D11Device* device, D3D11_UNORDERED_ACCESS_VIEW_DESC* desc);

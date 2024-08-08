@@ -648,7 +648,7 @@ void Renderer::PassGBuffer()
             }
             total++;
         }
-        std::cout << draw << "," << total << std::endl;
+        //std::cout << draw << "," << total << std::endl;
     }
     gbufferPass.EndRenderPass(m_context);
 }
