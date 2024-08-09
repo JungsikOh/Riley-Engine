@@ -11,7 +11,7 @@ void ModelLoader::Load(std::string basePath, std::string filename, bool revertNo
     if (GetExtension(filename) == ".gltf")
     {
         m_isGLTF = true;
-        m_revertNormals = true;
+        m_revertNormals = revertNormals;
     }
 
     this->basePath = basePath;
@@ -87,8 +87,8 @@ Model ModelLoader::ProcessMesh(aiMesh* mesh, const aiScene* scene)
         vertex.normal.x = mesh->mNormals[i].x;
         if (m_isGLTF)
         {
-            vertex.normal.y = mesh->mNormals[i].z;
-            vertex.normal.z = -mesh->mNormals[i].y;
+            vertex.normal.y = -mesh->mNormals[i].y;
+            vertex.normal.z = mesh->mNormals[i].z;
         }
         else
         {
@@ -114,6 +114,7 @@ Model ModelLoader::ProcessMesh(aiMesh* mesh, const aiScene* scene)
             vertex.tangent.y = mesh->mTangents[i].y;
             vertex.tangent.z = mesh->mTangents[i].z;
         }
+        vertex.tangent.Normalize();
 
         if (mesh->mBitangents)
         {

@@ -5,7 +5,7 @@
 
 float CalcShadowMapPCF3x3(LightData light, float3 viewPos, Texture2D shadowMap)
 {
-    float shadow = 1.0;
+    float shadow = 0.0;
     if (light.castShadows)
     {
         float4 shadowMapCoords = mul(float4(viewPos, 1.0), shadowData.shadow_matrices[0]);
@@ -34,7 +34,7 @@ float CalcShadowMapPCF3x3(LightData light, float3 viewPos, Texture2D shadowMap)
 
 float CalcShadowCubeMapPCF3x3x3(LightData light, float3 viewPos, TextureCube shadowCubeMap)
 {
-    float shadow = 1.0;
+    float shadow = 0.0;
     
     float3 lightToPixelVS = viewPos - light.position.xyz; // View Space
     float3 lightToPixelWS = mul(float4(lightToPixelVS, 0.0), frameData.invView);

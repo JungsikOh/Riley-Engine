@@ -3,29 +3,27 @@
 #include "MathTypes.h"
 #include <vector>
 
-namespace Riley {
-static void ComputeAndSetTangets(_In_ std::vector<uint32> const indices,
-                                 _In_ std::vector<Vector3> const positions,
-                                 _In_ std::vector<Vector3> const normals,
-                                 _In_ std::vector<Vector2> const texcoords,
-                                 _Out_ std::vector<Vector3>& tangents,
-                                 _Out_ std::vector<Vector3>& bitangents) {
-    std::vector<Vector3> _tangents(positions.size(), Vector3(0.0f));
-    std::vector<Vector3> _bitangents(positions.size(), Vector3(0.0f));
-    std::vector<float> _weights(positions.size(), 0.0f);
+namespace Riley
+{
+static void ComputeAndSetTangets(const std::vector<uint32>& indices, std::vector<Vertex>& vertices)
+{
+    std::vector<Vector3> _tangents(vertices.size(), Vector3(0.0f));
+    std::vector<Vector3> _bitangents(vertices.size(), Vector3(0.0f));
+    std::vector<float> _weights(vertices.size(), 0.0f);
 
-    for (uint32 i = 0; i <= indices.size() - 3; i += 3) {
+    for (uint32 i = 0; i <= indices.size() - 3; i += 3)
+    {
         uint32 i0 = indices[i + 0];
         uint32 i1 = indices[i + 1];
         uint32 i2 = indices[i + 2];
 
-        Vector3 p0 = positions[i0];
-        Vector3 p1 = positions[i1];
-        Vector3 p2 = positions[i2];
+        Vector3 p0 = vertices[i0].position;
+        Vector3 p1 = vertices[i1].position;
+        Vector3 p2 = vertices[i2].position;
 
-        Vector2 w0 = texcoords[i0];
-        Vector2 w1 = texcoords[i1];
-        Vector2 w2 = texcoords[i2];
+        Vector2 w0 = vertices[i0].texcoord;
+        Vector2 w1 = vertices[i1].texcoord;
+        Vector2 w2 = vertices[i2].texcoord;
 
         // https://learnopengl.com/Advanced-Lighting/Normal-Mapping
         Vector3 e1(p1.x - p0.x, p1.y - p0.y, p1.z - p0.z);
@@ -41,9 +39,9 @@ static void ComputeAndSetTangets(_In_ std::vector<uint32> const indices,
         _tangent.z = (y2 * e1.z - y1 * e2.z) * r;
 
         Vector3 _bitangent;
-        _bitangent.x = (x2 * e1.x + x1 * e2.x) * r;
-        _bitangent.y = (x2 * e1.y + x1 * e2.y) * r;
-        _bitangent.z = (x2 * e1.z + x1 * e2.z) * r;
+        _bitangent.x = (x1 * e2.x - x2 * e1.x) * r;
+        _bitangent.y = (x1 * e2.y - x2 * e1.y) * r;
+        _bitangent.z = (x1 * e2.z - x2 * e1.z) * r;
 
         _tangents[i0] += _tangent;
         _tangents[i1] += _tangent;
@@ -56,34 +54,40 @@ static void ComputeAndSetTangets(_In_ std::vector<uint32> const indices,
         _weights[i2] += 1.0f;
     }
 
-    for (uint32 i = 0; i < positions.size(); ++i) {
-        if (_weights[i] > 0.0f) {
+    for (uint32 i = 0; i < vertices.size(); ++i)
+    {
+        if (_weights[i] > 0.0f)
+        {
             Vector3 _tangent = _tangents[i] / _weights[i];
             _tangent.Normalize();
-            tangents.push_back(_tangent);
+
+            // Re-orthogonalize tangent with the normal
+            Vector3 n = vertices[i].normal;
+            _tangent = (_tangent - n * n.Dot(_tangent));
+            _tangent.Normalize();
+            vertices[i].tangent = _tangent;
 
             Vector3 _bitangent = _bitangents[i] / _weights[i];
             _bitangent.Normalize();
-            bitangents.push_back(_bitangent);
+            vertices[i].bitangent = _bitangent;
         }
     }
 }
 
-static void ComputeAndSetNormals(_In_ std::vector<uint32> const indices,
-                                 _In_ std::vector<Vector3> const positions,
-                                 _In_ std::vector<Vector2> const texcoords,
-                                 _Out_ std::vector<Vector3>& normals) {
-    std::vector<Vector3> _normals(positions.size(), Vector3(0.0f));
-    std::vector<float> _weights(positions.size(), 0.0f);
+static void ComputeAndSetNormals(std::vector<uint32> const indices, std::vector<Vertex> vertices)
+{
+    std::vector<Vector3> _normals(vertices.size(), Vector3(0.0f));
+    std::vector<float> _weights(vertices.size(), 0.0f);
 
-    for (uint32 i = 0; i <= indices.size() - 3; i += 3) {
+    for (uint32 i = 0; i <= indices.size() - 3; i += 3)
+    {
         uint32 i0 = indices[i + 0];
         uint32 i1 = indices[i + 1];
         uint32 i2 = indices[i + 2];
 
-        Vector3 v0 = positions[i0];
-        Vector3 v1 = positions[i1];
-        Vector3 v2 = positions[i2];
+        Vector3 v0 = vertices[i0].position;
+        Vector3 v1 = vertices[i1].position;
+        Vector3 v2 = vertices[i2].position;
 
         Vector3 faceNormal = (v1 - v0).Cross(v2 - v0);
 
@@ -95,11 +99,13 @@ static void ComputeAndSetNormals(_In_ std::vector<uint32> const indices,
         _weights[i2] += 1.0f;
     }
 
-    for (uint32 i = 0; i < positions.size(); ++i) {
-        if (_weights[i] > 0.0f) {
+    for (uint32 i = 0; i < vertices.size(); ++i)
+    {
+        if (_weights[i] > 0.0f)
+        {
             Vector3 _normal = _normals[i] / _weights[i];
             _normal.Normalize();
-            normals.push_back(_normal);
+            vertices[i].normal = _normal;
         }
     }
 }

@@ -33,7 +33,8 @@ class ModelImporter
     std::vector<entt::entity> LoadSqhere(Vector3 const& pos, float const& radius = 1.0f, uint32 numSlices = 20, uint32 numStacks = 5);
 
     std::vector<entt::entity> LoadLight(Light& lightData, LightMesh meshType, const float& scale = 1.0f);
-    std::vector<entt::entity> LoadModel(std::string basePath, std::string filename, bool revertNormals = false);
+    std::vector<entt::entity> LoadModel(std::string basePath, std::string filename, bool revertNormals = false,
+                                        const Vector3& pos = Vector3(0.0f), const float& scale = 1.0f);
 
   private:
     entt::registry& m_registry;

@@ -39,6 +39,7 @@ Engine::Engine(EngineInit const& init)
    g_TextureManager.Initialize(m_device, m_context);
 
    CameraParameters cp = ParseCameraParam();
+   cp.position = Vector3(0.0f, 0.2f, -1.0f);
    camera = new Camera(cp);
    renderer = new Renderer(m_registry, m_device, m_context, camera, window->Width(), window->Height());
    modelImporter = new ModelImporter(m_device, m_registry);
@@ -52,34 +53,35 @@ Engine::Engine(EngineInit const& init)
    std::ignore = inputEvents.window_resized_event.AddMember(&Camera::OnResize, *camera);
 
    // testing Add entity
-   modelImporter->LoadBox(Vector3(0.9f, 0.2f, 0.0f), 0.3f);
-   modelImporter->LoadSqhere(Vector3(0.2f, 0.05f, 1.3f), 0.5f, 40, 20);
-   modelImporter->LoadSquare(Vector3(0.0f, -1.0f, 0.0f), 2.0f, 90.0f);
-   modelImporter->LoadModel("Resources/Models/DamagedHelmet/", "DamagedHelmet.gltf", false);
+   //modelImporter->LoadBox(Vector3(0.9f, 0.2f, 0.0f), 0.3f);
+   //modelImporter->LoadSqhere(Vector3(0.2f, 0.05f, 1.3f), 0.5f, 40, 20);
+   //modelImporter->LoadSquare(Vector3(0.0f, -1.0f, 0.0f), 2.0f, 90.0f);
+   modelImporter->LoadModel("Resources/Models/DamagedHelmet/", "DamagedHelmet.gltf", false, Vector3(0.0f), 0.1f);
+   modelImporter->LoadModel("Resources/Models/Sponza/glTF/", "Sponza.gltf", false, Vector3(0.0f, 0.5f, 0.0f), 8.0f);
 
    Light light;
    light.position = Vector4(0.5f, 0.2f, 0.5f, 1.0f);
    light.color = Vector4(0.7f, 0.7f, 0.7f, 0.0f);
-   light.direction = Vector4(0.0f, -1.0f, 0.0f, 0.0f);
-   light.energy = 0.2f;
+   light.direction = Vector4(0.0f, -1.0f, (float)1e-6, 0.0f);
+   light.energy = 8.0f;
    light.type = LightType::Directional;
    modelImporter->LoadLight(light, LightMesh::Cube, 0.03f);
 
-   light.position = Vector4(0.6f, 1.8f, 0.02f, 1.0f);
+   light.position = Vector4(0.0f, 1.8f, 0.0f, 1.0f);
    light.direction = Vector4(0.0f, -1.0f, 0.0f, 0.0f);
    light.color = Vector4(1.0f, 0.2f, 1.0f, 0.0f);
-   light.energy = 1.0f;
+   light.energy = 5.0f;
    light.range = 100.0f;
    light.type = LightType::Spot;
    modelImporter->LoadLight(light, LightMesh::Cube, 0.03f);
 
-   light.position = Vector4(0.0f, 1.8f, 0.6f, 1.0f);
-   light.direction = Vector4(0.0f, -1.0f, 0.0f, 0.0f);
-   light.color = Vector4(1.0f, 1.0f, 0.2f, 0.0f);
-   light.energy = 1.0f;
-   light.range = 100.0f;
-   light.type = LightType::Point;
-   modelImporter->LoadLight(light, LightMesh::Cube, 0.03f);
+   //light.position = Vector4(0.0f, 0.5f, 0.0f, 1.0f);
+   //light.direction = Vector4(0.0f, -1.0f, 0.0f, 0.0f);
+   //light.color = Vector4(1.0f, 1.0f, 0.2f, 0.0f);
+   //light.energy = 1.0f;
+   //light.range = 100.0f;
+   //light.type = LightType::Point;
+   //modelImporter->LoadLight(light, LightMesh::Cube, 0.03f);
 }
 
 Engine::~Engine()

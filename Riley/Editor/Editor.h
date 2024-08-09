@@ -42,6 +42,7 @@ class Editor {
     void MenuBar(); 
     void Camera();
     void ListEntities();
+    void Properties();
     void RenderSetting();
     void Scene();
 };

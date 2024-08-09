@@ -2,7 +2,6 @@
 #include "Core/Window.h"
 #include "Core/Log.h"
 #include "Editor/Editor.h"
-#include "Editor/GUI.h"
 #include <assert.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog\spdlog.h>

@@ -168,6 +168,8 @@ void Renderer::Render(RenderSetting& _setting)
     PassSSAO();
     PassAmbient();
     PassDeferredLighting();
+
+
     PassAABB();
     PassLight();
     PassEntityID();
@@ -189,6 +191,8 @@ void Renderer::OnLeftMouseClicked(uint32 mx, uint32 my)
 {
     if (m_currentSceneViewport.isViewportFocused)
     {
+        // [unused] 화면 내 영역을 통한 물체 선택 코드
+        /* [unused] 화면 내 영역을 통한 물체 선택 코드
         //float cursorNdcX = m_currentSceneViewport.m_mousePositionX * 2.0f / m_currentSceneViewport.m_widthImGui - 1.0f;
         //float cursorNdcY = -m_currentSceneViewport.m_mousePositionY * 2.0f / m_currentSceneViewport.m_heightImGui + 1.0f;
 
@@ -221,6 +225,7 @@ void Renderer::OnLeftMouseClicked(uint32 mx, uint32 my)
         //        }
         //    }
         //}
+        */
 
         D3D11_TEXTURE2D_DESC stagedDesc = {
             1,                              // UINT Width;
@@ -260,10 +265,10 @@ void Renderer::OnLeftMouseClicked(uint32 mx, uint32 my)
 
         selectedEntity = static_cast<entt::entity>(pData.x);
         auto& aabb = m_reg.get<AABB>(selectedEntity);
-        if (!aabb.isDrawAABB)
-            aabb.isDrawAABB = true;
-        else
-            aabb.isDrawAABB = false;
+        //if (!aabb.isDrawAABB)
+        //    aabb.isDrawAABB = true;
+        //else
+        //    aabb.isDrawAABB = false;
 
         SAFE_RELEASE(stagingTexture);
     }
@@ -274,7 +279,7 @@ void Renderer::Tick(Camera* camera)
     BindGlobals();
 
     m_camera = camera;
-    frameBufferCPU.globalAmbient = Vector4(0.2f, 0.3f, 0.8f, 1.0f);
+    frameBufferCPU.globalAmbient = m_camera->GetGlobalAmbient();
 
     static uint32 frameIdx = 0;
     float jitterX = 0.0f, jitterY = 0.0f;
@@ -292,6 +297,7 @@ void Renderer::Tick(Camera* camera)
     frameBufferCPU.invViewProj = m_camera->GetViewProj().Invert();
     frameBufferCPU.screenResolutionX = m_currentSceneViewport.GetWidth();
     frameBufferCPU.screenResolutionY = m_currentSceneViewport.GetHeight();
+    
 
     frameBufferGPU->Update(m_context, frameBufferCPU, sizeof(frameBufferCPU));
 
@@ -482,27 +488,33 @@ void Renderer::CreateOtherResources()
     std::default_random_engine generator;
     for (uint32 i = 0; i < SSAO_KERNEL_SIZE; ++i)
     {
-        Vector4 offset(randomFloats(generator) * 2.0f - 1.0f, randomFloats(generator) * 2.0f - 1.0f, randomFloats(generator), 0.0f);
+        Vector4 offset(randomFloats(generator) * 2 - 1, randomFloats(generator) * 2 - 1, randomFloats(generator), 1.0f);
         offset.Normalize();
         offset *= randomFloats(generator);
         float scale = static_cast<float>(i) / ssaoKernel.size();
+        scale = std::lerp(0.1f, 1.0f, scale * scale);
         offset *= scale;
         ssaoKernel[i] = offset;
     }
-    for (uint32 i = 0; i < AO_NOISE_DIM * AO_NOISE_DIM; ++i)
+    for (int32 i = 0; i < AO_NOISE_DIM * AO_NOISE_DIM; ++i)
     {
-        randomTextureData.push_back(randomFloats(generator) * 2.0f - 1.0f);
-        randomTextureData.push_back(randomFloats(generator) * 2.0f - 1.0f);
+        randomTextureData.push_back(randomFloats(generator));
+        randomTextureData.push_back(randomFloats(generator));
         randomTextureData.push_back(0.0f);
         randomTextureData.push_back(1.0f);
     }
 
     D3D11_SUBRESOURCE_DATA initData{};
-    initData.pSysMem = (void*)randomTextureData.data();
+    initData.pSysMem = randomTextureData.data();
     initData.SysMemPitch = AO_NOISE_DIM * 4 * sizeof(float);
     ssaoNoiseTex = new DXResource();
     ssaoNoiseTex->Initialize(m_device, AO_NOISE_DIM, AO_NOISE_DIM, DXFormat::R32G32B32A32_FLOAT, &initData);
-    ssaoNoiseTex->CreateSRV(m_device, nullptr);
+    D3D11_SHADER_RESOURCE_VIEW_DESC tex2dSRVDesc;
+    ZeroMemory(&tex2dSRVDesc, sizeof(tex2dSRVDesc));
+    tex2dSRVDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    tex2dSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+    tex2dSRVDesc.Texture2D.MipLevels = 1;
+    ssaoNoiseTex->CreateSRV(m_device, &tex2dSRVDesc);
 }
 
 void Renderer::CreateRenderPasses(uint32 width, uint32 height)
@@ -536,7 +548,7 @@ void Renderer::CreateRenderPasses(uint32 width, uint32 height)
     ssaoPass.attachmentRTVs = ssaoRTV;
     ssaoPass.attachmentDSVs = ssaoDSV;
     ssaoPass.attachmentRS = solidRS;
-    ssaoPass.attachmentDSS = solidDSS;
+    ssaoPass.attachmentDSS = noneDepthDSS;
     ssaoPass.clearColor = clearBlack;
     ssaoPass.width = width;
     ssaoPass.height = height;
@@ -692,7 +704,14 @@ void Renderer::PassGBuffer()
             draw++;
             ShaderManager::GetShaderProgram(ShaderProgram::GBuffer)->Bind(m_context);
 
-            objectConstsCPU.world = transform.currentTransform.Transpose();
+            Matrix parent = Matrix::Identity;
+            if (auto root = m_reg.try_get<Relationship>(entity))
+            {
+                if (auto rootTransform = m_reg.try_get<Transform>(root->parent))
+                    parent = rootTransform->currentTransform;
+            }
+
+            objectConstsCPU.world = (transform.currentTransform * parent).Transpose();
             objectConstsCPU.worldInvTranspose = transform.currentTransform.Invert().Transpose();
             objectConstsGPU->Update(m_context, objectConstsCPU, sizeof(objectConstsCPU));
 
@@ -911,7 +930,7 @@ void Renderer::PassShadowMapSpot(Light const& light)
 
         Matrix lightViewRow = DirectX::XMMatrixLookAtLH(lightPos, targetPos, up);
         float fovAngle = 2.0f * acos(light.outer_cosine);
-        Matrix lightProjRow = DirectX::XMMatrixPerspectiveFovLH(fovAngle, 1.0f, 1.0f, light.range);
+        Matrix lightProjRow = DirectX::XMMatrixPerspectiveFovLH(fovAngle, 1.0f, 0.5f, light.range);
 
         shadowConstsCPU.lightViewProj = (lightViewRow * lightProjRow).Transpose();
         shadowConstsCPU.lightView = lightViewRow.Transpose();
@@ -952,8 +971,8 @@ void Renderer::PassShadowMapPoint(Light const& light)
 
         Vector3 directions[6] = {{1.0f, 0.0f, 0.0f},  {-1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f},
                                  {0.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 1.0f},  {0.0f, 0.0f, -1.0f}};
-        Vector3 up[6] = {{0.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, -1.0f},
-                         {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 1.0f}, {0.0f, 1.0f, 0.0f}};
+        Vector3 up[6] = {{0.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f},
+                         {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}};
 
         float fovAngle = 2.0f * acos(light.outer_cosine);
         lightProjRow = DirectX::XMMatrixPerspectiveFovLH(fovAngle, 1.0f, 0.5f, light.range);
@@ -1054,7 +1073,7 @@ void Renderer::PassLight()
 
 void Renderer::PassEntityID()
 {
-    SetSceneViewport(static_cast<float>(deferredLightingPass.width), static_cast<float>(deferredLightingPass.height));
+    SetSceneViewport(static_cast<float>(m_width), static_cast<float>(m_height));
     static float color[4] = {(float)uint32(-1), 0.0f, 0.0f, 0.0f};
     entityIdDSV->Clear(m_context, 1.0f, 0);
     entityIdRTV->Clear(m_context, color);

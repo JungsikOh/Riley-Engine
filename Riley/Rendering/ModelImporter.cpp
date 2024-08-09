@@ -40,7 +40,7 @@ std::vector<entt::entity> ModelImporter::LoadSquare(const Vector3& pos, const fl
     std::vector<Vertex> vertices;
     std::vector<uint32> indices{0, 1, 2, 0, 2, 3};
 
-    ComputeAndSetTangets(indices, positions, normals, texcoords, tangents, bitangents);
+    ComputeAndSetTangets(indices, vertices);
 
     for (int i = 0; i < positions.size(); ++i)
     {
@@ -200,9 +200,9 @@ std::vector<entt::entity> ModelImporter::LoadBox(const Vector3& pos, const float
         20, 21, 22, 20, 22, 23  // ¿À¸¥
     };
 
-    ComputeAndSetTangets(indices, positions, normals, texcoords, tangents, bitangents);
-
     std::vector<Vertex> vertices;
+
+    ComputeAndSetTangets(indices, vertices);
 
     for (uint32 i = 0; i < positions.size(); ++i)
     {
@@ -488,7 +488,8 @@ std::vector<entt::entity> ModelImporter::LoadLight(Light& lightData, LightMesh m
     return std::vector<entt::entity>{light};
 }
 
-std::vector<entt::entity> ModelImporter::LoadModel(std::string basePath, std::string filename, bool revertNormals)
+std::vector<entt::entity> ModelImporter::LoadModel(std::string basePath, std::string filename, bool revertNormals, const Vector3& pos,
+                                                   const float& scale)
 {
     timer.Mark();
 
@@ -505,6 +506,9 @@ std::vector<entt::entity> ModelImporter::LoadModel(std::string basePath, std::st
         assert(data.meshData.indices.size() >= 0);
         vertices = data.meshData.vertices;
         indices = data.meshData.indices;
+
+        //ComputeAndSetNormals(indices, vertices);
+        //ComputeAndSetTangets(indices, vertices);
 
         entt::entity e = m_registry.create();
         entities.push_back(e);
@@ -546,8 +550,8 @@ std::vector<entt::entity> ModelImporter::LoadModel(std::string basePath, std::st
         meshComponent.vertexCount = static_cast<uint32>(vertices.size());
 
         // TODO : Mesh가 많은 모델이 올 경우 어떻게 모델 로드를 설계해야할지 고민해야함.
-        // meshComponent.startIndexLoc = static_cast<uint32>(indices.size());
-        // meshComponent.baseVertexLoc = static_cast<uint32>(vertices.size());
+         //meshComponent.startIndexLoc = static_cast<uint32>(indices.size());
+         //meshComponent.baseVertexLoc = static_cast<uint32>(vertices.size());
 
         meshComponent.vertexBuffer =
             std::make_shared<DXBuffer>(m_device, VertexBufferDesc(vertices.size(), sizeof(Vertex)), vertices.data());
@@ -557,8 +561,8 @@ std::vector<entt::entity> ModelImporter::LoadModel(std::string basePath, std::st
 
         // TODO : transform을 node 형태로 만들어, 모델의 각 부위의 matrix를 변환시킬 수 있도록 설정.
         Transform transform{};
-        transform.currentTransform = Matrix::CreateScale(1.0f) * Matrix::CreateTranslation(Vector3(0.0f));
-        transform.startingTransform = Matrix::CreateScale(1.0f) * Matrix::CreateTranslation(Vector3(0.0f));
+        transform.currentTransform = Matrix::CreateScale(scale) * Matrix::CreateTranslation(pos);
+        transform.startingTransform = Matrix::CreateScale(scale) * Matrix::CreateTranslation(pos);
 
         m_registry.emplace<Transform>(e, transform);
 

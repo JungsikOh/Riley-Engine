@@ -31,5 +31,5 @@ float4 AmbientPS(VSToPS input) : SV_TARGET
             break;
     }
     
-    return float4(albedo * ao, 1.0) + float4(emissive.rgb, 1.0);
+    return frameData.globalAmbient * float4(albedo, 1.0) * ao + float4(emissive.rgb, 1.0);
 }

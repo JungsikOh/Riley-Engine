@@ -58,7 +58,7 @@ class Renderer
        return selectedEntity;
    }
 
-   private:
+   protected:
    uint32 m_width, m_height;
 
    /* Low Level APIs */

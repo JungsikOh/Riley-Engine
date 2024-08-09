@@ -14,6 +14,7 @@ struct VSToPS
     float4 posProj : SV_POSITION; // Screen position
     float2 texcoord : TEXCOORD0;
     float3 normalWS : NORMAL0;
+    float3 normalVS : NORMAL1;
     float3 tangentWS : TANGENT0;
     float3 bitangentWS : BITANGENT0;
 };
@@ -26,10 +27,10 @@ VSToPS GBufferVS(VSInput input)
     pos = mul(pos, meshData.world);
     output.posProj = mul(pos, frameData.viewProj);
     
-    float3 normalWS = normalize(mul(input.normalModel, (float3x3) transpose(meshData.worldInvTranspose)));
-    output.tangentWS = mul(input.tangentModel, (float3x3) meshData.world);
-    output.bitangentWS = mul(input.bitangentModel, (float3x3) meshData.world);
-    output.normalWS = normalWS;
+    output.normalWS = mul(input.normalModel, (float3x3) transpose(meshData.worldInvTranspose));
+    output.normalVS = mul(output.normalWS, (float3x3) frameData.invView);
+    output.tangentWS = mul(input.tangentModel, (float3x3) meshData.worldInvTranspose);
+    output.bitangentWS = mul(input.bitangentModel, (float3x3) meshData.worldInvTranspose);
     output.texcoord = input.texcoord;
 
     return output;
@@ -42,10 +43,30 @@ Texture2D EmissiveTex : register(t3);
 
 struct PSOutput
 {
-    float4 DiffuseRoughness      : SV_Target0;
-    float4 NormalMetallic        : SV_Target1;
-    float4 Emissive              : SV_Target2;
+    float4 DiffuseRoughness : SV_Target0;
+    float4 NormalMetallic : SV_Target1;
+    float4 Emissive : SV_Target2;
 };
+
+float3 GetNormal(VSToPS input)
+{
+    float3 normalWorld = normalize(input.normalWS);
+    
+    normalWorld.y = -normalWorld.y;
+        
+    float3 N = normalWorld;
+    float3 T = normalize(input.tangentWS);
+    float3 B = normalize(cross(N, T));
+        
+    float3x3 TBN = float3x3(T, B, N);
+    
+    float3 normal = NormalTex.SampleLevel(LinearWrapSampler, input.texcoord, 1).rgb; // ¹üÀ§ [0, 1]
+    normal = 2.0 * normal - 1.0;
+    //normal.y *= -1.0;
+    float3 newNormal = mul(normal, TBN);
+
+    return newNormal;
+}
 
 PSOutput PackGBuffer(float3 baseColor, float3 normalVS, float4 emissive, float roughness, float metallic)
 {
@@ -59,7 +80,8 @@ PSOutput PackGBuffer(float3 baseColor, float3 normalVS, float4 emissive, float r
 PSOutput GBUfferPS(VSToPS input)
 {
     float3 albedoColor = AlbedoTex.Sample(LinearWrapSampler, input.texcoord);
-    float3 normalVS = normalize(mul(input.normalWS, (float3x3) frameData.view));
+    float3 normalWS = GetNormal(input);
+    float3 normalVS = normalize(mul(normalWS, (float3x3) frameData.view));
     
     float ao = materialData.albedoFactor;
     float metallic = MetallicRoughnessTex.Sample(LinearWrapSampler, input.texcoord).b;
@@ -68,6 +90,6 @@ PSOutput GBUfferPS(VSToPS input)
     
     float3 emissive = EmissiveTex.Sample(LinearWrapSampler, input.texcoord);
     
-    return PackGBuffer(albedoColor.xyz, normalize(normalVS), float4(emissive, materialData.emissiveFactor), aoRoughnessMetallic.g, aoRoughnessMetallic.b);
+    return PackGBuffer(albedoColor.xyz, normalVS, float4(emissive, materialData.emissiveFactor), aoRoughnessMetallic.g, aoRoughnessMetallic.b);
 
 }

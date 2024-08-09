@@ -74,7 +74,10 @@ struct PostprocessData
     int AO;
     float2 noiseScale;
     float ssaoRadius;
+    
     float ssaoPower;
+    float3 _dummy;
+    
     float4 samples[16];
 };
 

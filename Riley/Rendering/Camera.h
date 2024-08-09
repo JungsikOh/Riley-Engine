@@ -2,8 +2,8 @@
 
 namespace Riley
 {
-  struct CameraParameters
-  {
+struct CameraParameters
+{
     float aspectRatio;
     float nearPlane;
     float farPlane;
@@ -12,14 +12,15 @@ namespace Riley
     float sensitivity;
     Vector3 position;
     Vector3 lootAt;
-  };
+};
 
-  class Camera
-  {
+class Camera
+{
   private:
     Matrix viewRow = Matrix::Identity;
     Matrix projRow = Matrix::Identity;
 
+    Vector4 globalAmbient = Vector4(0.2f, 0.2f, 0.2f, 1.0f);
     Vector3 position;
     Vector3 rightVector = Vector3(1.0f, 0.0f, 0.0f);
     Vector3 upVector = Vector3(0.0f, 1.0f, 0.0f);
@@ -46,38 +47,70 @@ namespace Riley
     void SetFov(float _fov);
     void SetprojRow(float fov, float aspect, float zn, float zf);
     void SetviewRow();
+    void SetGlobalAmbient(Vector4 ambient)
+    {
+        globalAmbient = ambient;
+    }
 
-    Vector3 Position() const { return position; }
-    Vector3 Up() const { return upVector; }
-    Vector3 Right() const { return rightVector; }
-    Vector3 Forward() const { return lookVector; }
+    Vector3 Position() const
+    {
+        return position;
+    }
+    Vector3 Up() const
+    {
+        return upVector;
+    }
+    Vector3 Right() const
+    {
+        return rightVector;
+    }
+    Vector3 Forward() const
+    {
+        return lookVector;
+    }
 
-    float Near() const { return nearPlane; }
-    float Far() const { return farPlane; }
-    float Fov() const { return fov; }
-    float AspectRatio() const { return aspectRatio; }
+    float Near() const
+    {
+        return nearPlane;
+    }
+    float Far() const
+    {
+        return farPlane;
+    }
+    float Fov() const
+    {
+        return fov;
+    }
+    float AspectRatio() const
+    {
+        return aspectRatio;
+    }
 
     DirectX::BoundingFrustum Frustum()
     {
-      DirectX::BoundingFrustum frustum(GetProj().Transpose());
-      frustum.Transform(frustum, viewRow.Invert());
-      return frustum;
+        DirectX::BoundingFrustum frustum(GetProj().Transpose());
+        frustum.Transform(frustum, viewRow.Invert());
+        return frustum;
     }
 
     Matrix GetViewProj()
     {
-      Matrix viewProj = (viewRow * projRow).Transpose();
-      return viewProj;
+        Matrix viewProj = (viewRow * projRow).Transpose();
+        return viewProj;
     }
     Matrix GetProj()
     {
-      Matrix proj = projRow.Transpose();
-      return proj;
+        Matrix proj = projRow.Transpose();
+        return proj;
     }
     Matrix GetView()
     {
-      Matrix view = viewRow.Transpose();
-      return view;
+        Matrix view = viewRow.Transpose();
+        return view;
+    }
+    Vector4 GetGlobalAmbient() const
+    {
+        return globalAmbient;
     }
 
   public:
@@ -86,5 +119,5 @@ namespace Riley
     void MoveUp(float dt);
     void RotatePitch(int64 dy);
     void RotateYaw(int64 dx);
-  };
+};
 } // namespace Riley

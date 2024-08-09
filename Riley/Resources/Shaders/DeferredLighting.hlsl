@@ -27,29 +27,34 @@ float4 DeferredLightingPS(VSToPS input) : SV_Target
     float metallic = normalMetallic.a;
     
     float4 diffuseRoughness = DiffuseRoughnessTex.Sample(LinearWrapSampler, input.texcoord);
+    float3 albedo = diffuseRoughness.rgb;
     float roughness = diffuseRoughness.a;
     
     float4 emission = EmissiveTex.Sample(LinearWrapSampler, input.texcoord);
     
     LightingResult Lo;
-    float shadowFactor = 1.0;
+    float3 LoPBR = float3(0, 0, 0);
+    float shadowFactor = 0.0;
     
     // Lighting
     switch (lightData.type)
     {
         case DIRECTIONAL_LIGHT:
             Lo = DoDirectionalLight(lightData, 2.0, viewDir, normalVS);
+            LoPBR = DoDirectinoalLightPBR(lightData, positionVS, normalVS, viewDir, albedo, metallic, roughness);
             shadowFactor = CalcShadowMapPCF3x3(lightData, positionVS, ShadowMap);
             break;
         case POINT_LIGHT:
             Lo = DoPointLight(lightData, 2.0, viewDir, positionVS, normalVS);
+            LoPBR = DoPointLightPBR(lightData, positionVS, normalVS, viewDir, albedo, metallic, roughness);
             shadowFactor = CalcShadowCubeMapPCF3x3x3(lightData, positionVS, ShadowCubeMap);
             break;
         case SPOT_LIGHT:
             Lo = DoSpotLight(lightData, 2.0, viewDir, positionVS, normalVS);
+            LoPBR = DoSpotLightPBR(lightData, positionVS, normalVS, viewDir, albedo, metallic, roughness);
             shadowFactor = CalcShadowMapPCF3x3(lightData, positionVS, ShadowMap);
             break;
     }
     
-    return float4((Lo.diffuse + Lo.specular) * shadowFactor, 1.0);
+    return float4(LoPBR * shadowFactor, 1.0);
 }

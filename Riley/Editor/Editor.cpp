@@ -9,6 +9,9 @@
 #include "../Utilities/Delegate.h"
 #include "ImGuiLayer.h"
 
+#include <functional>
+#include <optional>
+
 namespace Riley
 {
 Editor::Editor(EngineInit const& init)
@@ -61,6 +64,7 @@ void Editor::Run()
         Scene();
         RenderSetting();
         ListEntities();
+        Properties();
     }
     gui->End();
     engine->Present();
@@ -81,17 +85,23 @@ void Editor::Camera()
     auto camera = engine->GetCamera();
     if (ImGui::Begin("Camera", &window_flags[Flag_Camera]))
     {
-        Vector3 cam_pos = camera->Position();
-        float pos[3] = {cam_pos.x, cam_pos.y, cam_pos.z};
-        ImGui::SliderFloat3("Position", pos, 0.0f, 10000.0f);
-        camera->SetPosition(Vector3(pos));
-        float near_plane = camera->Near(), far_plane = camera->Far();
-        float _fov = camera->Fov(), _ar = camera->AspectRatio();
-        ImGui::SliderFloat("Near Plane", &near_plane, 0.005f, 2.0f);
-        ImGui::SliderFloat("Far Plane", &far_plane, 10.0f, 5000.0f);
-        ImGui::SliderFloat("FOV", &_fov, 0.01f, 120.0f);
-        camera->SetNearAndFar(near_plane, far_plane);
-        camera->SetFov(_fov);
+        if (ImGui::CollapsingHeader("Camera"))
+        {
+            Vector3 cam_pos = camera->Position();
+            float pos[3] = {cam_pos.x, cam_pos.y, cam_pos.z};
+            ImGui::SliderFloat3("Position", pos, 0.0f, 10000.0f);
+            camera->SetPosition(Vector3(pos));
+            float near_plane = camera->Near(), far_plane = camera->Far();
+            float _fov = camera->Fov(), _ar = camera->AspectRatio();
+            ImGui::SliderFloat("Near Plane", &near_plane, 0.005f, 2.0f);
+            ImGui::SliderFloat("Far Plane", &far_plane, 10.0f, 5000.0f);
+            ImGui::SliderFloat("FOV", &_fov, 0.01f, 120.0f);
+            camera->SetNearAndFar(near_plane, far_plane);
+            camera->SetFov(_fov);
+            float color[3] = {camera->GetGlobalAmbient().x, camera->GetGlobalAmbient().y, camera->GetGlobalAmbient().z};
+            ImGui::ColorEdit3("GlobalAmbient", color);
+            camera->SetGlobalAmbient(Vector4(color[0], color[1], color[2], 1.0f));
+        }
     }
     ImGui::End();
 }
@@ -151,7 +161,7 @@ void Editor::RenderSetting()
             if (renderSetting.ao == AmbientOcclusion::SSAO)
             {
                 ImGui::SliderFloat("Power", &renderSetting.ssaoPower, 1.0f, 16.0f);
-                ImGui::SliderFloat("Radius", &renderSetting.ssaoRadius, 0.1f, 4.0f);
+                ImGui::SliderFloat("Radius", &renderSetting.ssaoRadius, 0.05f, 4.0f);
             }
             ImGui::TreePop();
         }
@@ -162,29 +172,107 @@ void Editor::RenderSetting()
 void Editor::ListEntities()
 {
     // if (!window_flags[Flag_Entities])
-    //    return;
-    static bool isSelected = true;
+    //     return;
+    auto all_entities = engine->m_registry.view<Tag>();
+    if (ImGui::Begin("Entities", &window_flags[Flag_Entities]))
+    {
+        std::function<void(entt::entity, bool)> ShowEntity;
+        ShowEntity = [&](entt::entity e, bool firstIteration) {
+            Relationship* relationship = engine->m_registry.try_get<Relationship>(e);
+            if (firstIteration && relationship && relationship->parent != entt::null)
+                return;
+            auto& tag = all_entities.get<Tag>(e);
+
+            ImGuiTreeNodeFlags flags = ((selected_entity == e) ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow;
+            flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
+
+            bool opened = ImGui::TreeNodeEx(tag.name.c_str(), flags);
+
+            if (ImGui::IsItemClicked())
+            {
+                auto aabb = engine->m_registry.try_get<AABB>(selected_entity);
+                if (aabb)
+                    aabb->isDrawAABB = false;
+                if (e == selected_entity)
+                {
+                    selected_entity = entt::null;
+                }
+                else
+                {
+                    selected_entity = e;
+                    auto aabb = engine->m_registry.try_get<AABB>(selected_entity);
+                    if (aabb)
+                        aabb->isDrawAABB = true;
+                }
+            }
+
+            if (opened)
+            {
+                if (relationship)
+                {
+                    for (size_t i = 0; i < relationship->childrenCount; ++i)
+                    {
+                        ShowEntity(relationship->children[i], false);
+                    }
+                }
+                ImGui::TreePop();
+            }
+        };
+        for (auto e : all_entities)
+            ShowEntity(e, true);
+    }
+    ImGui::End();
+}
+
+void Editor::Properties()
+{
     if (ImGui::Begin("Properties", &window_flags[Flag_Entities]))
     {
-        int i = 0;
-        auto aabbView = engine->m_registry.view<Material, Transform, AABB, Tag>();
-        for (auto& entity : aabbView)
+        if (selected_entity != entt::null)
         {
-            i++;
-            auto [material, transform, aabb, tag] = aabbView.get<Material, Transform, AABB, Tag>(entity);
-            if (aabb.isDrawAABB)
+            auto tag = engine->m_registry.try_get<Tag>(selected_entity);
+            if (tag)
             {
-                ImGui::PushID(i);
-                //auto tag = engine->m_registry.get<Tag>(entity);
-                if (tag.name != "default")
+                char buffer[256];
+                memset(buffer, 0, sizeof(buffer));
+                std::strncpy(buffer, tag->name.c_str(), sizeof(buffer));
+                if (ImGui::InputText("##Tag", buffer, sizeof(buffer)))
+                    tag->name = std::string(buffer);
+            }
+
+            auto light = engine->m_registry.try_get<Light>(selected_entity);
+            if (light && ImGui::CollapsingHeader("Light"))
+            {
+                if (light->type == LightType::Directional)
+                    ImGui::Text("Directional Light");
+                else if (light->type == LightType::Spot)
+                    ImGui::Text("Spot Light");
+                else if (light->type == LightType::Point)
+                    ImGui::Text("Point Light");
+
+                Vector4 lightColor = light->color, lightDirection = light->direction, lightPosition = light->position;
+                float color[3] = {lightColor.x, lightColor.y, lightColor.z};
+                ImGui::ColorEdit3("Light Color", color);
+                light->color = Vector4(color[0], color[1], color[2], 1.0f);
+
+                ImGui::SliderFloat("Light Energy", &light->energy, 0.0f, 50.0f);
+
+                if (light->type == LightType::Directional || light->type == LightType::Spot)
                 {
-                    char buffer[256];
-                    memset(buffer, 0, sizeof(buffer));
-                    std::strncpy(buffer, tag.name.c_str(), sizeof(buffer));
-                    if (ImGui::InputText("##Tag", buffer, sizeof(buffer)))
-                        tag.name = std::string(buffer);
+                    float direction[3] = {lightDirection.x, lightDirection.y, lightDirection.z};
+                    ImGui::SliderFloat3("Light Direction", direction, -1.0f, 1.0f);
+                    light->direction = Vector4(direction[0], direction[1], direction[2], 0.0f);
+                    if (light->type == LightType::Directional)
+                    {
+                        light->position = -light->direction * 1e3;
+                    }
                 }
-                Matrix tr = transform.currentTransform;
+            }
+
+            auto transform = engine->m_registry.try_get<Transform>(selected_entity);
+            if (transform && ImGui::CollapsingHeader("Transform") && !light)
+            {
+                Matrix tr = transform->currentTransform;
                 Vector3 translation = tr.Translation();
                 Quaternion q = Quaternion::CreateFromRotationMatrix(ExtractRoationMatrix(tr));
                 Vector3 rotation = q.ToEuler();
@@ -193,28 +281,22 @@ void Editor::ListEntities()
                 ImGui::SliderFloat3("Position", &translation.x, -5.0f, 5.0f);
                 ImGui::SliderFloat3("Rotate", &rotation.x, -1.0f, 1.0f);
                 ImGui::SliderFloat3("Scale", &scale.x, 0.1f, 10.0f);
-                ImGui::SliderFloat3("Albedo Color", &material.diffuse.x, 0.0f, 1.0f);
 
                 tr = Matrix::CreateScale(scale) * Matrix::CreateFromQuaternion(Quaternion::CreateFromYawPitchRoll(rotation)) *
                      Matrix::CreateTranslation(translation);
 
-                // if (tag.name == "Sphere" && (scale.x == scale.y && scale.y == scale.z && scale.x == scale.z))
-                //    {
-                //       tr = Matrix::CreateScale(scale) * Matrix::CreateTranslation(translation);
-                //    }
-
-                // TODO : Rotation Optimize
-                aabb.boundingBox = aabb.orginalBox;
-                aabb.boundingBox.Transform(aabb.boundingBox, tr);
-                aabb.UpdateBuffer(engine->GetDevice());
-                transform.currentTransform = tr;
-
-                isSelected = true;
-                ImGui::PopID();
+                auto aabb = engine->m_registry.try_get<AABB>(selected_entity);
+                if (aabb)
+                {
+                    aabb->boundingBox = aabb->orginalBox;
+                    aabb->boundingBox.Transform(aabb->boundingBox, tr);
+                    aabb->UpdateBuffer(engine->GetDevice());
+                }
+                transform->currentTransform = tr;
             }
         }
+        ImGui::End();
     }
-    ImGui::End();
 }
 
 } // namespace Riley

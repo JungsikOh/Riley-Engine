@@ -7,7 +7,7 @@ struct RenderSetting
 {
    // ao
    AmbientOcclusion ao = AmbientOcclusion::SSAO;
-   float ssaoPower = 4.0f;
-   float ssaoRadius = 1.0f;
+   float ssaoPower = 2.0f;
+   float ssaoRadius = 0.5f;
 };
 } // namespace Riley

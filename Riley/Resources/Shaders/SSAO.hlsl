@@ -14,16 +14,16 @@ struct VSToPS
 
 float4 SSAO(VSToPS input) : SV_TARGET
 {
-    float depth = DepthTex.Sample(LinearBorderSampler, input.texcoord);
+    float depth = DepthTex.Sample(LinearBorderSampler, input.texcoord).r;
     if (depth < 1.0)
     {
         float3 positionVS = GetViewSpacePosition(input.texcoord, depth);
         float3 normalVS = NormalMetallicTex.Sample(LinearBorderSampler, input.texcoord).rgb;
         normalVS = normalize(normalVS * 2.0 - 1.0);
         
-        float3 randomVec = normalize(NoiseTex.Sample(PointWrapSampler, input.texcoord * postData.noiseScale).xyz * 2.0 - 1.0);
+        float3 randomVec = normalize(NoiseTex.Sample(PointWrapSampler, input.texcoord * postData.noiseScale).xyz * 2 - 1);
         
-        float3 tangent = normalize(randomVec - normalVS * dot(randomVec, normalVS));
+        float3 tangent = normalize(randomVec - dot(randomVec, normalVS) * normalVS);
         float3 bitangent = normalize(cross(normalVS, tangent));
         float3x3 TBN = float3x3(tangent, bitangent, normalVS);
         
@@ -34,16 +34,16 @@ float4 SSAO(VSToPS input) : SV_TARGET
             float3 sampleDir = mul(postData.samples[idx].xyz, TBN);
             float3 samplePos = positionVS + (sampleDir * postData.ssaoRadius);
             
-            float4 offset = float4(sampleDir, 1.0);
+            float4 offset = float4(samplePos, 1.0);
             offset = mul(offset, frameData.proj);
             offset.xyz /= offset.w;
             offset.y *= -1.0;
             offset.xy = offset.xy * 0.5 + 0.5;
             
-            float sampleDepth = DepthTex.Sample(LinearBorderSampler, offset.xy);
+            float sampleDepth = DepthTex.Sample(LinearBorderSampler, offset.xy).r;
             sampleDepth = GetViewSpacePosition(offset.xy, sampleDepth).z;
             
-            float occluded = step(sampleDepth, samplePos.z - 0.005);
+            float occluded = step(sampleDepth, samplePos.z - 0.01);
             float intensity = smoothstep(0.0, 1.0, postData.ssaoRadius / abs(positionVS.z - sampleDepth));
             
             occlusion += occluded * intensity;
