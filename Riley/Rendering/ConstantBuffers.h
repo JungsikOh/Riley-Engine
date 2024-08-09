@@ -3,8 +3,8 @@
 namespace Riley
 {
 
-  struct FrameBufferConsts
-  {
+struct FrameBufferConsts
+{
     Matrix view;
     Matrix proj;
     Matrix viewProj;
@@ -30,10 +30,10 @@ namespace Riley
     float screenResolutionY;
     float mouseNormalizedCoordsX;
     float mouseNormalizedCoordsY;
-  };
+};
 
-  struct LightConsts
-  {
+struct LightConsts
+{
     Vector4 screenSpacePosition;
     Vector4 position;
     Vector4 direction;
@@ -46,16 +46,17 @@ namespace Riley
 
     int32 castShadows;
     Vector3 _padding1;
-  };
+    int32 useCascades;
+};
 
-  struct ObjectConsts
-  {
+struct ObjectConsts
+{
     Matrix world;
     Matrix worldInvTranspose;
-  };
+};
 
-  struct MaterialConsts
-  {
+struct MaterialConsts
+{
     Vector3 ambient;
     int32 entityID;
     Vector3 diffuse;
@@ -67,23 +68,25 @@ namespace Riley
     float metallicFactor;
     float roughnessFactor;
     float emissiveFactor;
-  };
+};
 
-  DECLSPEC_ALIGN(16) struct PostprocessConsts
-  {
-     int32 AO;
-     Vector2 noiseScale;
-     float ssaoRadius;
-     float ssaoPower;
-     Vector4 samples[16];
+DECLSPEC_ALIGN(16) struct PostprocessConsts
+{
+    int32 AO;
+    Vector2 noiseScale;
+    float ssaoRadius;
 
-  };
+    float ssaoPower;
+    Vector3 _dummy;
 
-  struct ShadowConsts
-  {
+    Vector4 samples[16];
+};
+
+struct ShadowConsts
+{
     Matrix lightView;
     Matrix lightViewProj;
-    Matrix shadow_matrices[4];
+    Matrix shadow_matrices[4]; // cascade shadow mapping
     Matrix shadowCubeMapViewProj[6];
 
     float split0;
@@ -95,11 +98,12 @@ namespace Riley
     int32 shadow_map_size;
     int32 visualize;
     float _padding1;
-  };
+};
 
-  DECLSPEC_ALIGN(16) struct EntityIdConsts
-  {
-     uint32 entityID = uint32(-1);
-  };
+DECLSPEC_ALIGN(16) struct EntityIdConsts
+{
+    uint32 entityID = uint32(-1);
+    Vector3 _dummy2;
+};
 
 } // namespace Riley
