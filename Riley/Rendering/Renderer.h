@@ -78,8 +78,10 @@ class Renderer
    RenderSetting renderSetting; // It's created in Editor Class
    entt::entity selectedEntity = entt::null;
    DirectX::BoundingBox lightBoundingBox;
+   DirectX::BoundingFrustum lightBoundingFrustum;
+   DirectX::BoundingFrustum lightBoundingFrustumCube[6];
    std::array<Vector4, SSAO_KERNEL_SIZE> ssaoKernel;
-
+   
    // Resources
    DXResource* ssaoNoiseTex = nullptr;
 
@@ -161,6 +163,7 @@ class Renderer
    void CreateOtherResources();
 
    void BindGlobals();
+   void LightFrustumCulling(const Light& light);
 
    void PassForward();
    void PassSolid();

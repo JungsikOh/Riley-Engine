@@ -62,7 +62,6 @@ float3 GetNormal(VSToPS input)
     
     float3 normal = NormalTex.SampleLevel(LinearWrapSampler, input.texcoord, 1).rgb; // ¹üÀ§ [0, 1]
     normal = 2.0 * normal - 1.0;
-    //normal.y *= -1.0;
     float3 newNormal = mul(normal, TBN);
 
     return newNormal;

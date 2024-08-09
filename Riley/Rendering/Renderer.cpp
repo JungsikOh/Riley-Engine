@@ -17,7 +17,7 @@ namespace
 {
 using namespace DirectX;
 
-std::pair<Matrix, Matrix> DirectionalLightViewProjection(Light const& light, Camera* camera, BoundingBox& cullBox)
+std::pair<Matrix, Matrix> DirectionalLightViewProjection(const Light& light, Camera* camera, BoundingBox& cullBox)
 {
     // [1] Camera view frustum
     BoundingFrustum frustum = camera->Frustum();
@@ -62,15 +62,29 @@ std::pair<Matrix, Matrix> DirectionalLightViewProjection(Light const& light, Cam
     float n = min_extents.z;
     float r = max_extents.x;
     float t = max_extents.y;
-    float f = max_extents.z * 1.5f; // far´Â Ãß°¡ÀûÀÎ ¿©À¯¸¦ ÁÖ¾î ¼³Á¤
+    float f = max_extents.z * 1.5f;
 
     Matrix lightProjRow = XMMatrixOrthographicOffCenterLH(l, r, b, t, n, f);
-    // Matrix lightProjRow = XMMatrixPerspectiveFovLH(fovAngle, 1.0f, 0.05f, f);
     Matrix lightViewProjRow = lightViewRow * lightProjRow;
+    
+    // 카메라 위치 변화에 따른 그림자 떨림 방지를 위한 offset
+    Vector3 shadowOrigin = Vector3(0.0f, 0.0f, 0.0f);
+    shadowOrigin = Vector3::Transform(shadowOrigin, lightViewProjRow); // 그림자 좌표 공간에서의 원점
+    shadowOrigin *= (SHADOW_MAP_SIZE / 2.0f); // 그림자 원점을 texture pixel 단위로 변환
 
-    // viewport °æ°è¸¦ Á¤ÀÇÇÏ´Â bounding box »ý¼º
-    // BoundingBox::CreateFromPoints(cullBox, Vector4(l, b, n, 1.0f), Vector4(r, t, f, 1.0f));
-    // cullBox.Transform(cullBox, lightViewRow.Invert()); // Camera View Space -> world Space
+    Vector3 roundedOrigin = XMVectorRound(shadowOrigin);
+    Vector3 roundedOffset = roundedOrigin - shadowOrigin; // texel에 맞추기 위한 offset 계산
+
+    roundedOffset *= (2.0f / SHADOW_MAP_SIZE); // 그림자 맵 좌표계로 다시 변환
+    roundedOffset.z = 0.0f; // 깊이값 영향 무시
+    
+    // offset을 x, y값에 더하여 그림자가 texel의 중앙에 위치하도록 조정
+    lightProjRow.m[3][0] += roundedOffset.x;
+    lightProjRow.m[3][1] += roundedOffset.y;
+
+    BoundingBox::CreateFromPoints(cullBox, Vector4(l, b, n, 1.0f), Vector4(r, t, f, 1.0f));
+    cullBox.Transform(cullBox, lightViewRow.Invert()); // Camera View Space -> world Space
+
     return {lightViewRow, lightProjRow};
 }
 } // namespace
@@ -169,7 +183,6 @@ void Renderer::Render(RenderSetting& _setting)
     PassAmbient();
     PassDeferredLighting();
 
-
     PassAABB();
     PassLight();
     PassEntityID();
@@ -260,15 +273,13 @@ void Renderer::OnLeftMouseClicked(uint32 mx, uint32 my)
         auto pData = *(Vector4*)ms.pData;
         m_context->Unmap(reinterpret_cast<ID3D11Resource*>(stagingTexture), 0);
 
-        if (pData.x == uint32(-1))
-            return;
 
         selectedEntity = static_cast<entt::entity>(pData.x);
         auto& aabb = m_reg.get<AABB>(selectedEntity);
-        //if (!aabb.isDrawAABB)
-        //    aabb.isDrawAABB = true;
-        //else
-        //    aabb.isDrawAABB = false;
+        // if (!aabb.isDrawAABB)
+        //     aabb.isDrawAABB = true;
+        // else
+        //     aabb.isDrawAABB = false;
 
         SAFE_RELEASE(stagingTexture);
     }
@@ -297,7 +308,6 @@ void Renderer::Tick(Camera* camera)
     frameBufferCPU.invViewProj = m_camera->GetViewProj().Invert();
     frameBufferCPU.screenResolutionX = m_currentSceneViewport.GetWidth();
     frameBufferCPU.screenResolutionY = m_currentSceneViewport.GetHeight();
-    
 
     frameBufferGPU->Update(m_context, frameBufferCPU, sizeof(frameBufferCPU));
 
@@ -597,6 +607,35 @@ void Renderer::BindGlobals()
     }
 }
 
+void Renderer::LightFrustumCulling(const Light& light)
+{
+    auto visibiltiyView = m_reg.view<AABB>();
+    for (auto& e : visibiltiyView)
+    {
+        if (m_reg.try_get<Light>(e))
+            continue;
+        auto& aabb = visibiltiyView.get<AABB>(e);
+
+        switch (light.type)
+        {
+        case LightType::Directional:
+            aabb.isLightVisible = lightBoundingBox.Intersects(aabb.boundingBox);
+            break;
+        case LightType::Point:
+            for (uint32 i = 0; i < 6; ++i)
+            {
+                aabb.isLightVisible = lightBoundingFrustumCube[i].Intersects(aabb.boundingBox);
+                break;
+            }
+        case LightType::Spot:
+            aabb.isLightVisible = lightBoundingFrustum.Intersects(aabb.boundingBox);
+            break;
+        default:
+            assert(false && "LightFrustumCulling Error!");
+        }
+    }
+}
+
 void Renderer::PassForward()
 {
     forwardPass.BeginRenderPass(m_context);
@@ -889,18 +928,20 @@ void Renderer::PassShadowMapDirectional(Light const& light)
         shadowConstsCPU.lightViewProj = (V * P).Transpose();
         shadowConstsCPU.lightView = V.Transpose();
         shadowConstsCPU.shadow_map_size = SHADOW_MAP_SIZE;
-        shadowConstsCPU.shadow_matrices[0] = shadowConstsCPU.lightViewProj * m_camera->GetView().Invert();
+        shadowConstsCPU.shadowMatrices[0] = shadowConstsCPU.lightViewProj * m_camera->GetView().Invert();
         shadowConstsGPU->Update(m_context, shadowConstsCPU, sizeof(shadowConstsCPU));
     }
 
     SetSceneViewport(static_cast<float>(shadowMapPass.width), static_cast<float>(shadowMapPass.height));
     shadowMapPass.BeginRenderPass(m_context);
+    LightFrustumCulling(light);
 
+    auto entityView = m_reg.view<Mesh, Material, Transform, AABB>(entt::exclude<Light>);
+    for (auto& entity : entityView)
     {
-        auto entityView = m_reg.view<Mesh, Material, Transform>(entt::exclude<Light>);
-        for (auto& entity : entityView)
+        auto [mesh, material, transform, aabb] = entityView.get<Mesh, Material, Transform, AABB>(entity);
+        if (aabb.isLightVisible)
         {
-            auto [mesh, material, transform] = entityView.get<Mesh, Material, Transform>(entity);
             ShaderManager::GetShaderProgram(ShaderProgram::ShadowDepthMap)->Bind(m_context);
 
             objectConstsCPU.world = transform.currentTransform.Transpose();
@@ -909,8 +950,8 @@ void Renderer::PassShadowMapDirectional(Light const& light)
 
             mesh.Draw(m_context);
         }
-        ShaderManager::GetShaderProgram(ShaderProgram::ShadowDepthMap)->Unbind(m_context);
     }
+    ShaderManager::GetShaderProgram(ShaderProgram::ShadowDepthMap)->Unbind(m_context);
     shadowMapPass.EndRenderPass(m_context);
 }
 
@@ -935,19 +976,25 @@ void Renderer::PassShadowMapSpot(Light const& light)
         shadowConstsCPU.lightViewProj = (lightViewRow * lightProjRow).Transpose();
         shadowConstsCPU.lightView = lightViewRow.Transpose();
         shadowConstsCPU.shadow_map_size = SHADOW_MAP_SIZE;
-        shadowConstsCPU.shadow_matrices[0] = shadowConstsCPU.lightViewProj * m_camera->GetView().Invert();
+        shadowConstsCPU.shadowMatrices[0] = shadowConstsCPU.lightViewProj * m_camera->GetView().Invert();
         shadowConstsGPU->Update(m_context, shadowConstsCPU, sizeof(shadowConstsCPU));
+
+        lightBoundingFrustum = BoundingFrustum(lightProjRow);
+        lightBoundingFrustum.Transform(lightBoundingFrustum, lightViewRow.Invert());
     }
 
     SetSceneViewport(static_cast<float>(shadowMapPass.width), static_cast<float>(shadowMapPass.height));
     shadowMapPass.BeginRenderPass(m_context);
+    LightFrustumCulling(light);
 
     // Render Mesh
+    auto entityView = m_reg.view<Mesh, Material, Transform, AABB>(entt::exclude<Light>);
+    for (auto& entity : entityView)
     {
-        auto entityView = m_reg.view<Mesh, Material, Transform>(entt::exclude<Light>);
-        for (auto& entity : entityView)
+        auto [mesh, material, transform, aabb] = entityView.get<Mesh, Material, Transform, AABB>(entity);
+        if (aabb.isLightVisible)
         {
-            auto [mesh, material, transform] = entityView.get<Mesh, Material, Transform>(entity);
+
             ShaderManager::GetShaderProgram(ShaderProgram::ShadowDepthMap)->Bind(m_context);
 
             objectConstsCPU.world = transform.currentTransform.Transpose();
@@ -956,8 +1003,8 @@ void Renderer::PassShadowMapSpot(Light const& light)
 
             mesh.Draw(m_context);
         }
-        ShaderManager::GetShaderProgram(ShaderProgram::ShadowDepthMap)->Unbind(m_context);
     }
+    ShaderManager::GetShaderProgram(ShaderProgram::ShadowDepthMap)->Unbind(m_context);
     shadowMapPass.EndRenderPass(m_context);
 }
 
@@ -981,6 +1028,8 @@ void Renderer::PassShadowMapPoint(Light const& light)
         {
             lightViewRow = DirectX::XMMatrixLookAtLH(light.position, light.position + directions[face] * light.range, up[face]);
             shadowConstsCPU.shadowCubeMapViewProj[face] = (lightViewRow * lightProjRow).Transpose();
+            lightBoundingFrustumCube[face] = BoundingFrustum(lightProjRow);
+            lightBoundingFrustumCube[face].Transform(lightBoundingFrustumCube[face], lightViewRow.Invert());
         }
         shadowConstsCPU.shadow_map_size = SHADOW_CUBE_SIZE;
         shadowConstsGPU->Update(m_context, shadowConstsCPU, sizeof(shadowConstsCPU));
@@ -988,13 +1037,16 @@ void Renderer::PassShadowMapPoint(Light const& light)
 
     SetSceneViewport(static_cast<float>(shadowCubeMapPass.width), static_cast<float>(shadowCubeMapPass.height));
     shadowCubeMapPass.BeginRenderPass(m_context);
+    LightFrustumCulling(light);
 
     // Render Mesh
+    auto entityView = m_reg.view<Mesh, Material, Transform, AABB>(entt::exclude<Light>);
+    for (auto& entity : entityView)
     {
-        auto entityView = m_reg.view<Mesh, Material, Transform>(entt::exclude<Light>);
-        for (auto& entity : entityView)
+        auto [mesh, material, transform, aabb] = entityView.get<Mesh, Material, Transform, AABB>(entity);
+
+        if (aabb.isLightVisible)
         {
-            auto [mesh, material, transform] = entityView.get<Mesh, Material, Transform>(entity);
             ShaderManager::GetShaderProgram(ShaderProgram::ShadowDepthCubeMap)->Bind(m_context);
 
             objectConstsCPU.world = transform.currentTransform.Transpose();
@@ -1003,8 +1055,8 @@ void Renderer::PassShadowMapPoint(Light const& light)
 
             mesh.Draw(m_context);
         }
-        ShaderManager::GetShaderProgram(ShaderProgram::ShadowDepthCubeMap)->Unbind(m_context);
     }
+    ShaderManager::GetShaderProgram(ShaderProgram::ShadowDepthCubeMap)->Unbind(m_context);
     shadowCubeMapPass.EndRenderPass(m_context);
 }
 

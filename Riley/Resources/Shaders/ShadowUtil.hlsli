@@ -8,7 +8,7 @@ float CalcShadowMapPCF3x3(LightData light, float3 viewPos, Texture2D shadowMap)
     float shadow = 0.0;
     if (light.castShadows)
     {
-        float4 shadowMapCoords = mul(float4(viewPos, 1.0), shadowData.shadow_matrices[0]);
+        float4 shadowMapCoords = mul(float4(viewPos, 1.0), shadowData.shadowMatrices[0]);
         float3 UVD = shadowMapCoords.xyz / shadowMapCoords.w;
         UVD.xy = 0.5 * UVD.xy + 0.5;
         UVD.y = 1.0 - UVD.y;

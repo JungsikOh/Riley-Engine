@@ -267,10 +267,19 @@ void Editor::Properties()
                         light->position = -light->direction * 1e3;
                     }
                 }
+
+                if (light->type == LightType::Spot || light->type == LightType::Point)
+                {
+                    float position[3] = {lightPosition.x, lightPosition.y, lightPosition.z};
+                    ImGui::SliderFloat3("Light Position", position, -10.0f, 10.0f);
+                    light->position = Vector4(position[0], position[1], position[2], 1.0f);
+                }
             }
 
             auto transform = engine->m_registry.try_get<Transform>(selected_entity);
-            if (transform && ImGui::CollapsingHeader("Transform") && !light)
+            if(light) transform->currentTransform = Matrix::CreateTranslation(Vector3(light->position));
+
+            if (!light && transform && ImGui::CollapsingHeader("Transform"))
             {
                 Matrix tr = transform->currentTransform;
                 Vector3 translation = tr.Translation();

@@ -145,7 +145,7 @@ float3 DoPointLightPBR(LightData light, float3 positionVS, float3 normalVS, floa
     float3 H = normalize(L + V);
     float distance = length(light.position.xyz - positionVS);
     float attenuation = DoAttenuation(distance, light.range);
-    float3 radiance = light.lightColor * attenuation * light.range;
+    float3 radiance = light.lightColor * attenuation;
     
     float NDF = DistributionGGX(normalVS, H, roughness);
     float G = GeometrySmith(normalVS, V, L, roughness);

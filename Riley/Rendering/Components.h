@@ -111,7 +111,7 @@ struct COMPONENT AABB
    DirectX::BoundingBox boundingBox;
    DirectX::BoundingBox orginalBox;
    bool isCameraVisible = true;
-   bool isLightVisible = true;
+   bool isLightVisible = false;
    bool isDrawAABB = false;
    std::shared_ptr<DXBuffer> aabbVertexBuffer = nullptr;
    std::shared_ptr<DXBuffer> aabbIndexBuffer = nullptr;

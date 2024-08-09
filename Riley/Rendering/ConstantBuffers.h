@@ -2,6 +2,7 @@
 
 namespace Riley
 {
+static constexpr uint32 CASCADE_COUNT = 4;
 
 struct FrameBufferConsts
 {
@@ -86,7 +87,8 @@ struct ShadowConsts
 {
     Matrix lightView;
     Matrix lightViewProj;
-    Matrix shadow_matrices[4]; // cascade shadow mapping
+    Matrix shadowMatrices[CASCADE_COUNT];
+    Matrix shadowCascadeMapViewProj[CASCADE_COUNT]; // cascade shadow mapping
     Matrix shadowCubeMapViewProj[6];
 
     float split0;
@@ -95,7 +97,7 @@ struct ShadowConsts
     float split3;
 
     float softness;
-    int32 shadow_map_size;
+    int32 shadow_map_size = CASCADE_COUNT;
     int32 visualize;
     float _padding1;
 };
