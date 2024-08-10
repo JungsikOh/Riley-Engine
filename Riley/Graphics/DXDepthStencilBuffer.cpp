@@ -82,7 +82,7 @@ void DXDepthStencilBuffer::Initialize(ID3D11Device* device, uint32 width, uint32
          D3D11_DEPTH_STENCIL_VIEW_DESC dsvDesc;
          ZeroMemory(&dsvDesc, sizeof(dsvDesc));
          dsvDesc.Format = m_isStencilEnabled ? DXGI_FORMAT_D24_UNORM_S8_UINT : DXGI_FORMAT_D32_FLOAT;
-         dsvDesc.ViewDimension = m_isTextureCube ? D3D11_DSV_DIMENSION_TEXTURE2DARRAY : D3D11_DSV_DIMENSION_TEXTURE2D;
+         dsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
          dsvDesc.Texture2D.MipSlice = 0;
 
          HR(device->CreateDepthStencilView(reinterpret_cast<ID3D11Texture2D*>(m_resource), &dsvDesc, &m_dsv));

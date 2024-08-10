@@ -3,8 +3,8 @@
 #include "../Graphics/DXShaderCompiler.h"
 #include "../Graphics/DXShaderProgram.h"
 #include "../Graphics/DXStates.h"
-#include "../Math/ComputeVectors.h"
 #include "../Math/CalcLightFrustum.h"
+#include "../Math/ComputeVectors.h"
 #include "Camera.h"
 #include "ModelImporter.h"
 #include <random>
@@ -79,6 +79,7 @@ Renderer::~Renderer()
     SAFE_DELETE(ssaoBlurDSV);
     SAFE_DELETE(depthMapDSV);
     SAFE_DELETE(shadowDepthMapDSV);
+    SAFE_DELETE(shadowCascadeMapDSV);
     SAFE_DELETE(shadowDepthCubeMapDSV);
     SAFE_DELETE(entityIdDSV);
 
@@ -162,6 +163,10 @@ void Renderer::OnLeftMouseClicked(uint32 mx, uint32 my)
         //    }
         //}
         */
+        if (m_currentSceneViewport.m_mousePositionX < 0.0f || m_currentSceneViewport.m_mousePositionY < 0.0f ||
+            m_currentSceneViewport.m_mousePositionX > m_currentSceneViewport.m_widthImGui ||
+            m_currentSceneViewport.m_mousePositionY > m_currentSceneViewport.m_heightImGui)
+            return;
 
         D3D11_TEXTURE2D_DESC stagedDesc = {
             1,                              // UINT Width;
@@ -188,6 +193,8 @@ void Renderer::OnLeftMouseClicked(uint32 mx, uint32 my)
         srcBox.front = 0;
         srcBox.back = 1;
 
+        std::cout << "mx : " << m_currentSceneViewport.m_mousePositionX << " my :" << srcBox.top << std::endl;
+
         m_context->CopySubresourceRegion(reinterpret_cast<ID3D11Resource*>(stagingTexture), 0, 0, 0, 0, entityIdRTV->GetResource(), 0,
                                          &srcBox);
 
@@ -195,7 +202,6 @@ void Renderer::OnLeftMouseClicked(uint32 mx, uint32 my)
         m_context->Map(reinterpret_cast<ID3D11Resource*>(stagingTexture), 0, D3D11_MAP_READ, 0, &ms);
         auto pData = *(Vector4*)ms.pData;
         m_context->Unmap(reinterpret_cast<ID3D11Resource*>(stagingTexture), 0);
-
 
         selectedEntity = static_cast<entt::entity>(pData.x);
         auto aabb = m_reg.try_get<AABB>(selectedEntity);
@@ -331,24 +337,9 @@ void Renderer::CreateDepthStencilBuffers(uint32 width, uint32 height)
     /// DXDepthStencilBuffer Initialize
     SAFE_DELETE(hdrDSV);
     hdrDSV = new DXDepthStencilBuffer(m_device, width, height, true);
+
     SAFE_DELETE(gbufferDSV);
     gbufferDSV = new DXDepthStencilBuffer(m_device, width, height);
-    SAFE_DELETE(ambientLightingDSV);
-    ambientLightingDSV = new DXDepthStencilBuffer(m_device, width, height);
-    SAFE_DELETE(ssaoDSV);
-    ssaoDSV = new DXDepthStencilBuffer(m_device, width, height);
-    SAFE_DELETE(ssaoBlurDSV);
-    ssaoBlurDSV = new DXDepthStencilBuffer(m_device, width, height);
-    SAFE_DELETE(depthMapDSV);
-    depthMapDSV = new DXDepthStencilBuffer(m_device, width, height, false);
-    SAFE_DELETE(shadowDepthMapDSV);
-    shadowDepthMapDSV = new DXDepthStencilBuffer(m_device, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE, false, false);
-    SAFE_DELETE(shadowDepthCubeMapDSV);
-    shadowDepthCubeMapDSV = new DXDepthStencilBuffer(m_device, SHADOW_CUBE_SIZE, SHADOW_CUBE_SIZE, false, true);
-    SAFE_DELETE(entityIdDSV);
-    entityIdDSV = new DXDepthStencilBuffer(m_device, width, height, false);
-
-    // SRV about Texture2D DSV
     D3D11_SHADER_RESOURCE_VIEW_DESC gbufferSRVDesc;
     ZeroMemory(&gbufferSRVDesc, sizeof(gbufferSRVDesc));
     gbufferSRVDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
@@ -356,15 +347,65 @@ void Renderer::CreateDepthStencilBuffers(uint32 width, uint32 height)
     gbufferSRVDesc.Texture2D.MipLevels = 1;
     gbufferDSV->CreateSRV(m_device, &gbufferSRVDesc);
 
-    D3D11_SHADER_RESOURCE_VIEW_DESC shadowMapDesc;
-    ZeroMemory(&shadowMapDesc, sizeof(shadowMapDesc));
-    shadowMapDesc.Format = DXGI_FORMAT_R32_FLOAT;
-    shadowMapDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-    shadowMapDesc.Texture2D.MipLevels = 1;
-    depthMapDSV->CreateSRV(m_device, &shadowMapDesc);
-    shadowDepthMapDSV->CreateSRV(m_device, &shadowMapDesc);
+    SAFE_DELETE(ambientLightingDSV);
+    ambientLightingDSV = new DXDepthStencilBuffer(m_device, width, height);
 
-    // SRV about TextureCube DSV
+    SAFE_DELETE(depthMapDSV);
+    depthMapDSV = new DXDepthStencilBuffer(m_device, width, height, false);
+    D3D11_SHADER_RESOURCE_VIEW_DESC defaultDepthMapDesc;
+    ZeroMemory(&defaultDepthMapDesc, sizeof(defaultDepthMapDesc));
+    defaultDepthMapDesc.Format = DXGI_FORMAT_R32_FLOAT;
+    defaultDepthMapDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+    defaultDepthMapDesc.Texture2D.MipLevels = 1;
+    depthMapDSV->CreateSRV(m_device, &defaultDepthMapDesc);
+
+    SAFE_DELETE(entityIdDSV);
+    entityIdDSV = new DXDepthStencilBuffer(m_device, width, height, false);
+
+    // AO
+    SAFE_DELETE(ssaoDSV);
+    ssaoDSV = new DXDepthStencilBuffer(m_device, width, height);
+    SAFE_DELETE(ssaoBlurDSV);
+    ssaoBlurDSV = new DXDepthStencilBuffer(m_device, width, height);
+
+    // SHADOW MAP
+    SAFE_DELETE(shadowDepthMapDSV);
+    shadowDepthMapDSV = new DXDepthStencilBuffer(m_device, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE, false, false);
+    shadowDepthMapDSV->CreateSRV(m_device, &defaultDepthMapDesc);
+
+    SAFE_DELETE(shadowCascadeMapDSV);
+    shadowCascadeMapDSV = new DXDepthStencilBuffer();
+    D3D11_TEXTURE2D_DESC textureArrayDesc{};
+    ZeroMemory(&textureArrayDesc, sizeof(textureArrayDesc));
+    textureArrayDesc.Width = SHADOW_CASCADE_SIZE;
+    textureArrayDesc.Height = SHADOW_CASCADE_SIZE;
+    textureArrayDesc.MipLevels = 1;
+    textureArrayDesc.ArraySize = CASCADE_COUNT;
+    textureArrayDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+    textureArrayDesc.SampleDesc.Count = 1;
+    textureArrayDesc.SampleDesc.Quality = 0;
+    textureArrayDesc.Usage = D3D11_USAGE_DEFAULT;
+    textureArrayDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL | D3D11_BIND_SHADER_RESOURCE;
+    textureArrayDesc.CPUAccessFlags = 0;
+    textureArrayDesc.MiscFlags = 0;
+    D3D11_DEPTH_STENCIL_VIEW_DESC cascadeDsvDesc{};
+    ZeroMemory(&cascadeDsvDesc, sizeof(cascadeDsvDesc));
+    cascadeDsvDesc.Format = DXGI_FORMAT_D32_FLOAT;
+    cascadeDsvDesc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2DARRAY;
+    cascadeDsvDesc.Texture2DArray.ArraySize = CASCADE_COUNT;
+    cascadeDsvDesc.Texture2DArray.FirstArraySlice = 0;
+    cascadeDsvDesc.Texture2DArray.MipSlice = 0;
+    D3D11_SHADER_RESOURCE_VIEW_DESC texArraySrvDesc{};
+    ZeroMemory(&texArraySrvDesc, sizeof(texArraySrvDesc));
+    texArraySrvDesc.Format = DXGI_FORMAT_R32_FLOAT;
+    texArraySrvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DARRAY;
+    texArraySrvDesc.Texture2DArray.ArraySize = CASCADE_COUNT;
+    texArraySrvDesc.Texture2DArray.MipLevels = 1;
+    shadowCascadeMapDSV->Initialize(m_device, SHADOW_CASCADE_SIZE, SHADOW_CASCADE_SIZE, false, &textureArrayDesc, &cascadeDsvDesc);
+    shadowCascadeMapDSV->CreateSRV(m_device, &texArraySrvDesc);
+
+    SAFE_DELETE(shadowDepthCubeMapDSV);
+    shadowDepthCubeMapDSV = new DXDepthStencilBuffer(m_device, SHADOW_CUBE_SIZE, SHADOW_CUBE_SIZE, false, true);
     D3D11_SHADER_RESOURCE_VIEW_DESC shadowCubeMapDesc;
     ZeroMemory(&shadowCubeMapDesc, sizeof(shadowCubeMapDesc));
     shadowCubeMapDesc.Format = DXGI_FORMAT_R32_FLOAT;
@@ -478,6 +519,7 @@ void Renderer::CreateRenderPasses(uint32 width, uint32 height)
     deferredLightingPass.width = width;
     deferredLightingPass.height = height;
 
+    // AO PASSES
     ssaoPass.attachmentRTVs = ssaoRTV;
     ssaoPass.attachmentDSVs = ssaoDSV;
     ssaoPass.attachmentRS = solidRS;
@@ -486,11 +528,18 @@ void Renderer::CreateRenderPasses(uint32 width, uint32 height)
     ssaoPass.width = width;
     ssaoPass.height = height;
 
+    // SHADOW MAP PASSES
     shadowMapPass.attachmentDSVs = shadowDepthMapDSV;
     shadowMapPass.attachmentRS = depthBiasRS;
     shadowMapPass.attachmentDSS = solidDSS;
     shadowMapPass.width = SHADOW_MAP_SIZE;
     shadowMapPass.height = SHADOW_MAP_SIZE;
+
+    shadowCascadeMapPass.attachmentDSVs = shadowCascadeMapDSV;
+    shadowCascadeMapPass.attachmentRS = depthBiasRS;
+    shadowCascadeMapPass.attachmentDSS = solidDSS;
+    shadowCascadeMapPass.width = SHADOW_CASCADE_SIZE;
+    shadowCascadeMapPass.height = SHADOW_CASCADE_SIZE;
 
     shadowCubeMapPass.attachmentDSVs = shadowDepthCubeMapDSV;
     shadowCubeMapPass.attachmentRS = depthBiasRS;
@@ -537,21 +586,23 @@ void Renderer::LightFrustumCulling(const Light& light)
     {
         if (m_reg.try_get<Light>(e))
             continue;
+
         auto& aabb = visibiltiyView.get<AABB>(e);
 
         switch (light.type)
         {
         case LightType::Directional:
-            aabb.isLightVisible = lightBoundingBox.Intersects(aabb.boundingBox);
+            aabb.isLightVisible = aabb.isLightVisible ? true : lightBoundingBox.Intersects(aabb.boundingBox);
             break;
         case LightType::Point:
             for (uint32 i = 0; i < 6; ++i)
             {
-                aabb.isLightVisible = lightBoundingFrustumCube[i].Intersects(aabb.boundingBox);
+                aabb.isLightVisible = aabb.isLightVisible ? true : lightBoundingFrustumCube[i].Intersects(aabb.boundingBox);
                 break;
             }
+            break;
         case LightType::Spot:
-            aabb.isLightVisible = lightBoundingFrustum.Intersects(aabb.boundingBox);
+            aabb.isLightVisible = aabb.isLightVisible ? true : lightBoundingFrustum.Intersects(aabb.boundingBox);
             break;
         default:
             assert(false && "LightFrustumCulling Error!");
@@ -672,6 +723,9 @@ void Renderer::PassGBuffer()
                 if (auto rootTransform = m_reg.try_get<Transform>(root->parent))
                     parent = rootTransform->currentTransform;
             }
+            aabb.boundingBox = aabb.orginalBox;
+            aabb.boundingBox.Transform(aabb.boundingBox, transform.currentTransform * parent);
+            aabb.UpdateBuffer(m_device);
 
             objectConstsCPU.world = (transform.currentTransform * parent).Transpose();
             objectConstsCPU.worldInvTranspose = transform.currentTransform.Invert().Transpose();
@@ -742,7 +796,8 @@ void Renderer::PassDeferredLighting()
             lightConstsCPU.type = static_cast<int32>(lightData.type);
             lightConstsCPU.innerCosine = lightData.inner_cosine;
             lightConstsCPU.outerCosine = lightData.outer_cosine;
-            lightConstsCPU.castShadows = 1;
+            lightConstsCPU.castShadows = lightData.castShadows;
+            lightConstsCPU.useCascades = lightData.useCascades;
 
             Matrix cameraView = m_camera->GetView();
             lightConstsCPU.position = Vector4::Transform(lightConstsCPU.position, cameraView.Transpose());
@@ -756,7 +811,7 @@ void Renderer::PassDeferredLighting()
         }
         else if (lightData.type == LightType::Directional)
         {
-            PassShadowMapDirectional(lightData);
+            lightData.useCascades ? PassShadowMapCascade(lightData) : PassShadowMapDirectional(lightData);
         }
         else if (lightData.type == LightType::Point)
         {
@@ -773,6 +828,7 @@ void Renderer::PassDeferredLighting()
             gbufferPass.attachmentDSVs->BindSRV(m_context, 3, DXShaderStage::PS);
             shadowMapPass.attachmentDSVs->BindSRV(m_context, 4, DXShaderStage::PS);
             shadowCubeMapPass.attachmentDSVs->BindSRV(m_context, 5, DXShaderStage::PS);
+            shadowCascadeMapPass.attachmentDSVs->BindSRV(m_context, 6, DXShaderStage::PS);
 
             ShaderManager::GetShaderProgram(ShaderProgram::DeferredLighting)->Bind(m_context);
 
@@ -784,6 +840,7 @@ void Renderer::PassDeferredLighting()
             gbufferPass.attachmentDSVs->UnbindSRV(m_context, 3, DXShaderStage::PS);
             shadowMapPass.attachmentDSVs->UnbindSRV(m_context, 4, DXShaderStage::PS);
             shadowCubeMapPass.attachmentDSVs->UnbindSRV(m_context, 5, DXShaderStage::PS);
+            shadowCascadeMapPass.attachmentDSVs->UnbindSRV(m_context, 6, DXShaderStage::PS);
         }
     }
     additiveBS->Unbind(m_context);
@@ -840,17 +897,17 @@ void Renderer::PassSSAO()
     }
 }
 
-void Renderer::PassShadowMapDirectional(Light const& light)
+void Renderer::PassShadowMapDirectional(const Light& light)
 {
     assert(light.type == LightType::Directional);
 
     // ShadowConstantBuffer Update about Light View
     {
-        auto const& [V, P] = LightFrustum::DirectionalLightViewProjection(light, m_camera, lightBoundingBox);
+        const auto& [V, P] = LightFrustum::DirectionalLightViewProjection(light, m_camera, lightBoundingBox);
 
         shadowConstsCPU.lightViewProj = (V * P).Transpose();
         shadowConstsCPU.lightView = V.Transpose();
-        shadowConstsCPU.shadow_map_size = SHADOW_MAP_SIZE;
+        shadowConstsCPU.shadowMapSize = SHADOW_MAP_SIZE;
         shadowConstsCPU.shadowMatrices[0] = shadowConstsCPU.lightViewProj * m_camera->GetView().Invert();
         shadowConstsGPU->Update(m_context, shadowConstsCPU, sizeof(shadowConstsCPU));
     }
@@ -868,17 +925,68 @@ void Renderer::PassShadowMapDirectional(Light const& light)
             ShaderManager::GetShaderProgram(ShaderProgram::ShadowDepthMap)->Bind(m_context);
 
             objectConstsCPU.world = transform.currentTransform.Transpose();
-            objectConstsCPU.worldInvTranspose = transform.currentTransform.Invert().Transpose();
+            objectConstsCPU.worldInvTranspose = transform.currentTransform.Invert();
             objectConstsGPU->Update(m_context, objectConstsCPU, sizeof(objectConstsCPU));
 
             mesh.Draw(m_context);
+            aabb.isLightVisible = false;
         }
     }
     ShaderManager::GetShaderProgram(ShaderProgram::ShadowDepthMap)->Unbind(m_context);
     shadowMapPass.EndRenderPass(m_context);
 }
 
-void Renderer::PassShadowMapSpot(Light const& light)
+void Renderer::PassShadowMapCascade(const Light& light)
+{
+    assert(light.type == LightType::Directional);
+
+    // Light Frustum Part
+    std::array<float, CASCADE_COUNT> splitDistances{};
+    std::array<Matrix, CASCADE_COUNT> cascadeFrustumProjRow =
+        LightFrustum::RecalcProjectionMatrices(m_camera, SPLIT_LAMBDA, splitDistances);
+
+    for (uint32 i = 0; i < CASCADE_COUNT; ++i)
+    {
+        const auto& [V, P] =
+            LightFrustum::CascadeDirectionalLightViewProjection(light, m_camera, cascadeFrustumProjRow[i], lightBoundingBox);
+
+        shadowConstsCPU.shadowCascadeMapViewProj[i] = (V * P).Transpose();
+        shadowConstsCPU.shadowMapSize = SHADOW_CASCADE_SIZE;
+        shadowConstsCPU.shadowMatrices[i] = shadowConstsCPU.shadowCascadeMapViewProj[i] * m_camera->GetView().Invert();
+        LightFrustumCulling(light);
+    }
+    shadowConstsCPU.split0 = splitDistances[0];
+    shadowConstsCPU.split1 = splitDistances[1];
+    shadowConstsCPU.split2 = splitDistances[2];
+    shadowConstsCPU.split3 = splitDistances[3];
+    shadowConstsGPU->Update(m_context, shadowConstsCPU, sizeof(shadowConstsCPU));
+
+    // Mesh Render Part
+    SetSceneViewport(static_cast<float>(shadowCascadeMapPass.width), static_cast<float>(shadowCascadeMapPass.height));
+    shadowCascadeMapPass.BeginRenderPass(m_context);
+
+    auto entitiesView = m_reg.view<Mesh, Transform, AABB>(entt::exclude<Light>);
+    for (auto& e : entitiesView)
+    {
+        auto [mesh, transform, aabb] = entitiesView.get<Mesh, Transform, AABB>(e);
+        if (aabb.isLightVisible)
+        {
+            // TODO : Cascade Shadow mapping shader
+            ShaderManager::GetShaderProgram(ShaderProgram::ShadowCascadeMap)->Bind(m_context);
+
+            objectConstsCPU.world = transform.currentTransform.Transpose();
+            objectConstsCPU.worldInvTranspose = transform.currentTransform.Invert().Transpose();
+            objectConstsGPU->Update(m_context, objectConstsCPU, sizeof(objectConstsCPU));
+
+            mesh.Draw(m_context);
+            aabb.isLightVisible = false;
+        }
+    }
+    ShaderManager::GetShaderProgram(ShaderProgram::ShadowCascadeMap)->Unbind(m_context);
+    shadowCascadeMapPass.EndRenderPass(m_context);
+}
+
+void Renderer::PassShadowMapSpot(const Light& light)
 {
     assert(light.type == LightType::Spot);
 
@@ -898,7 +1006,7 @@ void Renderer::PassShadowMapSpot(Light const& light)
 
         shadowConstsCPU.lightViewProj = (lightViewRow * lightProjRow).Transpose();
         shadowConstsCPU.lightView = lightViewRow.Transpose();
-        shadowConstsCPU.shadow_map_size = SHADOW_MAP_SIZE;
+        shadowConstsCPU.shadowMapSize = SHADOW_MAP_SIZE;
         shadowConstsCPU.shadowMatrices[0] = shadowConstsCPU.lightViewProj * m_camera->GetView().Invert();
         shadowConstsGPU->Update(m_context, shadowConstsCPU, sizeof(shadowConstsCPU));
 
@@ -925,13 +1033,14 @@ void Renderer::PassShadowMapSpot(Light const& light)
             objectConstsGPU->Update(m_context, objectConstsCPU, sizeof(objectConstsCPU));
 
             mesh.Draw(m_context);
+            aabb.isLightVisible = false;
         }
     }
     ShaderManager::GetShaderProgram(ShaderProgram::ShadowDepthMap)->Unbind(m_context);
     shadowMapPass.EndRenderPass(m_context);
 }
 
-void Renderer::PassShadowMapPoint(Light const& light)
+void Renderer::PassShadowMapPoint(const Light& light)
 {
     assert(light.type == LightType::Point);
 
@@ -944,23 +1053,24 @@ void Renderer::PassShadowMapPoint(Light const& light)
         Vector3 up[6] = {{0.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 1.0f},
                          {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 0.0f}};
 
-        float fovAngle = 2.0f * acos(light.outer_cosine);
-        lightProjRow = DirectX::XMMatrixPerspectiveFovLH(fovAngle, 1.0f, 0.5f, light.range);
+        const float fov = 2.0f * acos(light.outer_cosine);
+        lightProjRow = DirectX::XMMatrixPerspectiveFovLH(fov, 1.0f, 0.5f, light.range);
 
         for (uint32 face = 0; face < 6; ++face)
         {
             lightViewRow = DirectX::XMMatrixLookAtLH(light.position, light.position + directions[face] * light.range, up[face]);
             shadowConstsCPU.shadowCubeMapViewProj[face] = (lightViewRow * lightProjRow).Transpose();
+
             lightBoundingFrustumCube[face] = BoundingFrustum(lightProjRow);
             lightBoundingFrustumCube[face].Transform(lightBoundingFrustumCube[face], lightViewRow.Invert());
         }
-        shadowConstsCPU.shadow_map_size = SHADOW_CUBE_SIZE;
+        shadowConstsCPU.shadowMapSize = SHADOW_CUBE_SIZE;
         shadowConstsGPU->Update(m_context, shadowConstsCPU, sizeof(shadowConstsCPU));
+        LightFrustumCulling(light);
     }
 
     SetSceneViewport(static_cast<float>(shadowCubeMapPass.width), static_cast<float>(shadowCubeMapPass.height));
     shadowCubeMapPass.BeginRenderPass(m_context);
-    LightFrustumCulling(light);
 
     // Render Mesh
     auto entityView = m_reg.view<Mesh, Material, Transform, AABB>(entt::exclude<Light>);
@@ -977,6 +1087,7 @@ void Renderer::PassShadowMapPoint(Light const& light)
             objectConstsGPU->Update(m_context, objectConstsCPU, sizeof(objectConstsCPU));
 
             mesh.Draw(m_context);
+            aabb.isLightVisible = false;
         }
     }
     ShaderManager::GetShaderProgram(ShaderProgram::ShadowDepthCubeMap)->Unbind(m_context);

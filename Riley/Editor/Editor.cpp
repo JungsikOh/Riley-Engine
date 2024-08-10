@@ -276,11 +276,18 @@ void Editor::Properties()
                     ImGui::SliderFloat3("Light Position", position, -10.0f, 10.0f);
                     light->position = Vector4(position[0], position[1], position[2], 1.0f);
                 }
+
+                ImGui::Checkbox("Casts Shadows", &light->castShadows);
+                if (light->type == LightType::Directional && light->castShadows)
+                {
+                    ImGui::Checkbox("Use Cascades", &light->useCascades);
+                }
             }
 
             auto transform = engine->m_registry.try_get<Transform>(selected_entity);
             if(light) transform->currentTransform = Matrix::CreateTranslation(Vector3(light->position));
 
+            // TODO : Transform Error 고치기.
             if (!light && transform && ImGui::CollapsingHeader("Transform"))
             {
                 Matrix tr = transform->currentTransform;

@@ -2,7 +2,7 @@
 
 struct VSInput
 {
-    float3 posModel : POSITION; //¸ðµ¨ ÁÂÇ¥°èÀÇ À§Ä¡ position
+    float3 posModel : POSITION;
     float2 texcoord : TEXCOORD0;
 };
 
@@ -12,7 +12,7 @@ struct VSToGS
     float2 texcoord : TEXCOORD0;
 };
 
-VSToGS ShadowCubeVS(VSInput input)
+VSToGS ShadowCascadeVS(VSInput input)
 {
     VSToGS output;
     output.posWorld = mul(float4(input.posModel, 1.0), meshData.world);
@@ -28,16 +28,16 @@ struct GSToPS
     uint layer : SV_RenderTargetArrayIndex;
 };
 
-[maxvertexcount(18)]
-void ShadowCubeGS(triangle VSToGS input[3], inout TriangleStream<GSToPS> triStream)
+[maxvertexcount(3 * CASCADE_COUNT)]
+void ShadowCascadeGS(triangle VSToGS input[3], inout TriangleStream<GSToPS> triStream)
 {
-    for (int face = 0; face < 6; ++face)
+    for (int face = 0; face < CASCADE_COUNT; ++face)
     {
         GSToPS output;
         output.layer = face;
         for (int i = 0; i < 3; ++i)
         {
-            output.posProj = mul(input[i].posWorld, shadowData.shadowCubeMapViewProj[face]);
+            output.posProj = mul(input[i].posWorld, shadowData.shadowCascadeMapViewProj[face]);
             output.texcoord = input[i].texcoord;
             triStream.Append(output);
         }
@@ -45,6 +45,6 @@ void ShadowCubeGS(triangle VSToGS input[3], inout TriangleStream<GSToPS> triStre
     }
 }
 
-void ShadowCubePS(GSToPS input)
+void ShadowCascadePS(GSToPS input)
 {
 }

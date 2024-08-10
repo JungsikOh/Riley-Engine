@@ -1,6 +1,6 @@
 #pragma once
-#include "../Rendering/RenderSetting.h"
 #include "../Rendering/Camera.h"
+#include "../Rendering/RenderSetting.h"
 #include "BoundingVolume.h"
 
 namespace Riley
@@ -26,7 +26,7 @@ static std::pair<Matrix, Matrix> DirectionalLightViewProjection(const Light& lig
         frustumCenter = frustumCenter + corners[i];
     }
     frustumCenter /= static_cast<float>(corners.size());
-    
+
     float radius = 0.0f;
     for (Vector3 const& corner : corners)
     {
@@ -79,7 +79,8 @@ static std::pair<Matrix, Matrix> DirectionalLightViewProjection(const Light& lig
     return {lightViewRow, lightProjRow};
 }
 
-static std::pair<Matrix, Matrix> DirectionalCascadeLightViewProjection(const Light& light, Camera* camera, const Matrix& projMatrix, BoundingBox& cullBox)
+static std::pair<Matrix, Matrix> CascadeDirectionalLightViewProjection(const Light& light, Camera* camera, const Matrix& projMatrix,
+                                                                       BoundingBox& cullBox)
 {
     BoundingFrustum frustum(projMatrix);
     frustum.Transform(frustum, camera->GetView().Transpose().Invert());
@@ -131,7 +132,7 @@ static std::pair<Matrix, Matrix> DirectionalCascadeLightViewProjection(const Lig
     Vector3 roundedOffset = roundedOrigin - shadowOrigin; // texel에 맞추기 위한 offset 계산
 
     roundedOffset *= (2.0f / SHADOW_CASCADE_SIZE); // 그림자 맵 좌표계로 다시 변환
-    roundedOffset.z = 0.0f;                    // 깊이값 영향 무시
+    roundedOffset.z = 0.0f;                        // 깊이값 영향 무시
 
     // offset을 x, y값에 더하여 그림자가 texel의 중앙에 위치하도록 조정
     lightProjRow.m[3][0] += roundedOffset.x;
@@ -143,7 +144,8 @@ static std::pair<Matrix, Matrix> DirectionalCascadeLightViewProjection(const Lig
     return {lightViewRow, lightProjRow};
 }
 
-static std::array<Matrix, CASCADE_COUNT> RecalcProjectionMatrices(Camera* camera, const float& splitLambda, std::array<float, CASCADE_COUNT>& splitDistances)
+static std::array<Matrix, CASCADE_COUNT> RecalcProjectionMatrices(Camera* camera, float splitLambda,
+                                                                  std::array<float, CASCADE_COUNT>& splitDistances)
 {
     float nearZ = camera->Near();
     float farZ = camera->Far();
@@ -163,9 +165,9 @@ static std::array<Matrix, CASCADE_COUNT> RecalcProjectionMatrices(Camera* camera
     projMatrices[0] = XMMatrixPerspectiveFovLH(fov, aspectRatio, nearZ, splitDistances[0]);
     for (uint32 i = 1; i < projMatrices.size(); ++i)
     {
-        projMatrices[i] = XMMatrixPerspectiveFovLH(forv, aspectRatio, splitDistances[i - 1], splitDistances[i]);
+        projMatrices[i] = XMMatrixPerspectiveFovLH(fov, aspectRatio, splitDistances[i - 1], splitDistances[i]);
     }
-    
+
     return projMatrices;
 }
 

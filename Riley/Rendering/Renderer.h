@@ -136,6 +136,7 @@ class Renderer
    DXDepthStencilBuffer* ssaoBlurDSV;
    DXDepthStencilBuffer* depthMapDSV;
    DXDepthStencilBuffer* shadowDepthMapDSV;
+   DXDepthStencilBuffer* shadowCascadeMapDSV;
    DXDepthStencilBuffer* shadowDepthCubeMapDSV;
    DXDepthStencilBuffer* entityIdDSV;
 
@@ -145,6 +146,7 @@ class Renderer
    DXRenderPassDesc deferredLightingPass;
    DXRenderPassDesc ssaoPass;
    DXRenderPassDesc shadowMapPass;
+   DXRenderPassDesc shadowCascadeMapPass;
    DXRenderPassDesc shadowCubeMapPass;
    DXRenderPassDesc postProcessPass;
 
@@ -171,9 +173,10 @@ class Renderer
    void PassDeferredLighting();
    void PassSSAO();
 
-   void PassShadowMapDirectional(Light const& light);
-   void PassShadowMapSpot(Light const& light);
-   void PassShadowMapPoint(Light const& light);
+   void PassShadowMapDirectional(const Light& light);
+   void PassShadowMapCascade(const Light& light);
+   void PassShadowMapSpot(const Light& light);
+   void PassShadowMapPoint(const Light& light);
 
    void PassAABB();
    void PassLight();

@@ -9,6 +9,7 @@ Texture2D<float> DepthTex : register(t3);
 
 Texture2D ShadowMap : register(t4);
 TextureCube ShadowCubeMap : register(t5);
+Texture2DArray ShadowCascadeMap : register(t6);
 
 struct VSToPS
 {
@@ -42,7 +43,7 @@ float4 DeferredLightingPS(VSToPS input) : SV_Target
         case DIRECTIONAL_LIGHT:
             Lo = DoDirectionalLight(lightData, 2.0, viewDir, normalVS);
             LoPBR = DoDirectinoalLightPBR(lightData, positionVS, normalVS, viewDir, albedo, metallic, roughness);
-            shadowFactor = CalcShadowMapPCF3x3(lightData, positionVS, ShadowMap);
+            shadowFactor = lightData.useCascades ? CalcShadowCascadeMapFCF3x3(lightData, positionVS, ShadowCascadeMap) : CalcShadowMapPCF3x3(lightData, positionVS, ShadowMap);
             break;
         case POINT_LIGHT:
             Lo = DoPointLight(lightData, 2.0, viewDir, positionVS, normalVS);

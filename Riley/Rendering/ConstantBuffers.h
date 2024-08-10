@@ -46,8 +46,8 @@ struct LightConsts
     float innerCosine;
 
     int32 castShadows;
-    Vector3 _padding1;
     int32 useCascades;
+    Vector2 _padding1;
 };
 
 struct ObjectConsts
@@ -83,7 +83,7 @@ DECLSPEC_ALIGN(16) struct PostprocessConsts
     Vector4 samples[16];
 };
 
-struct ShadowConsts
+DECLSPEC_ALIGN(16) struct ShadowConsts
 {
     Matrix lightView;
     Matrix lightViewProj;
@@ -97,7 +97,7 @@ struct ShadowConsts
     float split3;
 
     float softness;
-    int32 shadow_map_size = CASCADE_COUNT;
+    int32 shadowMapSize = CASCADE_COUNT;
     int32 visualize;
     float _padding1;
 };

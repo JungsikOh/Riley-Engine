@@ -56,6 +56,7 @@ constexpr DXShaderStage GetStage(ShaderId shader)
     case VS_Phong:
     case VS_GBuffer:
     case VS_Shadow:
+    case VS_ShadowCascade:
     case VS_ShadowCube:
     case VS_Picking:
         return DXShaderStage::VS;
@@ -67,9 +68,11 @@ constexpr DXShaderStage GetStage(ShaderId shader)
     case PS_SSAO:
     case PS_SSAOBlur:
     case PS_Shadow:
+    case PS_ShadowCascade:
     case PS_ShadowCube:
     case PS_Picking:
         return DXShaderStage::PS;
+    case GS_ShadowCascade:
     case GS_ShadowCube:
         return DXShaderStage::GS;
     default:
@@ -107,6 +110,10 @@ constexpr std::string GetShaderSource(ShaderId shader)
     case GS_ShadowCube:
     case PS_ShadowCube:
         return "Resources/Shaders/ShadowCube.hlsl";
+    case VS_ShadowCascade:
+    case GS_ShadowCascade:
+    case PS_ShadowCascade:
+        return "Resources/Shaders/ShadowCascade.hlsl";
     case VS_Picking:
     case PS_Picking:
         return "Resources/Shaders/Picking.hlsl";
@@ -151,6 +158,12 @@ constexpr std::string GetEntryPoint(ShaderId shader)
         return "ShadowCubeGS";
     case PS_ShadowCube:
         return "ShadowCubePS";
+    case VS_ShadowCascade:
+        return "ShadowCascadeVS";
+    case GS_ShadowCascade:
+        return "ShadowCascadeGS";
+    case PS_ShadowCascade:
+        return "ShadowCascadePS";
     case VS_Picking:
         return "PickingVS";
     case PS_Picking:
@@ -246,6 +259,11 @@ void CreateAllPrograms()
         .SetVertexShader(vsShaderMap[VS_Shadow].get())
         .SetPixelShader(psShaderMap[PS_Shadow].get())
         .SetInputLayout(inputLayoutMap[VS_Shadow].get());
+    DXShaderProgramMap[ShaderProgram::ShadowCascadeMap]
+        .SetVertexShader(vsShaderMap[VS_ShadowCascade].get())
+        .SetGeometryShader(gsShaderMap[GS_ShadowCascade].get())
+        .SetPixelShader(psShaderMap[PS_ShadowCascade].get())
+        .SetInputLayout(inputLayoutMap[VS_ShadowCascade].get());
     DXShaderProgramMap[ShaderProgram::ShadowDepthCubeMap]
         .SetVertexShader(vsShaderMap[VS_ShadowCube].get())
         .SetGeometryShader(gsShaderMap[GS_ShadowCube].get())

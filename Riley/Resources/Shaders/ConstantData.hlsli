@@ -2,6 +2,7 @@
 #define _CONSTNAN_DATA_
 
 static const int SSAO_KERNEL_SIZE = 16;
+static const int CASCADE_COUNT = 4;
 
 struct FrameData
 {
@@ -45,7 +46,8 @@ struct LightData
     float innerCosine;
 
     int castShadows;
-    float3 _padding1;
+    int useCascades;
+    float2 _padding1;
 };
 
 struct MeshData
@@ -85,16 +87,14 @@ struct ShadowData
 {
     matrix lightView;
     matrix lightViewProj;
-    matrix shadowMatrices[4];
+    matrix shadowMatrices[CASCADE_COUNT];
+    matrix shadowCascadeMapViewProj[CASCADE_COUNT];
     matrix shadowCubeMapViewProj[6];
 
-    float split0;
-    float split1;
-    float split2;
-    float split3;
+    float4 splits;
 
     float softness;
-    int shadow_map_size;
+    int shadowMapSize;
     int visualize;
     float _padding2;
 };

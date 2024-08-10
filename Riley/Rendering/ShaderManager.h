@@ -12,6 +12,7 @@ enum ShaderId : uint8
     VS_Phong,
     VS_GBuffer,
     VS_Shadow,
+    VS_ShadowCascade,
     VS_ShadowCube,
     VS_Picking,
     PS_Solid,
@@ -22,8 +23,10 @@ enum ShaderId : uint8
     PS_SSAO,
     PS_SSAOBlur,
     PS_Shadow,
+    PS_ShadowCascade,
     PS_ShadowCube,
     PS_Picking,
+    GS_ShadowCascade,
     GS_ShadowCube,
     ShaderIdCount
 };
@@ -38,6 +41,7 @@ enum class ShaderProgram : uint8
     SSAO,
     SSAOBlur,
     ShadowDepthMap,
+    ShadowCascadeMap,
     ShadowDepthCubeMap,
     Picking,
     UnKnown
