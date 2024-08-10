@@ -1,8 +1,8 @@
 #pragma once
+#include "RenderSetting.h"
 
 namespace Riley
 {
-static constexpr uint32 CASCADE_COUNT = 4;
 
 struct FrameBufferConsts
 {

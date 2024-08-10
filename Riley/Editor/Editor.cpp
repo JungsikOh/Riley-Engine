@@ -219,7 +219,9 @@ void Editor::ListEntities()
             }
         };
         for (auto e : all_entities)
+        {
             ShowEntity(e, true);
+        }
     }
     ImGui::End();
 }
@@ -241,7 +243,7 @@ void Editor::Properties()
             }
 
             auto light = engine->m_registry.try_get<Light>(selected_entity);
-            if (light && ImGui::CollapsingHeader("Light"))
+            if (light && ImGui::CollapsingHeader("Light", 1))
             {
                 if (light->type == LightType::Directional)
                     ImGui::Text("Directional Light");

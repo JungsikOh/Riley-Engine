@@ -316,6 +316,7 @@
     <ClInclude Include="Graphics\DXStates.h" />
     <ClInclude Include="Core\Log.h" />
     <ClInclude Include="Math\BoundingVolume.h" />
+    <ClInclude Include="Math\CalcLightFrustum.h" />
     <ClInclude Include="Math\ComputeVectors.h" />
     <ClInclude Include="Math\MathTypes.h" />
     <ClInclude Include="Math\MatrixMath.h" />

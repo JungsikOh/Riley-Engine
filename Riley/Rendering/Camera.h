@@ -86,7 +86,7 @@ class Camera
         return aspectRatio;
     }
 
-    DirectX::BoundingFrustum Frustum()
+    const DirectX::BoundingFrustum Frustum()
     {
         DirectX::BoundingFrustum frustum(GetProj().Transpose());
         frustum.Transform(frustum, viewRow.Invert());

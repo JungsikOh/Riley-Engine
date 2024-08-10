@@ -626,6 +626,9 @@
     <ClInclude Include="Rendering\MeshData.h">
       <Filter>Utilities</Filter>
     </ClInclude>
+    <ClInclude Include="Math\CalcLightFrustum.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include=".clang-format" />

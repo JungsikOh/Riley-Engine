@@ -28,8 +28,6 @@ class Input;
 class Renderer
 {
    friend class Engine;
-   static constexpr uint32 AO_NOISE_DIM = 8;
-   static constexpr uint32 SSAO_KERNEL_SIZE = 16;
 
 
    public:

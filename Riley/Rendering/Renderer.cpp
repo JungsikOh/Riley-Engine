@@ -4,90 +4,13 @@
 #include "../Graphics/DXShaderProgram.h"
 #include "../Graphics/DXStates.h"
 #include "../Math/ComputeVectors.h"
+#include "../Math/CalcLightFrustum.h"
 #include "Camera.h"
 #include "ModelImporter.h"
 #include <random>
 
 namespace Riley
 {
-constexpr uint32 SHADOW_MAP_SIZE = 2048;
-constexpr uint32 SHADOW_CUBE_SIZE = 512;
-
-namespace
-{
-using namespace DirectX;
-
-std::pair<Matrix, Matrix> DirectionalLightViewProjection(const Light& light, Camera* camera, BoundingBox& cullBox)
-{
-    // [1] Camera view frustum
-    BoundingFrustum frustum = camera->Frustum();
-    std::array<Vector3, BoundingFrustum::CORNER_COUNT> corners = {};
-    frustum.GetCorners(corners.data());
-
-    //
-    BoundingSphere frustumSphere;
-    BoundingSphere::CreateFromFrustum(frustumSphere, frustum);
-
-    //
-    Vector3 frustumCenter(0.0f, 0.0f, 0.0f);
-    for (uint32 i = 0; i < corners.size(); ++i)
-    {
-        frustumCenter = frustumCenter + corners[i];
-    }
-    frustumCenter /= static_cast<float>(corners.size());
-    //
-    float radius = 0.0f;
-    for (Vector3 const& corner : corners)
-    {
-        float distance = Vector3::Distance(corner, frustumCenter);
-        radius = std::max(radius, distance);
-    }
-    radius = std::ceil(radius * 8.0f) / 8.0f; // ±×¸²ÀÚ ¸Ê ÇØ»óµµ¿¡ ¸ÂÃã.
-
-    const Vector3 max_extents(radius, radius, radius);
-    const Vector3 min_extents = -max_extents;
-    const Vector3 cascade_extents = max_extents - min_extents;
-
-    Vector4 lightDir = light.direction;
-    lightDir.Normalize();
-    Vector3 up = Vector3::Up;
-
-    if (abs(up.Dot(Vector3(lightDir)) + 1.0f) < 1e-5)
-        up = Vector3(1.0f, 0.0f, 0.0f);
-
-    Matrix lightViewRow = XMMatrixLookAtLH(frustumCenter, frustumCenter + 1.0f * lightDir * radius, up);
-
-    float l = min_extents.x;
-    float b = min_extents.y;
-    float n = min_extents.z;
-    float r = max_extents.x;
-    float t = max_extents.y;
-    float f = max_extents.z * 1.5f;
-
-    Matrix lightProjRow = XMMatrixOrthographicOffCenterLH(l, r, b, t, n, f);
-    Matrix lightViewProjRow = lightViewRow * lightProjRow;
-    
-    // 카메라 위치 변화에 따른 그림자 떨림 방지를 위한 offset
-    Vector3 shadowOrigin = Vector3(0.0f, 0.0f, 0.0f);
-    shadowOrigin = Vector3::Transform(shadowOrigin, lightViewProjRow); // 그림자 좌표 공간에서의 원점
-    shadowOrigin *= (SHADOW_MAP_SIZE / 2.0f); // 그림자 원점을 texture pixel 단위로 변환
-
-    Vector3 roundedOrigin = XMVectorRound(shadowOrigin);
-    Vector3 roundedOffset = roundedOrigin - shadowOrigin; // texel에 맞추기 위한 offset 계산
-
-    roundedOffset *= (2.0f / SHADOW_MAP_SIZE); // 그림자 맵 좌표계로 다시 변환
-    roundedOffset.z = 0.0f; // 깊이값 영향 무시
-    
-    // offset을 x, y값에 더하여 그림자가 texel의 중앙에 위치하도록 조정
-    lightProjRow.m[3][0] += roundedOffset.x;
-    lightProjRow.m[3][1] += roundedOffset.y;
-
-    BoundingBox::CreateFromPoints(cullBox, Vector4(l, b, n, 1.0f), Vector4(r, t, f, 1.0f));
-    cullBox.Transform(cullBox, lightViewRow.Invert()); // Camera View Space -> world Space
-
-    return {lightViewRow, lightProjRow};
-}
-} // namespace
 
 Renderer::Renderer(entt::registry& reg, ID3D11Device* device, ID3D11DeviceContext* context, Camera* camera, uint32 width,
                    uint32 height)
@@ -275,7 +198,7 @@ void Renderer::OnLeftMouseClicked(uint32 mx, uint32 my)
 
 
         selectedEntity = static_cast<entt::entity>(pData.x);
-        auto& aabb = m_reg.get<AABB>(selectedEntity);
+        auto aabb = m_reg.try_get<AABB>(selectedEntity);
         // if (!aabb.isDrawAABB)
         //     aabb.isDrawAABB = true;
         // else
@@ -923,7 +846,7 @@ void Renderer::PassShadowMapDirectional(Light const& light)
 
     // ShadowConstantBuffer Update about Light View
     {
-        auto const& [V, P] = DirectionalLightViewProjection(light, m_camera, lightBoundingBox);
+        auto const& [V, P] = LightFrustum::DirectionalLightViewProjection(light, m_camera, lightBoundingBox);
 
         shadowConstsCPU.lightViewProj = (V * P).Transpose();
         shadowConstsCPU.lightView = V.Transpose();
