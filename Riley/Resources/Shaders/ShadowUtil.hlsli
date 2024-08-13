@@ -55,8 +55,8 @@ float CalcShadowCascadeMapFCF3x3(LightData light, float3 viewPos, Texture2DArray
                 const float2 offsets[9] =
                 {
                     float2(-dx, -dx), float2(0.0f, -dx), float2(dx, -dx),
-		        float2(-dx, 0.0f), float2(0.0f, 0.0f), float2(dx, 0.0f),
-		        float2(-dx, +dx), float2(0.0f, +dx), float2(dx, +dx)
+		            float2(-dx, 0.0f), float2(0.0f, 0.0f), float2(dx, 0.0f),
+		            float2(-dx, +dx), float2(0.0f, +dx), float2(dx, +dx)
                 };
         
                 for (int j = 0; j < 9; ++j)

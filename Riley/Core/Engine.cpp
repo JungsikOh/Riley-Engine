@@ -39,7 +39,7 @@ Engine::Engine(EngineInit const& init) : window(init.window), vsync{init.vsync}
     CameraParameters cp = ParseCameraParam();
     cp.position = Vector3(0.0f, 0.2f, -1.0f);
     camera = new Camera(cp);
-    renderer = new Renderer(m_registry, m_device, m_context, camera, window->Width(), window->Height());
+    renderer = new Renderer(m_registry, m_device, m_context, pAnnotation, camera, window->Width(), window->Height());
     modelImporter = new ModelImporter(m_device, m_registry);
 
     InputEvents& inputEvents = g_Input.GetInputEvents();
@@ -143,17 +143,13 @@ void Engine::CreateSwapChainAndDevice()
     if (SUCCEEDED(hr))
     {
         OutputDebugString(L"Debug layer successfully enabled.\n");
-        // Microsoft::WRL::ComPtr<ID3D11InfoQueue> infoQueue;
-        // if (SUCCEEDED(m_device->QueryInterface(infoQueue.GetAddressOf())))
-        //    {
-        //       infoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_CORRUPTION, true);
-        //       infoQueue->SetBreakOnSeverity(D3D11_MESSAGE_SEVERITY_ERROR, true);
-        //    }
     }
     else
     {
         OutputDebugString(L"Failed to enable debug layer.\n");
     }
+
+    HR(m_context->QueryInterface(__uuidof(ID3DUserDefinedAnnotation), reinterpret_cast<void**>(&pAnnotation)));
 }
 
 void Engine::CreateBackBufferResources(uint32 width, uint32 height)

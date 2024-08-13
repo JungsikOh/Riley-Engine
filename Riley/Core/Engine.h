@@ -56,6 +56,7 @@ class Engine
    ID3D11Device* m_device = nullptr;
    ID3D11DeviceContext* m_context = nullptr;
    IDXGISwapChain* m_swapChain = nullptr;
+   ID3DUserDefinedAnnotation* pAnnotation = nullptr;
    ID3D11Debug* m_debugLayer;
 
    /* App Level APIs */

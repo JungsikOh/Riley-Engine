@@ -91,10 +91,7 @@ DECLSPEC_ALIGN(16) struct ShadowConsts
     Matrix shadowCascadeMapViewProj[CASCADE_COUNT]; // cascade shadow mapping
     Matrix shadowCubeMapViewProj[6];
 
-    float split0;
-    float split1;
-    float split2;
-    float split3;
+    float splits[4];
 
     float softness;
     int32 shadowMapSize = CASCADE_COUNT;

@@ -163,6 +163,7 @@
     <ClCompile Include="Graphics\DXRenderPass.cpp" />
     <ClCompile Include="Graphics\DXRenderTarget.cpp" />
     <ClCompile Include="Graphics\DXResource.cpp" />
+    <ClCompile Include="Graphics\DXScopedAnnotation.cpp" />
     <ClCompile Include="Graphics\DXShaderCompiler.cpp" />
     <ClCompile Include="Graphics\DXShaderProgram.cpp" />
     <ClCompile Include="Graphics\DXStates.cpp" />
@@ -311,6 +312,7 @@
     <ClInclude Include="Graphics\DXRenderPass.h" />
     <ClInclude Include="Graphics\DXRenderTarget.h" />
     <ClInclude Include="Graphics\DXResourceCommon.h" />
+    <ClInclude Include="Graphics\DXScopedAnnotation.h" />
     <ClInclude Include="Graphics\DXShaderCompiler.h" />
     <ClInclude Include="Graphics\DXShaderProgram.h" />
     <ClInclude Include="Graphics\DXStates.h" />

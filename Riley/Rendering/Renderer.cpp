@@ -3,6 +3,7 @@
 #include "../Graphics/DXShaderCompiler.h"
 #include "../Graphics/DXShaderProgram.h"
 #include "../Graphics/DXStates.h"
+#include "../Graphics/DXScopedAnnotation.h"
 #include "../Math/CalcLightFrustum.h"
 #include "../Math/ComputeVectors.h"
 #include "Camera.h"
@@ -12,9 +13,10 @@
 namespace Riley
 {
 
-Renderer::Renderer(entt::registry& reg, ID3D11Device* device, ID3D11DeviceContext* context, Camera* camera, uint32 width,
+Renderer::Renderer(entt::registry& reg, ID3D11Device* device, ID3D11DeviceContext* context, ID3DUserDefinedAnnotation* pAnnotation, Camera* camera,
+                   uint32 width,
                    uint32 height)
-    : m_reg(reg), m_camera(camera), m_device(device), m_context(context), m_width(width), m_height(height)
+    : m_reg(reg), m_camera(camera), m_device(device), m_context(context), m_annotation(*pAnnotation), m_width(width), m_height(height)
 {
     ShaderManager::Initialize(m_device);
     timer.Mark();
@@ -104,6 +106,7 @@ void Renderer::Render(RenderSetting& _setting)
     // PassForward();
     PassGBuffer();
     PassSSAO();
+
     PassAmbient();
     PassDeferredLighting();
 
@@ -595,12 +598,6 @@ void Renderer::LightFrustumCulling(const Light& light)
             aabb.isLightVisible = aabb.isLightVisible ? true : lightBoundingBox.Intersects(aabb.boundingBox);
             break;
         case LightType::Point:
-            for (uint32 i = 0; i < 6; ++i)
-            {
-                aabb.isLightVisible = aabb.isLightVisible ? true : lightBoundingFrustumCube[i].Intersects(aabb.boundingBox);
-                break;
-            }
-            break;
         case LightType::Spot:
             aabb.isLightVisible = aabb.isLightVisible ? true : lightBoundingFrustum.Intersects(aabb.boundingBox);
             break;
@@ -693,6 +690,7 @@ void Renderer::PassForwardPhong()
 
 void Renderer::PassGBuffer()
 {
+    RILEY_SCOPED_ANNOTATION(m_annotation, "GBuffer Pass");
     SetSceneViewport(static_cast<float>(gbufferPass.width), static_cast<float>(gbufferPass.height));
     gbufferPass.BeginRenderPass(m_context);
 
@@ -702,6 +700,16 @@ void Renderer::PassGBuffer()
     for (auto& entity : entityView)
     {
         auto [mesh, material, transform, aabb] = entityView.get<Mesh, Material, Transform, AABB>(entity);
+
+        Matrix parent = Matrix::Identity;
+        if (auto root = m_reg.try_get<Relationship>(entity))
+        {
+            if (auto rootTransform = m_reg.try_get<Transform>(root->parent))
+                parent = rootTransform->currentTransform;
+        }
+        aabb.boundingBox = aabb.orginalBox;
+        aabb.boundingBox.Transform(aabb.boundingBox, transform.currentTransform * parent);
+        aabb.UpdateBuffer(m_device);
 
         if (m_camera->Frustum().Contains(aabb.boundingBox)) // m_camera->Frustum().Contains(aabb.boundingBox)
         {
@@ -716,16 +724,6 @@ void Renderer::PassGBuffer()
 
             draw++;
             ShaderManager::GetShaderProgram(ShaderProgram::GBuffer)->Bind(m_context);
-
-            Matrix parent = Matrix::Identity;
-            if (auto root = m_reg.try_get<Relationship>(entity))
-            {
-                if (auto rootTransform = m_reg.try_get<Transform>(root->parent))
-                    parent = rootTransform->currentTransform;
-            }
-            aabb.boundingBox = aabb.orginalBox;
-            aabb.boundingBox.Transform(aabb.boundingBox, transform.currentTransform * parent);
-            aabb.UpdateBuffer(m_device);
 
             objectConstsCPU.world = (transform.currentTransform * parent).Transpose();
             objectConstsCPU.worldInvTranspose = transform.currentTransform.Invert().Transpose();
@@ -758,6 +756,7 @@ void Renderer::PassGBuffer()
 
 void Renderer::PassAmbient()
 {
+    RILEY_SCOPED_ANNOTATION(m_annotation, "AmbientEmissive Pass");
     SetSceneViewport(static_cast<float>(deferredLightingPass.width), static_cast<float>(deferredLightingPass.height));
     deferredLightingPass.BeginRenderPass(m_context);
 
@@ -780,6 +779,7 @@ void Renderer::PassAmbient()
 
 void Renderer::PassDeferredLighting()
 {
+    RILEY_SCOPED_ANNOTATION(m_annotation, "DeferredLighting Pass");
     auto lightView = m_reg.view<Light>();
     for (auto& e : lightView)
     {
@@ -820,7 +820,7 @@ void Renderer::PassDeferredLighting()
 
         additiveBS->Bind(m_context);
         SetSceneViewport(static_cast<float>(deferredLightingPass.width), static_cast<float>(deferredLightingPass.height));
-        deferredLightingPass.BeginRenderPass(m_context, false, false);
+        deferredLightingPass.BeginRenderPass(m_context, false, false, 0);
 
         // Render Mesh
         {
@@ -842,12 +842,14 @@ void Renderer::PassDeferredLighting()
             shadowCubeMapPass.attachmentDSVs->UnbindSRV(m_context, 5, DXShaderStage::PS);
             shadowCascadeMapPass.attachmentDSVs->UnbindSRV(m_context, 6, DXShaderStage::PS);
         }
+        deferredLightingPass.EndRenderPass(m_context);
     }
     additiveBS->Unbind(m_context);
 }
 
 void Renderer::PassSSAO()
 {
+    RILEY_SCOPED_ANNOTATION(m_annotation, "SSAO Pass");
     // 1. SSAO
     SetSceneViewport(static_cast<float>(ssaoPass.width), static_cast<float>(ssaoPass.height));
     ssaoPass.BeginRenderPass(m_context);
@@ -876,7 +878,6 @@ void Renderer::PassSSAO()
         gbufferPass.attachmentDSVs->UnbindSRV(m_context, 3, DXShaderStage::PS);
         ssaoNoiseTex->UnbindSRV(m_context, 4, DXShaderStage::PS);
     }
-    ssaoPass.EndRenderPass(m_context);
 
     // 2. SSAO Blur
     {
@@ -895,12 +896,13 @@ void Renderer::PassSSAO()
 
         ssaoPass.attachmentRTVs->UnbindSRV(m_context, 0, DXShaderStage::PS);
     }
+    ssaoPass.EndRenderPass(m_context);
 }
 
 void Renderer::PassShadowMapDirectional(const Light& light)
 {
     assert(light.type == LightType::Directional);
-
+    RILEY_SCOPED_ANNOTATION(m_annotation, "Directional Shadow Map Pass");
     // ShadowConstantBuffer Update about Light View
     {
         const auto& [V, P] = LightFrustum::DirectionalLightViewProjection(light, m_camera, lightBoundingBox);
@@ -917,14 +919,21 @@ void Renderer::PassShadowMapDirectional(const Light& light)
     LightFrustumCulling(light);
 
     auto entityView = m_reg.view<Mesh, Material, Transform, AABB>(entt::exclude<Light>);
-    for (auto& entity : entityView)
+    for (auto& e : entityView)
     {
-        auto [mesh, material, transform, aabb] = entityView.get<Mesh, Material, Transform, AABB>(entity);
+        auto [mesh, material, transform, aabb] = entityView.get<Mesh, Material, Transform, AABB>(e);
         if (aabb.isLightVisible)
         {
             ShaderManager::GetShaderProgram(ShaderProgram::ShadowDepthMap)->Bind(m_context);
 
-            objectConstsCPU.world = transform.currentTransform.Transpose();
+            Matrix parent = Matrix::Identity;
+            if (auto root = m_reg.try_get<Relationship>(e))
+            {
+                if (auto rootTransform = m_reg.try_get<Transform>(root->parent))
+                    parent = rootTransform->currentTransform;
+            }
+
+            objectConstsCPU.world = (transform.currentTransform * parent).Transpose();
             objectConstsCPU.worldInvTranspose = transform.currentTransform.Invert();
             objectConstsGPU->Update(m_context, objectConstsCPU, sizeof(objectConstsCPU));
 
@@ -939,7 +948,7 @@ void Renderer::PassShadowMapDirectional(const Light& light)
 void Renderer::PassShadowMapCascade(const Light& light)
 {
     assert(light.type == LightType::Directional);
-
+    RILEY_SCOPED_ANNOTATION(m_annotation, "Directional Shadow Cascade Map Pass");
     // Light Frustum Part
     std::array<float, CASCADE_COUNT> splitDistances{};
     std::array<Matrix, CASCADE_COUNT> cascadeFrustumProjRow =
@@ -953,12 +962,9 @@ void Renderer::PassShadowMapCascade(const Light& light)
         shadowConstsCPU.shadowCascadeMapViewProj[i] = (V * P).Transpose();
         shadowConstsCPU.shadowMapSize = SHADOW_CASCADE_SIZE;
         shadowConstsCPU.shadowMatrices[i] = shadowConstsCPU.shadowCascadeMapViewProj[i] * m_camera->GetView().Invert();
+        shadowConstsCPU.splits[i] = splitDistances[i];
         LightFrustumCulling(light);
     }
-    shadowConstsCPU.split0 = splitDistances[0];
-    shadowConstsCPU.split1 = splitDistances[1];
-    shadowConstsCPU.split2 = splitDistances[2];
-    shadowConstsCPU.split3 = splitDistances[3];
     shadowConstsGPU->Update(m_context, shadowConstsCPU, sizeof(shadowConstsCPU));
 
     // Mesh Render Part
@@ -971,10 +977,17 @@ void Renderer::PassShadowMapCascade(const Light& light)
         auto [mesh, transform, aabb] = entitiesView.get<Mesh, Transform, AABB>(e);
         if (aabb.isLightVisible)
         {
-            // TODO : Cascade Shadow mapping shader
+
             ShaderManager::GetShaderProgram(ShaderProgram::ShadowCascadeMap)->Bind(m_context);
 
-            objectConstsCPU.world = transform.currentTransform.Transpose();
+            Matrix parent = Matrix::Identity;
+            if (auto root = m_reg.try_get<Relationship>(e))
+            {
+                if (auto rootTransform = m_reg.try_get<Transform>(root->parent))
+                    parent = rootTransform->currentTransform;
+            }
+
+            objectConstsCPU.world = (transform.currentTransform * parent).Transpose();
             objectConstsCPU.worldInvTranspose = transform.currentTransform.Invert().Transpose();
             objectConstsGPU->Update(m_context, objectConstsCPU, sizeof(objectConstsCPU));
 
@@ -989,6 +1002,7 @@ void Renderer::PassShadowMapCascade(const Light& light)
 void Renderer::PassShadowMapSpot(const Light& light)
 {
     assert(light.type == LightType::Spot);
+    RILEY_SCOPED_ANNOTATION(m_annotation, "Spot Shadow Map Pass");
 
     // ShadowConstantBuffer Update about Light View
     {
@@ -1020,15 +1034,22 @@ void Renderer::PassShadowMapSpot(const Light& light)
 
     // Render Mesh
     auto entityView = m_reg.view<Mesh, Material, Transform, AABB>(entt::exclude<Light>);
-    for (auto& entity : entityView)
+    for (auto& e : entityView)
     {
-        auto [mesh, material, transform, aabb] = entityView.get<Mesh, Material, Transform, AABB>(entity);
+        auto [mesh, material, transform, aabb] = entityView.get<Mesh, Material, Transform, AABB>(e);
         if (aabb.isLightVisible)
         {
 
             ShaderManager::GetShaderProgram(ShaderProgram::ShadowDepthMap)->Bind(m_context);
 
-            objectConstsCPU.world = transform.currentTransform.Transpose();
+            Matrix parent = Matrix::Identity;
+            if (auto root = m_reg.try_get<Relationship>(e))
+            {
+                if (auto rootTransform = m_reg.try_get<Transform>(root->parent))
+                    parent = rootTransform->currentTransform;
+            }
+
+            objectConstsCPU.world = (transform.currentTransform * parent).Transpose();
             objectConstsCPU.worldInvTranspose = transform.currentTransform.Invert().Transpose();
             objectConstsGPU->Update(m_context, objectConstsCPU, sizeof(objectConstsCPU));
 
@@ -1043,6 +1064,7 @@ void Renderer::PassShadowMapSpot(const Light& light)
 void Renderer::PassShadowMapPoint(const Light& light)
 {
     assert(light.type == LightType::Point);
+    RILEY_SCOPED_ANNOTATION(m_annotation, "Point Shadow Cube Map Pass");
 
     {
         Matrix lightViewRow = Matrix::Identity;
@@ -1063,10 +1085,12 @@ void Renderer::PassShadowMapPoint(const Light& light)
 
             lightBoundingFrustumCube[face] = BoundingFrustum(lightProjRow);
             lightBoundingFrustumCube[face].Transform(lightBoundingFrustumCube[face], lightViewRow.Invert());
+            lightBoundingFrustum = BoundingFrustum(lightProjRow);
+            lightBoundingFrustum.Transform(lightBoundingFrustum, lightViewRow.Invert());
+            LightFrustumCulling(light);
         }
         shadowConstsCPU.shadowMapSize = SHADOW_CUBE_SIZE;
         shadowConstsGPU->Update(m_context, shadowConstsCPU, sizeof(shadowConstsCPU));
-        LightFrustumCulling(light);
     }
 
     SetSceneViewport(static_cast<float>(shadowCubeMapPass.width), static_cast<float>(shadowCubeMapPass.height));
@@ -1074,15 +1098,22 @@ void Renderer::PassShadowMapPoint(const Light& light)
 
     // Render Mesh
     auto entityView = m_reg.view<Mesh, Material, Transform, AABB>(entt::exclude<Light>);
-    for (auto& entity : entityView)
+    for (auto& e : entityView)
     {
-        auto [mesh, material, transform, aabb] = entityView.get<Mesh, Material, Transform, AABB>(entity);
+        auto [mesh, material, transform, aabb] = entityView.get<Mesh, Material, Transform, AABB>(e);
 
         if (aabb.isLightVisible)
         {
             ShaderManager::GetShaderProgram(ShaderProgram::ShadowDepthCubeMap)->Bind(m_context);
 
-            objectConstsCPU.world = transform.currentTransform.Transpose();
+            Matrix parent = Matrix::Identity;
+            if (auto root = m_reg.try_get<Relationship>(e))
+            {
+                if (auto rootTransform = m_reg.try_get<Transform>(root->parent))
+                    parent = rootTransform->currentTransform;
+            }
+
+            objectConstsCPU.world = (transform.currentTransform * parent).Transpose();
             objectConstsCPU.worldInvTranspose = transform.currentTransform.Invert().Transpose();
             objectConstsGPU->Update(m_context, objectConstsCPU, sizeof(objectConstsCPU));
 
@@ -1096,6 +1127,8 @@ void Renderer::PassShadowMapPoint(const Light& light)
 
 void Renderer::PassAABB()
 {
+    RILEY_SCOPED_ANNOTATION(m_annotation, "AABB Pass");
+
     SetSceneViewport(static_cast<float>(deferredLightingPass.width), static_cast<float>(deferredLightingPass.height));
     deferredLightingPass.BeginRenderPass(m_context, false, false);
     wireframeRS->Bind(m_context);
@@ -1132,6 +1165,8 @@ void Renderer::PassAABB()
 
 void Renderer::PassLight()
 {
+    RILEY_SCOPED_ANNOTATION(m_annotation, "Solid Light Pass");
+
     SetSceneViewport(static_cast<float>(deferredLightingPass.width), static_cast<float>(deferredLightingPass.height));
     deferredLightingPass.BeginRenderPass(m_context, false, false);
     noneDepthDSS->Bind(m_context, 0);
@@ -1159,6 +1194,8 @@ void Renderer::PassLight()
 
 void Renderer::PassEntityID()
 {
+    RILEY_SCOPED_ANNOTATION(m_annotation, "Entity ID Pass");
+
     SetSceneViewport(static_cast<float>(m_width), static_cast<float>(m_height));
     static float color[4] = {(float)uint32(-1), 0.0f, 0.0f, 0.0f};
     entityIdDSV->Clear(m_context, 1.0f, 0);

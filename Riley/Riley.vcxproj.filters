@@ -129,6 +129,9 @@
     <ClCompile Include="Rendering\ModelLoader.cpp">
       <Filter>Core</Filter>
     </ClCompile>
+    <ClCompile Include="Graphics\DXScopedAnnotation.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\CoreTypes.h">
@@ -627,6 +630,9 @@
       <Filter>Utilities</Filter>
     </ClInclude>
     <ClInclude Include="Math\CalcLightFrustum.h">
+      <Filter>Utilities</Filter>
+    </ClInclude>
+    <ClInclude Include="Graphics\DXScopedAnnotation.h">
       <Filter>Utilities</Filter>
     </ClInclude>
   </ItemGroup>

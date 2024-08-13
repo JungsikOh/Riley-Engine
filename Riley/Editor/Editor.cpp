@@ -287,9 +287,15 @@ void Editor::Properties()
             auto transform = engine->m_registry.try_get<Transform>(selected_entity);
             if(light) transform->currentTransform = Matrix::CreateTranslation(Vector3(light->position));
 
-            // TODO : Transform Error 고치기.
             if (!light && transform && ImGui::CollapsingHeader("Transform"))
             {
+                Matrix parent = Matrix::Identity;
+                if (auto root = engine->m_registry.try_get<Relationship>(selected_entity))
+                {
+                    if (auto rootTransform = engine->m_registry.try_get<Transform>(root->parent))
+                        parent = rootTransform->currentTransform;
+                }
+
                 Matrix tr = transform->currentTransform;
                 Vector3 translation = tr.Translation();
                 Quaternion q = Quaternion::CreateFromRotationMatrix(ExtractRoationMatrix(tr));
