@@ -27,10 +27,10 @@ VSToPS GBufferVS(VSInput input)
     pos = mul(pos, meshData.world);
     output.posProj = mul(pos, frameData.viewProj);
     
-    output.normalWS = mul(input.normalModel, (float3x3) transpose(meshData.worldInvTranspose));
-    output.normalVS = mul(output.normalWS, (float3x3) frameData.invView);
-    output.tangentWS = mul(input.tangentModel, (float3x3) meshData.worldInvTranspose);
-    output.bitangentWS = mul(input.bitangentModel, (float3x3) meshData.worldInvTranspose);
+    output.normalWS = mul(input.normalModel, (float3x3) meshData.worldInvTranspose);
+    output.normalVS = mul(output.normalWS, (float3x3) frameData.view);
+    output.tangentWS = mul(input.tangentModel, (float3x3) meshData.world);
+    output.bitangentWS = mul(input.bitangentModel, (float3x3) meshData.world);
     output.texcoord = input.texcoord;
 
     return output;
@@ -52,19 +52,28 @@ float3 GetNormal(VSToPS input)
 {
     float3 normalWorld = normalize(input.normalWS);
     
-    normalWorld.y = -normalWorld.y;
+    if (materialData.useNormalMap)
+    {
+        float4 viewPos = mul(input.posProj, frameData.invProj);
         
-    float3 N = normalWorld;
-    float3 T = normalize(input.tangentWS);
-    float3 B = normalize(cross(N, T));
+        float dist = length(float3(0, 0, 0) - viewPos.xyz);
+        float distMin = 3.0;
+        float distMax = 10.0;
+        float lod = 2.0 * saturate(dist / (distMax - distMin));
         
-    float3x3 TBN = float3x3(T, B, N);
-    
-    float3 normal = NormalTex.SampleLevel(LinearWrapSampler, input.texcoord, 1).rgb; // ¹üÀ§ [0, 1]
-    normal = 2.0 * normal - 1.0;
-    float3 newNormal = mul(normal, TBN);
+        float3 normal = NormalTex.SampleLevel(LinearWrapSampler, input.texcoord, lod).rgb; // ¹üÀ§ [0, 1]
+        normal = 2.0 * normal - 1.0;
+        
+        float3 N = normalWorld;
+        //float3 T = normalize(input.tangentWS - dot(input.tangentWS, N) * N);
+        float3 T = normalize(input.tangentWS);
+        float3 B = normalize(cross(N, T));
+        
+        float3x3 TBN = float3x3(T, B, N);
+        normalWorld = mul(normal, TBN);
+    }
 
-    return newNormal;
+    return normalWorld;
 }
 
 PSOutput PackGBuffer(float3 baseColor, float3 normalVS, float4 emissive, float roughness, float metallic)
@@ -84,6 +93,8 @@ PSOutput GBUfferPS(VSToPS input)
     
     float ao = materialData.albedoFactor;
     float metallic = MetallicRoughnessTex.Sample(LinearWrapSampler, input.texcoord).b;
+    if(metallic < 0.1)
+        metallic = materialData.metallicFactor;
     float roughness = MetallicRoughnessTex.Sample(LinearWrapSampler, input.texcoord).g;
     float3 aoRoughnessMetallic = float3(ao, roughness, metallic);
     

@@ -14,7 +14,9 @@ SamplerState LinearWrapSampler : register(s0);
 SamplerState LinearClampSampler : register(s1);
 SamplerState LinearBorderSampler : register(s2);
 SamplerState PointWrapSampler : register(s3);
-SamplerComparisonState ShadowSampler : register(s4);
+SamplerState PointClampSampler : register(s4);
+SamplerState AnisotropicSampler : register(s5);
+SamplerComparisonState ShadowSampler : register(s6);
 
 cbuffer FrameBufferConsts : register(b0)
 {
@@ -55,6 +57,20 @@ static float3 GetViewSpacePosition(float2 texcoord, float depth)
     clipSpaceLocation.w = 1.0f;
     float4 homogenousLocation = mul(clipSpaceLocation, frameData.invProj);
     return homogenousLocation.xyz / homogenousLocation.w;
+}
+
+static float ConvertZToLinearDepth(float depth)
+{
+    float cameraNear = frameData.cameraNear;
+    float cameraFar = frameData.cameraFar;
+    return (cameraNear * cameraFar) / (cameraFar - depth * (cameraFar - cameraNear));
+}
+
+static float LevelOfDepth(float3 viewPos, float3 cameraPos)
+{
+    float distance = length(viewPos - cameraPos);
+    float lod = log2(distance * 1.0);
+    return lod;
 }
 
 static const float2 PoissonSamples[64] =

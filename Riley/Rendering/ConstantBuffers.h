@@ -27,10 +27,15 @@ struct FrameBufferConsts
     float cameraJitterX;
     float cameraJitterY;
 
+    float cameraFrustumX;
+    float cameraFrustumY;
+    Vector2 _dummy;
+
     float screenResolutionX;
     float screenResolutionY;
     float mouseNormalizedCoordsX;
     float mouseNormalizedCoordsY;
+
 };
 
 struct LightConsts
@@ -59,7 +64,7 @@ struct ObjectConsts
 struct MaterialConsts
 {
     Vector3 ambient;
-    int32 entityID;
+    int32 useNormalMap;
     Vector3 diffuse;
     float alphaCutoff;
     Vector3 specular;
@@ -81,6 +86,10 @@ DECLSPEC_ALIGN(16) struct PostprocessConsts
     Vector3 _dummy;
 
     Vector4 samples[16];
+
+    float ssrRayStep; // 한걸음에 얼마나 나아갈지에 대한 변수
+    float ssrThickness;
+    Vector2 _dummy2;
 };
 
 DECLSPEC_ALIGN(16) struct ShadowConsts

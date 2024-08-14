@@ -44,7 +44,7 @@ class Renderer
     void SetSceneViewport(SceneViewport const& viewport);
     DXRenderTarget* GetOffScreenRTV()
     {
-        return ambientLightingRTV;
+        return pingPostprocessRTV;
     }
 
     void Render(RenderSetting& _setting);
@@ -54,6 +54,10 @@ class Renderer
     entt::entity GetSelectedEntity() const
     {
         return selectedEntity;
+    }
+    void SetSelectedEntity(entt::entity e)
+    {
+        selectedEntity = e;
     }
 
   protected:
@@ -118,6 +122,8 @@ class Renderer
     DXSampler* linearClampSS;
     DXSampler* linearBorderSS;
     DXSampler* pointWrapSS;
+    DXSampler* pointClampSS;
+    DXSampler* anisotropyWrapSS;
     DXSampler* shadowLinearBorderSS;
 
     // Render Target Views
@@ -126,7 +132,8 @@ class Renderer
     DXRenderTarget* ambientLightingRTV;
     DXRenderTarget* ssaoRTV;
     DXRenderTarget* ssaoBlurRTV;
-    DXRenderTarget* postProcessRTV;
+    DXRenderTarget* pingPostprocessRTV;
+    DXRenderTarget* pongPostprocessRTV;
     DXRenderTarget* entityIdRTV;
 
     // Depth Stencil Buffers(View)
@@ -135,6 +142,8 @@ class Renderer
     DXDepthStencilBuffer* ambientLightingDSV;
     DXDepthStencilBuffer* ssaoDSV;
     DXDepthStencilBuffer* ssaoBlurDSV;
+    DXDepthStencilBuffer* pingPostprocessDSV;
+    DXDepthStencilBuffer* pongPostprocessDSV;
     DXDepthStencilBuffer* depthMapDSV;
     DXDepthStencilBuffer* shadowDepthMapDSV;
     DXDepthStencilBuffer* shadowCascadeMapDSV;
@@ -149,7 +158,8 @@ class Renderer
     DXRenderPassDesc shadowMapPass;
     DXRenderPassDesc shadowCascadeMapPass;
     DXRenderPassDesc shadowCubeMapPass;
-    DXRenderPassDesc postProcessPass;
+    std::array<DXRenderPassDesc, 2> postprocessPasses;
+    bool postprocessIndex = false;
 
   private:
     void CreateBuffers();
@@ -172,6 +182,9 @@ class Renderer
     void PassAmbient();
     void PassDeferredLighting();
     void PassSSAO();
+    void PassPostprocessing();
+
+    void PassSSR();
 
     void PassShadowMapDirectional(const Light& light);
     void PassShadowMapCascade(const Light& light);

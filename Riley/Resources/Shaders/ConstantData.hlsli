@@ -26,6 +26,10 @@ struct FrameData
     float cameraFar;
     float cameraJitterX;
     float cameraJitterY;
+    
+    float cameraFrustumX;
+    float cameraFrustumY;
+    float2 _dummy3;
 
     float screenResolutionX;
     float screenResolutionY;
@@ -59,7 +63,7 @@ struct MeshData
 struct MaterialData
 {
     float3 ambient;
-    float _padding1;
+    int useNormalMap;
     float3 diffuse;
     float alphaCutoff;
     float3 specular;
@@ -81,6 +85,10 @@ struct PostprocessData
     float3 _dummy;
     
     float4 samples[16];
+    
+    float ssrRayStep; // 한걸음에 얼마나 나아갈지에 대한 변수
+    float ssrThickness;
+    float2 _dummy2;
 };
 
 struct ShadowData

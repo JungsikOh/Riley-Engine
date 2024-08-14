@@ -87,7 +87,7 @@ Model ModelLoader::ProcessMesh(aiMesh* mesh, const aiScene* scene)
         vertex.normal.x = mesh->mNormals[i].x;
         if (m_isGLTF)
         {
-            vertex.normal.y = -mesh->mNormals[i].y;
+            vertex.normal.y = mesh->mNormals[i].y;
             vertex.normal.z = mesh->mNormals[i].z;
         }
         else

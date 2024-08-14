@@ -508,7 +508,7 @@ std::vector<entt::entity> ModelImporter::LoadModel(std::string basePath, std::st
         indices = data.meshData.indices;
 
         //ComputeAndSetNormals(indices, vertices);
-        //ComputeAndSetTangets(indices, vertices);
+        ComputeAndSetTangets(indices, vertices);
 
         entt::entity e = m_registry.create();
         entities.push_back(e);

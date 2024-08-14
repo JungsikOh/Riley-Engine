@@ -40,13 +40,14 @@ struct COMPONENT Material
     TextureHandle emissiveTexture = INVALID_TEXTURE_HANDLE;
 
    float albedoFactor = 1.0f;
-   float metallicFactor = 1.0f;
+   float metallicFactor = 0.001f;
    float roughnessFactor = 1.0f;
    float emissiveFactor = 1.0f;
 
    MaterialAlphaMode alphaMode;
    float alphaCutoff = 0.5f;
    bool doubleSided = false;
+   bool useNormalMap = true;
 
    Vector3 diffuse = Vector3(1, 1, 1);
    ShaderProgram shader = ShaderProgram::UnKnown;

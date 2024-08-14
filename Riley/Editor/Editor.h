@@ -28,6 +28,8 @@ class Editor {
     void OnWindowEvent(WindowEventData const&);
     void Run();
 
+    void SetSelectedEntity();
+
   private:
     Engine* engine;
     ImGuiLayer* gui;

@@ -35,6 +35,12 @@ void Editor::OnWindowEvent(WindowEventData const& msg_data)
     gui->HandleWindowMessage(msg_data);
 }
 
+void Editor::SetSelectedEntity ()
+{
+    selected_entity = engine->renderer->GetSelectedEntity();
+    std::cout << (uint64)selected_entity << std::endl;
+}
+
 void Editor::Run()
 {
     static constexpr float clearDarkBlue[4] = {0.0f, 0.21f, 0.38f, 0.0f};
@@ -173,6 +179,11 @@ void Editor::ListEntities()
 {
     // if (!window_flags[Flag_Entities])
     //     return;
+    if (isSceneFocused)
+    {
+        SetSelectedEntity();
+    }
+
     auto all_entities = engine->m_registry.view<Tag>();
     if (ImGui::Begin("Entities", &window_flags[Flag_Entities]))
     {
@@ -183,26 +194,21 @@ void Editor::ListEntities()
                 return;
             auto& tag = all_entities.get<Tag>(e);
 
-            ImGuiTreeNodeFlags flags = ((selected_entity == e) ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_OpenOnArrow;
-            flags |= ImGuiTreeNodeFlags_SpanAvailWidth;
+            ImGuiTreeNodeFlags flags = ((selected_entity == e) ? ImGuiTreeNodeFlags_Selected : 0) | ImGuiTreeNodeFlags_SpanAvailWidth;
 
             bool opened = ImGui::TreeNodeEx(tag.name.c_str(), flags);
 
             if (ImGui::IsItemClicked())
             {
-                auto aabb = engine->m_registry.try_get<AABB>(selected_entity);
-                if (aabb)
-                    aabb->isDrawAABB = false;
                 if (e == selected_entity)
                 {
                     selected_entity = entt::null;
+                    engine->GetRenderer()->SetSelectedEntity(selected_entity);
                 }
                 else
                 {
                     selected_entity = e;
-                    auto aabb = engine->m_registry.try_get<AABB>(selected_entity);
-                    if (aabb)
-                        aabb->isDrawAABB = true;
+                    engine->GetRenderer()->SetSelectedEntity(selected_entity);
                 }
             }
 
@@ -317,6 +323,13 @@ void Editor::Properties()
                     aabb->UpdateBuffer(engine->GetDevice());
                 }
                 transform->currentTransform = tr;
+            }
+
+            auto material = engine->m_registry.try_get<Material>(selected_entity);
+            if (!light && material && ImGui::CollapsingHeader("Material"))
+            {
+                ImGui::SliderFloat("Metallic", &material->metallicFactor, 0.0f, 1.0f);
+                ImGui::Checkbox("Use NormalMap", &material->useNormalMap);
             }
         }
         ImGui::End();
