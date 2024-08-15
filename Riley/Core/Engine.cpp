@@ -54,6 +54,7 @@ Engine::Engine(EngineInit const& init) : window(init.window), vsync{init.vsync}
     // modelImporter->LoadSquare(Vector3(0.0f, -1.0f, 0.0f), 2.0f, 90.0f);
     modelImporter->LoadModel("Resources/Models/DamagedHelmet/", "DamagedHelmet.gltf", false, Vector3(0.0f), 0.1f);
     modelImporter->LoadModel("Resources/Models/Sponza/glTF/", "Sponza.gltf", false, Vector3(0.0f, 0.5f, 0.0f), 8.0f);
+    modelImporter->LoadModel("Resources/Models/ToyCar/glTF/", "ToyCar.gltf", false, Vector3(0.0f, 0.50f, 0.0f), 1.0f);
 
     Light light;
     light.position = Vector4(0.5f, 0.2f, 0.5f, 1.0f);
