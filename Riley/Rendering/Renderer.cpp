@@ -73,6 +73,7 @@ Renderer::~Renderer()
     SAFE_DELETE(linearBorderSS);
     SAFE_DELETE(pointWrapSS);
     SAFE_DELETE(pointClampSS);
+    SAFE_DELETE(anisotropyWrapSS);
     SAFE_DELETE(shadowLinearBorderSS);
 
     SAFE_DELETE(hdrDSV);

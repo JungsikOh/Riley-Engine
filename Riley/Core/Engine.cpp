@@ -92,6 +92,7 @@ Engine::~Engine()
 
     g_TextureManager.Destroy();
 
+    SAFE_RELEASE(pAnnotation);
     SAFE_RELEASE(m_swapChain);
     SAFE_RELEASE(m_context);
     SAFE_RELEASE(m_device);

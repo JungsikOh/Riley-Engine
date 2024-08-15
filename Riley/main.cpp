@@ -19,7 +19,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance
    _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
    _CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
    // memory new check, you can use writing memory leak number.
-   _CrtSetBreakAlloc(226);
+   //_CrtSetBreakAlloc(1243);
 
    Log::Initialize();
 

@@ -500,15 +500,18 @@ std::vector<entt::entity> ModelImporter::LoadModel(std::string basePath, std::st
     std::vector<entt::entity> entities{};
     std::unordered_map<std::string, std::vector<entt::entity>> meshNameToEntitiesMap;
 
+    uint32 vertexOffset = 0;
+    uint32 indexOffset = 0;
+
     for (auto& data : model)
     {
         std::vector<entt::entity>& meshEntities = meshNameToEntitiesMap[data.meshData.name];
         assert(data.meshData.indices.size() >= 0);
-        vertices = data.meshData.vertices;
-        indices = data.meshData.indices;
+        // vertices = data.meshData.vertices;
+        // indices = data.meshData.indices;
 
-        //ComputeAndSetNormals(indices, vertices);
-        ComputeAndSetTangets(indices, vertices);
+        // ComputeAndSetNormals(indices, vertices);
+        ComputeAndSetTangets(data.meshData.indices, data.meshData.vertices);
 
         entt::entity e = m_registry.create();
         entities.push_back(e);
@@ -546,16 +549,28 @@ std::vector<entt::entity> ModelImporter::LoadModel(std::string basePath, std::st
         m_registry.emplace<Material>(e, material);
 
         Mesh meshComponent{};
-        meshComponent.indexCount = static_cast<uint32>(indices.size());
-        meshComponent.vertexCount = static_cast<uint32>(vertices.size());
+        meshComponent.indexCount = static_cast<uint32>(data.meshData.indices.size());
+        meshComponent.vertexCount = static_cast<uint32>(data.meshData.vertices.size());
+        meshComponent.baseVertexLoc = vertexOffset;
+        meshComponent.startIndexLoc = indexOffset;
 
-        // TODO : Mesh가 많은 모델이 올 경우 어떻게 모델 로드를 설계해야할지 고민해야함.
-         //meshComponent.startIndexLoc = static_cast<uint32>(indices.size());
-         //meshComponent.baseVertexLoc = static_cast<uint32>(vertices.size());
+        // TODO
+        // Vertex, index 버퍼 생성을 최소화하기 위해 offset을 이용하였다.
+        // DirectX11에서 vertexBuffer 생성하는 속도가 느리지 않기 때문에 오히려 느려지는 현상이 발생함.
+        // 스폰자 모델 기준 약 0.06초 정도가 차이나는 것으로 보인다. (insert 사용)
 
-        meshComponent.vertexBuffer =
-            std::make_shared<DXBuffer>(m_device, VertexBufferDesc(vertices.size(), sizeof(Vertex)), vertices.data());
-        meshComponent.indexBuffer = std::make_shared<DXBuffer>(m_device, IndexBufferDesc(indices.size(), false), indices.data());
+        vertexOffset += meshComponent.vertexCount;
+        indexOffset += meshComponent.indexCount;
+        //vertices.reserve(vertexOffset);
+        //indices.reserve(indexOffset);
+        //std::copy(data.meshData.vertices.begin(), data.meshData.vertices.end(), std::back_inserter(vertices));
+        //std::copy(data.meshData.indices.begin(), data.meshData.indices.end(), std::back_inserter(indices));
+        
+
+        vertices.insert(vertices.end(), std::make_move_iterator(data.meshData.vertices.begin()),
+                        std::make_move_iterator(data.meshData.vertices.end()));
+        indices.insert(indices.end(), std::make_move_iterator(data.meshData.indices.begin()),
+                       std::make_move_iterator(data.meshData.indices.end()));
 
         m_registry.emplace<Mesh>(e, meshComponent);
 
@@ -567,7 +582,7 @@ std::vector<entt::entity> ModelImporter::LoadModel(std::string basePath, std::st
         m_registry.emplace<Transform>(e, transform);
 
         AABB aabb{};
-        BoundingBox _boundingBox = AABBFromVertices(vertices);
+        BoundingBox _boundingBox = AABBFromVertices(data.meshData.vertices);
         aabb.orginalBox = _boundingBox;
         _boundingBox.Transform(_boundingBox, transform.currentTransform);
         aabb.boundingBox = _boundingBox;
@@ -575,6 +590,7 @@ std::vector<entt::entity> ModelImporter::LoadModel(std::string basePath, std::st
         aabb.UpdateBuffer(m_device);
         m_registry.emplace<AABB>(e, aabb);
     }
+
     entt::entity root = m_registry.create();
     m_registry.emplace<Transform>(root);
     m_registry.emplace<Tag>(root, filename);
@@ -589,8 +605,18 @@ std::vector<entt::entity> ModelImporter::LoadModel(std::string basePath, std::st
     m_registry.emplace<Relationship>(root, relationship);
 
     size_t i = 0;
+
+    std::shared_ptr<DXBuffer> vertexBuffer =
+        std::make_shared<DXBuffer>(m_device, VertexBufferDesc(vertices.size(), sizeof(Vertex)), vertices.data());
+    std::shared_ptr<DXBuffer> indexBuffer =
+        std::make_shared<DXBuffer>(m_device, IndexBufferDesc(indices.size(), false), indices.data());
+
     for (entt::entity& e : entities)
     {
+        auto& mesh = m_registry.get<Mesh>(e);
+        mesh.vertexBuffer = vertexBuffer;
+        mesh.indexBuffer = indexBuffer;
+
         m_registry.emplace<Tag>(e, filename + " submesh" + std::to_string(i++));
         m_registry.emplace<Relationship>(e, root);
     }
