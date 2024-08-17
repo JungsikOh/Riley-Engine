@@ -503,6 +503,7 @@ std::vector<entt::entity> ModelImporter::LoadModel(std::string basePath, std::st
     uint32 vertexOffset = 0;
     uint32 indexOffset = 0;
 
+    entities.reserve(model.size());
     for (auto& data : model)
     {
         std::vector<entt::entity>& meshEntities = meshNameToEntitiesMap[data.meshData.name];
@@ -561,12 +562,6 @@ std::vector<entt::entity> ModelImporter::LoadModel(std::string basePath, std::st
 
         vertexOffset += meshComponent.vertexCount;
         indexOffset += meshComponent.indexCount;
-        //vertices.reserve(vertexOffset);
-        //indices.reserve(indexOffset);
-        //std::copy(data.meshData.vertices.begin(), data.meshData.vertices.end(), std::back_inserter(vertices));
-        //std::copy(data.meshData.indices.begin(), data.meshData.indices.end(), std::back_inserter(indices));
-        
-
         vertices.insert(vertices.end(), std::make_move_iterator(data.meshData.vertices.begin()),
                         std::make_move_iterator(data.meshData.vertices.end()));
         indices.insert(indices.end(), std::make_move_iterator(data.meshData.indices.begin()),

@@ -55,6 +55,13 @@ void ModelLoader::ProcessNode(aiNode* node, const aiScene* scene, Matrix tr)
 
         model.push_back(newModelData);
 
+        // for (uint32 i = 0; i < node->mNumChildren; ++i)
+        //{
+        //     this->ProcessNode(node->mChildren[i], scene, m);
+        // }
+    }
+    if (node->mNumChildren > 0)
+    {
         for (uint32 i = 0; i < node->mNumChildren; ++i)
         {
             this->ProcessNode(node->mChildren[i], scene, m);
@@ -66,6 +73,8 @@ Model ModelLoader::ProcessMesh(aiMesh* mesh, const aiScene* scene)
 {
     std::vector<Vertex> vertices;
     std::vector<uint32> indices;
+    vertices.reserve(mesh->mNumVertices);
+    indices.reserve(mesh->mNumFaces * 3);
 
     for (uint32 i = 0; i < mesh->mNumFaces; ++i)
     {
@@ -116,12 +125,12 @@ Model ModelLoader::ProcessMesh(aiMesh* mesh, const aiScene* scene)
         }
         vertex.tangent.Normalize();
 
-        if (mesh->mBitangents)
-        {
-            vertex.bitangent.x = mesh->mBitangents[i].x;
-            vertex.bitangent.y = mesh->mBitangents[i].y;
-            vertex.bitangent.z = mesh->mBitangents[i].z;
-        }
+        //if (mesh->mBitangents)
+        //{
+        //    vertex.bitangent.x = mesh->mBitangents[i].x;
+        //    vertex.bitangent.y = mesh->mBitangents[i].y;
+        //    vertex.bitangent.z = mesh->mBitangents[i].z;
+        //}
 
         vertices.push_back(vertex);
     }

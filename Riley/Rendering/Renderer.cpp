@@ -242,6 +242,8 @@ void Renderer::Tick(Camera* camera)
     frameBufferCPU.invViewProj = m_camera->GetViewProj().Invert();
     frameBufferCPU.screenResolutionX = m_currentSceneViewport.GetWidth();
     frameBufferCPU.screenResolutionY = m_currentSceneViewport.GetHeight();
+    frameBufferCPU.cameraFrustumX = m_camera->AspectRatio() * std::tan(m_camera->Fov() * 0.5f);
+    frameBufferCPU.cameraFrustumY = std::tan(m_camera->Fov() * 0.5f);
 
     frameBufferGPU->Update(m_context, frameBufferCPU, sizeof(frameBufferCPU));
 
