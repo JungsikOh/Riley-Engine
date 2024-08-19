@@ -92,10 +92,10 @@ PSOutput GBUfferPS(VSToPS input)
     float3 normalVS = normalize(mul(normalWS, (float3x3) frameData.view));
     
     float ao = materialData.albedoFactor;
-    float metallic = MetallicRoughnessTex.Sample(LinearWrapSampler, input.texcoord).b;
+    float metallic = MetallicRoughnessTex.Sample(LinearWrapSampler, input.texcoord).b * materialData.metallicFactor;
     if(metallic < 0.1)
         metallic = materialData.metallicFactor;
-    float roughness = MetallicRoughnessTex.Sample(LinearWrapSampler, input.texcoord).g;
+    float roughness = MetallicRoughnessTex.Sample(LinearWrapSampler, input.texcoord).g * materialData.roughnessFactor;
     float3 aoRoughnessMetallic = float3(ao, roughness, metallic);
     
     float3 emissive = EmissiveTex.Sample(LinearWrapSampler, input.texcoord);

@@ -107,7 +107,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;NOMINMAX;_SILENCE_ALL_CXX20_DEPRECATION_WARNINGS;_SILENCE_CXX23_ALIGNED_STORAGE_DEPRECATION_WARNING</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\ImGui;$(SolutionDir)ThirdParty\SimpleMath;$(SolutionDir)ThirdParty\cereal;$(SolutionDir)ThirdParty\entt\include;$(SolutionDir)Riley\;$(SolutionDir)Riley\ThirdParty\spdlog;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\ImGui;$(SolutionDir)ThirdParty\SimpleMath;$(SolutionDir)ThirdParty\cereal;$(SolutionDir)ThirdParty\entt\include;$(SolutionDir)Riley\ThirdParty\spdlog;$(SolutionDir)Riley\;$(SolutionDir)Riley\ThirdParty;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UseStandardPreprocessor>false</UseStandardPreprocessor>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>

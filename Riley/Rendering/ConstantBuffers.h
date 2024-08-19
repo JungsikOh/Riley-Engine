@@ -52,7 +52,8 @@ struct LightConsts
 
     int32 castShadows;
     int32 useCascades;
-    Vector2 _padding1;
+    float radius = 0.0f;
+    float _padding3;
 };
 
 struct ObjectConsts

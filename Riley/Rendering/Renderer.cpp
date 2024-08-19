@@ -865,6 +865,7 @@ void Renderer::PassDeferredLighting()
             lightConstsCPU.outerCosine = lightData.outer_cosine;
             lightConstsCPU.castShadows = lightData.castShadows;
             lightConstsCPU.useCascades = lightData.useCascades;
+            lightConstsCPU.radius = lightData.radius;
 
             Matrix cameraView = m_camera->GetView();
             lightConstsCPU.position = Vector4::Transform(lightConstsCPU.position, cameraView.Transpose());
@@ -1273,7 +1274,7 @@ void Renderer::PassLight()
     RILEY_SCOPED_ANNOTATION(m_annotation, "Solid Light Pass");
 
     SetSceneViewport(static_cast<float>(deferredLightingPass.width), static_cast<float>(deferredLightingPass.height));
-    deferredLightingPass.BeginRenderPass(m_context, false, false);
+    postprocessPasses[0].BeginRenderPass(m_context, false, false);
     noneDepthDSS->Bind(m_context, 0);
     // Mesh Render
     {

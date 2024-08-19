@@ -5,6 +5,7 @@
 $vcpkg install directxtk:x64-windows
 $vcpkg install directxmath:x64-windows
 $vcpkg install assimp:x64-windows
+$vcpkg install spdlog:X64-windows
 ```
 
 ## Engine Features
@@ -12,9 +13,10 @@ $vcpkg install assimp:x64-windows
 - ImGui GUI
 
 ## Graphics Features
+- View Frustum Culling
 - Shadow Mapping
 - Point Shadow Mapping
-- View Frustum Culling
 - Deferred Lighting
 - SSAO
+- SSR
 - AABB

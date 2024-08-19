@@ -90,8 +90,9 @@ struct COMPONENT Light
    LightType type = LightType::Directional;
    float outer_cosine = cos(pie / 4);
    float inner_cosine = cos(pie / 8);
+   float radius = 0.0f;
    bool castShadows = true;
-   bool useCascades = false;
+   bool useCascades = true;
    bool active = true;
    /*bool volumetric = false;
    float volumetric_strength = 0.03f;

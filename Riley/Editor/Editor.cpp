@@ -281,6 +281,7 @@ void Editor::Properties()
                     float position[3] = {lightPosition.x, lightPosition.y, lightPosition.z};
                     ImGui::SliderFloat3("Light Position", position, -10.0f, 10.0f);
                     light->position = Vector4(position[0], position[1], position[2], 1.0f);
+                    ImGui::SliderFloat("Light Radius", &light->radius, 0.01f, 0.5f);
                 }
 
                 ImGui::Checkbox("Casts Shadows", &light->castShadows);
@@ -329,6 +330,7 @@ void Editor::Properties()
             if (!light && material && ImGui::CollapsingHeader("Material"))
             {
                 ImGui::SliderFloat("Metallic", &material->metallicFactor, 0.0f, 1.0f);
+                ImGui::SliderFloat("Roughness", &material->roughnessFactor, 0.0f, 1.0f);
                 ImGui::Checkbox("Use NormalMap", &material->useNormalMap);
             }
         }

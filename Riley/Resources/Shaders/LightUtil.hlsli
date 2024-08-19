@@ -38,7 +38,7 @@ float3 DoSpecular(LightData light, float shininess, float3 L, float3 N, float3 V
 }
 
 LightingResult DoPointLight(LightData light, float shininess, float3 V, float3 P, float3 N)
-{    
+{
     float3 L = light.position.xyz - P;
     float distance = length(L);
     L = L / distance;
@@ -141,13 +141,26 @@ float3 DoPointLightPBR(LightData light, float3 positionVS, float3 normalVS, floa
     float3 F0 = float3(0.04f, 0.04f, 0.04f);
     F0 = lerp(F0, albedo, metallic);
     
+    // Unreal Sphere Light
+    float3 pixelToLight = light.position.xyz - positionVS;
+    float3 reflectionDir = reflect(V, normalVS);
+    float3 centerToRay = dot(pixelToLight, reflectionDir) * reflectionDir - pixelToLight;
+    float R = saturate(light.radius / length(centerToRay));
+    float3 represnetativePoint = pixelToLight + centerToRay * R;
+    represnetativePoint += positionVS;
+    
+    light.position.xyz = represnetativePoint;
+    
     float3 L = normalize(light.position.xyz - positionVS);
     float3 H = normalize(L + V);
     float distance = length(light.position.xyz - positionVS);
     float attenuation = DoAttenuation(distance, light.range);
     float3 radiance = light.lightColor * attenuation;
     
-    float NDF = DistributionGGX(normalVS, H, roughness);
+    float a = roughness * roughness;
+    float ap = saturate(a + light.radius / (2.0 + distance));
+    
+    float NDF = DistributionGGX(normalVS, H, roughness) * (ap * ap) / (a * a);
     float G = GeometrySmith(normalVS, V, L, roughness);
     float3 F = FresnelSchlick(clamp(dot(H, V), 0.0f, 1.0f), F0);
     
@@ -194,10 +207,23 @@ float3 DoSpotLightPBR(LightData light, float3 positionVS, float3 normalVS, float
     float3 F0 = float3(0.04f, 0.04f, 0.04f);
     F0 = lerp(F0, albedo, metallic);
     
+    // Unreal Sphere Light
+    float3 pixelToLight = light.position.xyz - positionVS;
+    float3 reflectionDir = normalize(reflect(V, normalVS));
+    float3 centerToRay = dot(pixelToLight, reflectionDir) * reflectionDir - pixelToLight;
+    float R = saturate(light.radius / length(centerToRay));
+    float3 represnetativePoint = pixelToLight + centerToRay * R;
+    represnetativePoint += positionVS;
+    
+    light.position.xyz = represnetativePoint;
+    
     float3 L = normalize(light.position.xyz - positionVS);
     float3 H = normalize(L + V);
     float distance = length(light.position.xyz - positionVS);
     float attenuation = DoAttenuation(distance, light.range);
+    
+    float a = roughness * roughness;
+    float ap = saturate(a + light.radius / (2.0 + distance));
     
     // https://learnopengl.com/Lighting/Light-casters
     float3 lightDir = normalize(light.direction.xyz);
@@ -207,7 +233,7 @@ float3 DoSpotLightPBR(LightData light, float3 positionVS, float3 normalVS, float
     
     float3 radiance = light.lightColor * attenuation * conAtt;
     
-    float NDF = DistributionGGX(normalVS, H, roughness);
+    float NDF = DistributionGGX(normalVS, H, roughness) * (ap * ap) / (a * a);
     float G = GeometrySmith(normalVS, V, L, roughness);
     float3 F = FresnelSchlick(clamp(dot(H, V), 0.0f, 1.0f), F0);
     

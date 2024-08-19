@@ -51,7 +51,8 @@ struct LightData
 
     int castShadows;
     int useCascades;
-    float2 _padding1;
+    float radius;
+    float _padding3;
 };
 
 struct MeshData
