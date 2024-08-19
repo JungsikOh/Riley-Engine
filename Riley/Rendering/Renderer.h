@@ -181,6 +181,7 @@ class Renderer
     void PassGBuffer();
     void PassAmbient();
     void PassDeferredLighting();
+    void PassHalo();
     void PassSSAO();
     void PassPostprocessing();
 

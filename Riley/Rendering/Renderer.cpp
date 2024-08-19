@@ -866,6 +866,7 @@ void Renderer::PassDeferredLighting()
             lightConstsCPU.castShadows = lightData.castShadows;
             lightConstsCPU.useCascades = lightData.useCascades;
             lightConstsCPU.radius = lightData.radius;
+            lightConstsCPU.haloStrength = lightData.haloStrength;
 
             Matrix cameraView = m_camera->GetView();
             lightConstsCPU.position = Vector4::Transform(lightConstsCPU.position, cameraView.Transpose());
@@ -911,7 +912,31 @@ void Renderer::PassDeferredLighting()
             shadowCascadeMapPass.attachmentDSVs->UnbindSRV(m_context, 6, DXShaderStage::PS);
         }
         deferredLightingPass.EndRenderPass(m_context);
+        // Halo Pass
+        PassHalo();
     }
+    additiveBS->Unbind(m_context);
+}
+
+void Renderer::PassHalo()
+{
+    RILEY_SCOPED_ANNOTATION(m_annotation, "Halo Pass");
+
+    SetSceneViewport(static_cast<float>(deferredLightingPass.width), static_cast<float>(deferredLightingPass.height));
+    deferredLightingPass.BeginRenderPass(m_context, false, false, 0);
+    additiveBS->Bind(m_context);
+    {
+        gbufferPass.attachmentDSVs->BindSRV(m_context, 0, DXShaderStage::PS);
+
+        ShaderManager::GetShaderProgram(ShaderProgram::Halo)->Bind(m_context);
+
+        m_context->IASetInputLayout(nullptr);
+        m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+        m_context->Draw(4, 0);
+
+        gbufferPass.attachmentDSVs->UnbindSRV(m_context, 0, DXShaderStage::PS);
+    }
+    deferredLightingPass.EndRenderPass(m_context);
     additiveBS->Unbind(m_context);
 }
 

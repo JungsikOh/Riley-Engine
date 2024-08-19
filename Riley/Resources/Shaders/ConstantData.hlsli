@@ -52,7 +52,7 @@ struct LightData
     int castShadows;
     int useCascades;
     float radius;
-    float _padding3;
+    float haloStrength;
 };
 
 struct MeshData

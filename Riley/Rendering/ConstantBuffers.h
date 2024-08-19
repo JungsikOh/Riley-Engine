@@ -52,8 +52,8 @@ struct LightConsts
 
     int32 castShadows;
     int32 useCascades;
-    float radius = 0.0f;
-    float _padding3;
+    float radius;
+    float haloStrength;
 };
 
 struct ObjectConsts

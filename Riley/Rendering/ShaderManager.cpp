@@ -65,6 +65,7 @@ constexpr DXShaderStage GetStage(ShaderId shader)
     case PS_GBuffer:
     case PS_Ambient:
     case PS_DeferredLighting:
+    case PS_Halo:
     case PS_SSAO:
     case PS_SSAOBlur:
     case PS_SSR:
@@ -100,6 +101,8 @@ constexpr std::string GetShaderSource(ShaderId shader)
         return "Resources/Shaders/Ambient.hlsl";
     case PS_DeferredLighting:
         return "Resources/Shaders/DeferredLighting.hlsl";
+    case PS_Halo:
+        return "Resources/Shaders/Halo.hlsl";
     case PS_SSAO:
         return "Resources/Shaders/SSAO.hlsl";
     case PS_SSAOBlur:
@@ -147,6 +150,8 @@ constexpr std::string GetEntryPoint(ShaderId shader)
         return "AmbientPS";
     case PS_DeferredLighting:
         return "DeferredLightingPS";
+    case PS_Halo:
+        return "Halo";
     case PS_SSAO:
         return "SSAO";
     case PS_SSAOBlur:
@@ -251,6 +256,10 @@ void CreateAllPrograms()
     DXShaderProgramMap[ShaderProgram::DeferredLighting]
         .SetVertexShader(vsShaderMap[VS_ScreenQuad].get())
         .SetPixelShader(psShaderMap[PS_DeferredLighting].get())
+        .SetInputLayout(inputLayoutMap[VS_ScreenQuad].get());
+    DXShaderProgramMap[ShaderProgram::Halo]
+        .SetVertexShader(vsShaderMap[VS_ScreenQuad].get())
+        .SetPixelShader(psShaderMap[PS_Halo].get())
         .SetInputLayout(inputLayoutMap[VS_ScreenQuad].get());
     DXShaderProgramMap[ShaderProgram::SSAO]
         .SetVertexShader(vsShaderMap[VS_ScreenQuad].get())

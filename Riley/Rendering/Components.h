@@ -91,6 +91,7 @@ struct COMPONENT Light
    float outer_cosine = cos(pie / 4);
    float inner_cosine = cos(pie / 8);
    float radius = 0.0f;
+   float haloStrength = 1.0f;
    bool castShadows = true;
    bool useCascades = true;
    bool active = true;
