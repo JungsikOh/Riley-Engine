@@ -42,10 +42,12 @@ ID3D11Device* device;
 std::unordered_map<ShaderId, std::unique_ptr<DXVertexShader>> vsShaderMap;
 std::unordered_map<ShaderId, std::unique_ptr<DXGeometryShader>> gsShaderMap;
 std::unordered_map<ShaderId, std::unique_ptr<DXPixelShader>> psShaderMap;
+std::unordered_map < ShaderId, std::unique_ptr<DXComputeShader>> csShaderMap;
 std::unordered_map<ShaderId, std::unique_ptr<DXInputLayout>> inputLayoutMap;
 
 // ¸¸µç ¼ÎÀÌ´õµéÀ» »ç¿ëÇÏ°í ½ÍÀº ¼³Á¤¿¡ ¸Â°Ô ´ãÀ» map
 std::unordered_map<ShaderProgram, DXGraphicsShaderProgram> DXShaderProgramMap;
+std::unordered_map<ShaderProgram, DXComputeShaderProgram> ComputeShaderProgramMap;
 
 constexpr DXShaderStage GetStage(ShaderId shader)
 {
@@ -77,6 +79,9 @@ constexpr DXShaderStage GetStage(ShaderId shader)
     case GS_ShadowCascade:
     case GS_ShadowCube:
         return DXShaderStage::GS;
+    case CS_BlurX:
+    case CS_BlurY:
+        return DXShaderStage::CS;
     default:
         assert("Not supported DXShaderStage.");
     }
@@ -123,6 +128,10 @@ constexpr std::string GetShaderSource(ShaderId shader)
     case VS_Picking:
     case PS_Picking:
         return "Resources/Shaders/Util/Picking.hlsl";
+    case CS_BlurX:
+        return "Resources/Shaders/Postprocess/BlurXCS.hlsl";
+    case CS_BlurY:
+        return "Resources/Shaders/Postprocess/BlurYCS.hlsl";
     default:
         assert("Don't found Shader Resource Path");
     }
@@ -178,6 +187,10 @@ constexpr std::string GetEntryPoint(ShaderId shader)
         return "PickingVS";
     case PS_Picking:
         return "PickingPS";
+    case CS_BlurX:
+        return "BlurX";
+    case CS_BlurY:
+        return "BlurY";
     default:
         return "main";
     }
@@ -220,6 +233,11 @@ void CompileShader(ShaderId shader, bool firstCompile = false)
         else
             gsShaderMap[shader]->Recreate(output.shader_bytecode);
         break;
+    case DXShaderStage::CS:
+        if (firstCompile)
+            csShaderMap[shader] = std::make_unique<DXComputeShader>(device, output.shader_bytecode);
+        else
+            csShaderMap[shader]->Recreate(output.shader_bytecode);
     default:
         assert("Unsupported Shader Stage!");
     }
@@ -291,6 +309,10 @@ void CreateAllPrograms()
         .SetVertexShader(vsShaderMap[VS_Picking].get())
         .SetPixelShader(psShaderMap[PS_Picking].get())
         .SetInputLayout(inputLayoutMap[VS_Picking].get());
+
+    // Compute Shader Map
+    ComputeShaderProgramMap[ShaderProgram::BlurX].SetComputeShader(csShaderMap[CS_BlurX].get());
+    ComputeShaderProgramMap[ShaderProgram::BlurY].SetComputeShader(csShaderMap[CS_BlurY].get());
 }
 
 void CompileAllShaders()
@@ -335,7 +357,13 @@ DXShaderProgram* ShaderManager::GetShaderProgram(ShaderProgram shaderProgram)
     bool isDXProgram = DXShaderProgramMap.contains(shaderProgram);
     if (isDXProgram)
         return &DXShaderProgramMap[shaderProgram];
-    return &DXShaderProgramMap[shaderProgram];
+
+    bool isCSProgram = ComputeShaderProgramMap.contains(shaderProgram);
+    if (isCSProgram)
+        return &ComputeShaderProgramMap[shaderProgram];
+
+    RI_CORE_ERROR("Don't find ShaderProgram!");
+    return nullptr;
 }
 
 } // namespace Riley

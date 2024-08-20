@@ -73,6 +73,11 @@ static float LevelOfDepth(float3 viewPos, float3 cameraPos)
     return lod;
 }
 
+static const float gaussianWeights[9] =
+{
+    0.05f, 0.1f, 0.1f, 0.1f, 0.2f, 0.1f, 0.1f, 0.1f, 0.05f,
+};
+
 static const float2 PoissonSamples[64] =
 {
     float2(-0.5119625f, -0.4827938f),

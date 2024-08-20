@@ -16,7 +16,7 @@ void DXResource::Initialize(ID3D11Device* device, UINT width, UINT height, DXFor
    texDesc.SampleDesc.Count = 1;
    texDesc.SampleDesc.Quality = 0;
    texDesc.Usage = D3D11_USAGE_DEFAULT;
-   texDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+   texDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
    texDesc.CPUAccessFlags = 0;
    texDesc.MiscFlags = 0;
 
@@ -37,11 +37,15 @@ void DXResource::Initialize( ID3D11Resource* resource , ID3D11ShaderResourceView
         m_UAVs.push_back(uav);
 }
 
+void DXResource::DestoryResource ( )
+{
+    SAFE_RELEASE(m_resource);
+}
+
 void DXResource::CreateSRV(ID3D11Device* device, D3D11_SHADER_RESOURCE_VIEW_DESC* desc)
 {
    ID3D11ShaderResourceView* srv;
    HR(device->CreateShaderResourceView(m_resource, desc, &srv));
-   SAFE_RELEASE(m_resource);
    m_SRVs.push_back(srv);
 }
 
@@ -49,7 +53,6 @@ void DXResource::CreateUAV(ID3D11Device* device, D3D11_UNORDERED_ACCESS_VIEW_DES
 {
    ID3D11UnorderedAccessView* uav;
    HR(device->CreateUnorderedAccessView(m_resource, desc, &uav));
-   SAFE_RELEASE(m_resource);
    m_UAVs.push_back(uav);
 }
 

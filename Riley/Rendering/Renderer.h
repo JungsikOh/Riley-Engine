@@ -181,10 +181,11 @@ class Renderer
     void PassGBuffer();
     void PassAmbient();
     void PassDeferredLighting();
+
+    // Postprocessing
+    void PassPostprocessing();
     void PassHalo();
     void PassSSAO();
-    void PassPostprocessing();
-
     void PassSSR();
 
     void PassShadowMapDirectional(const Light& light);

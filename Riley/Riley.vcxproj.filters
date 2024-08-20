@@ -650,7 +650,9 @@
     <None Include="Resources\Shaders\Util\LightUtil.hlsli">
       <Filter>Resources\Shaders</Filter>
     </None>
-    <None Include="Resources\Shaders\Util\ShadowUtil.hlsli" />
+    <None Include="Resources\Shaders\Util\ShadowUtil.hlsli">
+      <Filter>Resources\Shaders</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Resources\Shaders\Util\Solid.hlsl">

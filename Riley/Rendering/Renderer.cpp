@@ -446,8 +446,10 @@ void Renderer::CreateRenderTargets(uint32 width, uint32 height)
         SAFE_DELETE(gbufferRTV);
         gbufferRTV = new DXRenderTarget(m_device, width, height, DXFormat::R8G8B8A8_UNORM, gbufferDSV);
         gbufferRTV->CreateSRV(m_device, &tex2dSRVDesc);
+        gbufferRTV->DestoryResource();
         gbufferRTV->CreateRenderTarget(m_device);
         gbufferRTV->CreateSRV(m_device, &tex2dSRVDesc);
+        gbufferRTV->DestoryResource();
         gbufferRTV->CreateRenderTarget(m_device);
         gbufferRTV->CreateSRV(m_device, &tex2dSRVDesc);
     }
@@ -463,11 +465,13 @@ void Renderer::CreateRenderTargets(uint32 width, uint32 height)
     {
         SAFE_DELETE(ssaoRTV);
         ssaoRTV = new DXRenderTarget(m_device, width, height, DXFormat::R8G8B8A8_UNORM, ssaoDSV);
-        ssaoRTV->CreateSRV(m_device, &tex2dSRVDesc);
+        ssaoRTV->CreateSRV(m_device, nullptr);
+        ssaoRTV->CreateUAV(m_device, nullptr);
 
         SAFE_DELETE(ssaoBlurRTV);
         ssaoBlurRTV = new DXRenderTarget(m_device, width, height, DXFormat::R8G8B8A8_UNORM, ssaoBlurDSV);
         ssaoBlurRTV->CreateSRV(m_device, &tex2dSRVDesc);
+        ssaoBlurRTV->CreateUAV(m_device, nullptr);
     }
 
     // Postprocess
@@ -830,7 +834,7 @@ void Renderer::PassAmbient()
     // Mesh Render
     {
         gbufferPass.attachmentRTVs->BindSRV(m_context, 0, DXShaderStage::PS);
-        ssaoBlurRTV->BindSRV(m_context, 3, DXShaderStage::PS);
+        ssaoRTV->BindSRV(m_context, 3, DXShaderStage::PS);
 
         ShaderManager::GetShaderProgram(ShaderProgram::Ambient)->Bind(m_context);
 
@@ -839,7 +843,7 @@ void Renderer::PassAmbient()
         m_context->Draw(4, 0);
 
         gbufferPass.attachmentRTVs->UnbindSRV(m_context, 0, DXShaderStage::PS);
-        ssaoBlurRTV->UnbindSRV(m_context, 3, DXShaderStage::PS);
+        ssaoRTV->UnbindSRV(m_context, 3, DXShaderStage::PS);
     }
     deferredLightingPass.EndRenderPass(m_context);
 }
@@ -988,22 +992,36 @@ void Renderer::PassSSAO()
 
     // 2. SSAO Blur
     {
-        static float clearColor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
-        ssaoBlurDSV->Clear(m_context, 1.0f, 0);
-        ssaoBlurRTV->Clear(m_context, clearColor);
-        ssaoBlurRTV->BindRenderTargets(m_context);
+        // static float clearColor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+        // ssaoBlurDSV->Clear(m_context, 1.0f, 0);
+        // ssaoBlurRTV->Clear(m_context, clearColor);
+        // ssaoBlurRTV->BindRenderTargets(m_context);
 
-        ssaoPass.attachmentRTVs->BindSRV(m_context, 0, DXShaderStage::PS);
+        // ssaoPass.attachmentRTVs->BindSRV(m_context, 0, DXShaderStage::PS);
 
-        ShaderManager::GetShaderProgram(ShaderProgram::SSAOBlur)->Bind(m_context);
+        // ShaderManager::GetShaderProgram(ShaderProgram::SSAOBlur)->Bind(m_context);
 
-        m_context->IASetInputLayout(nullptr);
-        m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-        m_context->Draw(4, 0);
+        // m_context->IASetInputLayout(nullptr);
+        // m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+        // m_context->Draw(4, 0);
 
-        ssaoPass.attachmentRTVs->UnbindSRV(m_context, 0, DXShaderStage::PS);
+        // ssaoPass.attachmentRTVs->UnbindSRV(m_context, 0, DXShaderStage::PS);
     }
     ssaoPass.EndRenderPass(m_context);
+
+    ShaderManager::GetShaderProgram(ShaderProgram::BlurX)->Bind(m_context);
+    ssaoRTV->BindSRV(m_context, 0, DXShaderStage::CS);
+    ssaoBlurRTV->BindUAV(m_context, 0);
+    m_context->Dispatch((uint32)std::ceil(ssaoPass.width / 1024.0f), ssaoPass.height, 1);
+    ssaoRTV->UnbindSRV(m_context, 0, DXShaderStage::CS);
+    ssaoBlurRTV->UnbindUAV(m_context, 0);
+
+    ShaderManager::GetShaderProgram(ShaderProgram::BlurY)->Bind(m_context);
+    ssaoBlurRTV->BindSRV(m_context, 0, DXShaderStage::CS);
+    ssaoRTV->BindUAV(m_context, 0);
+    m_context->Dispatch(ssaoPass.width, (uint32)std::ceil(ssaoPass.height / 1024.0f), 1);
+    ssaoBlurRTV->UnbindSRV(m_context, 0, DXShaderStage::CS);
+    ssaoRTV->UnbindUAV(m_context, 0);
 }
 
 void Renderer::PassSSR()

@@ -38,7 +38,7 @@ void Editor::OnWindowEvent(WindowEventData const& msg_data)
 void Editor::SetSelectedEntity ()
 {
     selected_entity = engine->renderer->GetSelectedEntity();
-    std::cout << (uint64)selected_entity << std::endl;
+    //std::cout << (uint64)selected_entity << std::endl;
 }
 
 void Editor::Run()
