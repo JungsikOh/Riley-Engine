@@ -1,7 +1,7 @@
 #ifndef _COMMON_
 #define _COMMON_
 
-#include "ConstantData.hlsli"
+#include "../ConstantData.hlsli"
 
 #define DIRECTIONAL_LIGHT 0
 #define POINT_LIGHT 1

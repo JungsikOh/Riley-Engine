@@ -1,4 +1,4 @@
-#include "Common.hlsli"
+#include "../Common.hlsli"
 
 Texture2D<float> DepthTex : register(t0);
 

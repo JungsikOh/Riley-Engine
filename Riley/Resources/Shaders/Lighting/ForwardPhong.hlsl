@@ -1,6 +1,6 @@
-#include "Common.hlsli"
-#include "LightUtil.hlsli"
-#include "ShadowUtil.hlsli"
+#include "../Common.hlsli"
+#include "../Util/LightUtil.hlsli"
+#include "../Util/ShadowUtil.hlsli"
 
 Texture2D ShadowMap : register(t0);
 TextureCube ShadowCubeMap : register(t1);

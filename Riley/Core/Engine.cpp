@@ -64,7 +64,7 @@ Engine::Engine(EngineInit const& init) : window(init.window), vsync{init.vsync}
     light.type = LightType::Directional;
     modelImporter->LoadLight(light, LightMesh::Cube, 0.03f);
 
-    light.position = Vector4(0.0f, 1.8f, 0.0f, 1.0f);
+    light.position = Vector4(0.0f, 1.0f, 0.0f, 1.0f);
     light.direction = Vector4(0.0f, -1.0f, 0.0f, 0.0f);
     light.color = Vector4(0.7f, 0.7f, 0.7f, 0.0f);
     light.energy = 1.0f;
@@ -72,7 +72,7 @@ Engine::Engine(EngineInit const& init) : window(init.window), vsync{init.vsync}
     light.type = LightType::Spot;
     modelImporter->LoadLight(light, LightMesh::Cube, 0.03f);
 
-    light.position = Vector4(0.0f, 0.5f, 0.0f, 1.0f);
+    light.position = Vector4(-2.1f, 0.5f, 0.95f, 1.0f);
     light.direction = Vector4(0.0f, -1.0f, 0.0f, 0.0f);
     light.color = Vector4(0.7f, 0.7f, 0.7f, 0.0f);
     light.energy = 1.0f;

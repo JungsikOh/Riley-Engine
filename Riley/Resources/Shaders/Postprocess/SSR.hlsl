@@ -1,4 +1,4 @@
-#include "Common.hlsli"
+#include "../Common.hlsli"
 
 Texture2D DiffuseRoughnessTex : register(t0);
 Texture2D NormalMetallicTex : register(t1);

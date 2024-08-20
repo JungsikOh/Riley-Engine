@@ -1,6 +1,6 @@
-#include "Common.hlsli"
-#include "LightUtil.hlsli"
-#include "ShadowUtil.hlsli"
+#include "../Common.hlsli"
+#include "../Util/LightUtil.hlsli"
+#include "../Util/ShadowUtil.hlsli"
 
 Texture2D DiffuseRoughnessTex : register(t0);
 Texture2D NormalMetallicTex : register(t1);

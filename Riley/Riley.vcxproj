@@ -107,7 +107,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS;NOMINMAX;_SILENCE_ALL_CXX20_DEPRECATION_WARNINGS;_SILENCE_CXX23_ALIGNED_STORAGE_DEPRECATION_WARNING</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\ImGui;$(SolutionDir)ThirdParty\SimpleMath;$(SolutionDir)ThirdParty\cereal;$(SolutionDir)ThirdParty\entt\include;$(SolutionDir)Riley\ThirdParty\spdlog;$(SolutionDir)Riley\;$(SolutionDir)Riley\ThirdParty;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(SolutionDir)ThirdParty\ImGui;$(SolutionDir)ThirdParty\SimpleMath;$(SolutionDir)ThirdParty\cereal;$(SolutionDir)ThirdParty\entt\include;$(SolutionDir)Riley\ThirdParty\spdlog;$(SolutionDir)Riley\;$(SolutionDir)Riley\ThirdParty;$(SolutionDir)ThirdParty\cereal\cereal;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UseStandardPreprocessor>false</UseStandardPreprocessor>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
@@ -115,14 +115,16 @@
       <LanguageStandard>stdcpp20</LanguageStandard>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <GenerateDebugInformation>DebugFull</GenerateDebugInformation>
       <AdditionalDependencies>d3d11.lib;d3dcompiler.lib;dxgi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <FxCompile>
-      <ShaderModel>5.0</ShaderModel>
+      <ShaderModel>4.0_level_9_3</ShaderModel>
+      <AdditionalIncludeDirectories>$(SolutionDir)Riley\Resources\Shaders;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -352,11 +354,11 @@
     <None Include=".clang-format" />
     <None Include="Resources\Shaders\Common.hlsli" />
     <None Include="Resources\Shaders\ConstantData.hlsli" />
-    <None Include="Resources\Shaders\LightUtil.hlsli" />
-    <None Include="Resources\Shaders\ShadowUtil.hlsli" />
+    <None Include="Resources\Shaders\Util\LightUtil.hlsli" />
+    <None Include="Resources\Shaders\Util\ShadowUtil.hlsli" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Resources\Shaders\Solid.hlsl">
+    <FxCompile Include="Resources\Shaders\Util\Solid.hlsl">
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
       </ShaderType>
       <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Pixel</ShaderType>

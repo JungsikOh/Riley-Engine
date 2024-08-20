@@ -1,7 +1,7 @@
 #ifndef __LIGHT_UTILS__
 #define __LIGHT_UTILS__
 
-#include "Common.hlsli"
+#include "../Common.hlsli"
 
 float DoAttenuation(float distance, float range)
 {

@@ -1,7 +1,7 @@
 #ifndef __SHADOW_UTILS__
 #define __SHADOW_UTILS__
 
-#include "Common.hlsli"
+#include "../Common.hlsli"
 
 float CalcShadowMapPCF3x3(LightData light, float3 viewPos, Texture2D shadowMap)
 {

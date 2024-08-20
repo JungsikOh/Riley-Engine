@@ -1,4 +1,4 @@
-#include "Common.hlsli"
+#include "../Common.hlsli"
 
 Texture2D AoTex : register(t0);
 

@@ -16,6 +16,9 @@ $vcpkg install spdlog:X64-windows
 - View Frustum Culling
 - Shadow Mapping
 - Point Shadow Mapping
+- Cascade Shadow Mapping
+- Unreal Sphere Light
+- Halo Light Effect
 - Deferred Lighting
 - SSAO
 - SSR

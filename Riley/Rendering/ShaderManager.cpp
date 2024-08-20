@@ -87,42 +87,42 @@ constexpr std::string GetShaderSource(ShaderId shader)
     switch (shader)
     {
     case VS_ScreenQuad:
-        return "Resources/Shaders/ScreenQuad.hlsl";
+        return "Resources/Shaders/Util/ScreenQuad.hlsl";
     case VS_Solid:
     case PS_Solid:
-        return "Resources/Shaders/Solid.hlsl";
+        return "Resources/Shaders/Util/Solid.hlsl";
     case VS_Phong:
     case PS_Phong:
-        return "Resources/Shaders/ForwardPhong.hlsl";
+        return "Resources/Shaders/Lighting/ForwardPhong.hlsl";
     case VS_GBuffer:
     case PS_GBuffer:
-        return "Resources/Shaders/GBuffer.hlsl";
+        return "Resources/Shaders/GBuffer/GBuffer.hlsl";
     case PS_Ambient:
-        return "Resources/Shaders/Ambient.hlsl";
+        return "Resources/Shaders/Lighting/Ambient.hlsl";
     case PS_DeferredLighting:
-        return "Resources/Shaders/DeferredLighting.hlsl";
+        return "Resources/Shaders/Lighting/DeferredLighting.hlsl";
     case PS_Halo:
-        return "Resources/Shaders/Halo.hlsl";
+        return "Resources/Shaders/Postprocess/Halo.hlsl";
     case PS_SSAO:
-        return "Resources/Shaders/SSAO.hlsl";
+        return "Resources/Shaders/Postprocess/SSAO.hlsl";
     case PS_SSAOBlur:
-        return "Resources/Shaders/SSAOBlur.hlsl";
+        return "Resources/Shaders/Postprocess/SSAOBlur.hlsl";
     case PS_SSR:
-        return "Resources/Shaders/SSR.hlsl";
+        return "Resources/Shaders/Postprocess/SSR.hlsl";
     case VS_Shadow:
     case PS_Shadow:
-        return "Resources/Shaders/Shadow.hlsl";
+        return "Resources/Shaders/Lighting/Shadow.hlsl";
     case VS_ShadowCube:
     case GS_ShadowCube:
     case PS_ShadowCube:
-        return "Resources/Shaders/ShadowCube.hlsl";
+        return "Resources/Shaders/Lighting/ShadowCube.hlsl";
     case VS_ShadowCascade:
     case GS_ShadowCascade:
     case PS_ShadowCascade:
-        return "Resources/Shaders/ShadowCascade.hlsl";
+        return "Resources/Shaders/Lighting/ShadowCascade.hlsl";
     case VS_Picking:
     case PS_Picking:
-        return "Resources/Shaders/Picking.hlsl";
+        return "Resources/Shaders/Util/Picking.hlsl";
     default:
         assert("Don't found Shader Resource Path");
     }

@@ -1,8 +1,8 @@
-#include "Common.hlsli"
+#include "../Common.hlsli"
 
 struct VSInput
 {
-    float3 posModel : POSITION; //¸ðµ¨ ÁÂÇ¥°èÀÇ À§Ä¡ position
+    float3 posModel : POSITION;
     float2 texcoord : TEXCOORD0;
 };
 
@@ -12,19 +12,25 @@ struct VSToPS
     float2 texcoord : TEXCOORD0;
 };
 
-VSToPS ShadowVS(VSInput input)
+VSToPS PickingVS(VSInput input)
 {
     VSToPS output;
     
     float4 pos = float4(input.posModel, 1.0);
     pos = mul(pos, meshData.world);
-    output.posProj = mul(pos, shadowData.lightViewProj);
+    output.posProj = mul(pos, frameData.viewProj);
     output.texcoord = input.texcoord;
 
     return output;
 }
 
-
-void ShadowPS(VSToPS input)
+cbuffer EntityIDConsts : register(b10)
 {
+    uint entityID;
+    float3 _dummy;
+}
+
+float4 PickingPS(VSToPS input) : SV_TARGET
+{
+    return float4(entityID, 0, 0, 0);
 }
