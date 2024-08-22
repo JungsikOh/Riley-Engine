@@ -55,7 +55,7 @@ class DXResource
    bool BindUAV(ID3D11DeviceContext* context, unsigned int bindSlot);
    void UnbindUAV(ID3D11DeviceContext* context, unsigned int boundSlot);
 
-   ID3D11ShaderResourceView* SRV(uint64 i = 0) const
+   ID3D11ShaderResourceView* SRV(uint64 i = 0)
    {
       return m_SRVs[i];
    }

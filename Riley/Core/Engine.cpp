@@ -7,11 +7,6 @@
 #include "../Utilities/Timer.h"
 #include "Window.h"
 
-// std::ignore
-// std::tuple·Î ¹ÝÈ¯µÇ´Â °á°ú¸¦ std::tie·Î ¿¬°áÇØ¼­ ¹ÞÀ» ¶§ »ç¿ëÇÏÁö ¾Ê´Â °ªÀ»
-// Ã³¸®ÇÏ±â À§ÇÔ. std::tie(std::ignore, inserted) = set_of_str.insert("Test")
-// ÀÌ·±½ÄÀ¸·Î »ç¿ë.
-
 namespace Riley
 {
 
@@ -20,10 +15,10 @@ static const CameraParameters ParseCameraParam()
     CameraParameters cp;
     cp.fov = 90.0f;
     cp.aspectRatio = 16.0f / 9.0f;
-    cp.nearPlane = 0.05f;
-    cp.farPlane = 50.0f;
+    cp.nearPlane = 0.1f;
+    cp.farPlane = 15.0f;
     cp.position = Vector3(0.0f, 0.0f, -1.0f);
-    cp.lootAt = Vector3(0.0f, 0.0f, 1.0f);
+    cp.lootAt = Vector3(0.0f, 0.0f, 10.0f);
     cp.sensitivity = 0.3f;
 
     return cp;
@@ -59,7 +54,7 @@ Engine::Engine(EngineInit const& init) : window(init.window), vsync{init.vsync}
     Light light;
     light.position = Vector4(0.5f, 0.2f, 0.5f, 1.0f);
     light.color = Vector4(0.7f, 0.7f, 0.7f, 0.0f);
-    light.direction = Vector4(0.0f, -1.0f, (float)1e-6, 0.0f);
+    light.direction = Vector4(0.0f, -1.0f, 0.0f, 0.0f);
     light.energy = 5.0f;
     light.type = LightType::Directional;
     modelImporter->LoadLight(light, LightMesh::Cube, 0.03f);

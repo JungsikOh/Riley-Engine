@@ -100,9 +100,9 @@ float DistributionGGX(float3 N, float3 H, float roughness)
     float NdotH2 = NdotH * NdotH;
     
     float numerator = a2;
-    float denominator = PI * pow((NdotH2 * (a2 - 1.0f) + 1.0f), 2);
+    float denominator = (NdotH2 * (a2 - 1.0f) + 1.0f);
     
-    return numerator / denominator;
+    return numerator / max(PI * denominator * denominator, 0.0000001);
 }
 
 float GeometrySchlickGGX(float NdotV, float roughness)
@@ -182,7 +182,7 @@ float3 DoDirectinoalLightPBR(LightData light, float3 positionVS, float3 normalVS
     F0 = lerp(F0, albedo, metallic);
     
     float3 L = normalize(-light.direction.xyz);
-    float3 H = normalize(L + V);
+    float3 H = normalize(V + L);
     
     float3 radiance = light.lightColor.xyz;
     
@@ -190,15 +190,15 @@ float3 DoDirectinoalLightPBR(LightData light, float3 positionVS, float3 normalVS
     float G = GeometrySmith(normalVS, V, L, roughness);
     float3 F = FresnelSchlick(clamp(dot(H, V), 0.0f, 1.0f), F0);
     
-    float3 numerator = NDF * F * G;
-    float denominator = 4.0f * max(0.0f, dot(normalVS, V)) * max(0.0f, dot(normalVS, L)) + 1e-5;
+    float3 numerator = NDF * G * F;
+    float denominator = 4.0f * max(0.0f, dot(normalVS, V)) * max(0.0f, dot(normalVS, L));
 
     float3 kS = F;
     float3 kD = float3(1.0f, 1.0f, 1.0f) - kS;
     kD *= 1.0f - metallic;
     float NdotL = max(0.0f, dot(normalVS, L));
-    float3 Lo = (kD * albedo / PI + (numerator / denominator)) * radiance * NdotL;
-    
+    //float3 Lo = (kD * albedo / PI + (numerator / max(denominator, 0.001))) * radiance * NdotL;
+    float3 Lo = (kD * albedo / PI) * radiance * NdotL;
     return Lo;
 }
 

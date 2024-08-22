@@ -56,17 +56,18 @@ float3 GetNormal(VSToPS input)
     {
         float4 viewPos = mul(input.posProj, frameData.invProj);
         
-        float dist = length(float3(0, 0, 0) - viewPos.xyz);
+        float dist = length(viewPos.xyz - float3(0, 0, 0));
         float distMin = 3.0;
         float distMax = 10.0;
         float lod = 2.0 * saturate(dist / (distMax - distMin));
         
         float3 normal = NormalTex.SampleLevel(LinearWrapSampler, input.texcoord, lod).rgb; // ¹üÀ§ [0, 1]
+        normal.y = 1.0 - normal.y;
         normal = 2.0 * normal - 1.0;
         
         float3 N = normalWorld;
-        //float3 T = normalize(input.tangentWS - dot(input.tangentWS, N) * N);
-        float3 T = normalize(input.tangentWS);
+        float3 T = normalize(input.tangentWS - dot(input.tangentWS, N) * N);
+        //float3 T = normalize(input.tangentWS);
         float3 B = normalize(cross(N, T));
         
         float3x3 TBN = float3x3(T, B, N);
@@ -92,7 +93,7 @@ PSOutput GBUfferPS(VSToPS input)
     float3 normalVS = normalize(mul(normalWS, (float3x3) frameData.view));
     
     float ao = materialData.albedoFactor;
-    float metallic = MetallicRoughnessTex.Sample(LinearWrapSampler, input.texcoord).b * materialData.metallicFactor;
+    float metallic = MetallicRoughnessTex.Sample(LinearWrapSampler, input.texcoord).b;
     if(metallic < 0.1)
         metallic = materialData.metallicFactor;
     float roughness = MetallicRoughnessTex.Sample(LinearWrapSampler, input.texcoord).g * materialData.roughnessFactor;

@@ -27,7 +27,7 @@ VSToPS PickingVS(VSInput input)
 cbuffer EntityIDConsts : register(b10)
 {
     uint entityID;
-    float3 _dummy;
+    float3 _dummy4;
 }
 
 float4 PickingPS(VSToPS input) : SV_TARGET

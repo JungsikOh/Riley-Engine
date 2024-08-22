@@ -87,6 +87,7 @@ class Renderer
 
     // Resources
     DXResource* ssaoNoiseTex = nullptr;
+    DXResource* blurTextureIntermediate = nullptr;
 
     // cbuffers
     FrameBufferConsts frameBufferCPU;
@@ -196,6 +197,8 @@ class Renderer
     void PassAABB();
     void PassLight();
     void PassEntityID();
+
+    void BlurTexture(DXRenderTarget* src);
 };
 
 } // namespace Riley

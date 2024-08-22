@@ -29,7 +29,7 @@ struct FrameData
     
     float cameraFrustumX;
     float cameraFrustumY;
-    float2 _dummy3;
+    float2 _dummy1;
 
     float screenResolutionX;
     float screenResolutionY;
@@ -83,13 +83,13 @@ struct PostprocessData
     float ssaoRadius;
     
     float ssaoPower;
-    float3 _dummy;
+    float3 _dummy2;
     
     float4 samples[16];
     
     float ssrRayStep; // 한걸음에 얼마나 나아갈지에 대한 변수
     float ssrThickness;
-    float2 _dummy2;
+    float2 _dummy3;
 };
 
 struct ShadowData
@@ -105,7 +105,7 @@ struct ShadowData
     float softness;
     int shadowMapSize;
     int visualize;
-    float _padding2;
+    float _padding1;
 };
 
 #endif

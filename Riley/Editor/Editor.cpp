@@ -99,8 +99,8 @@ void Editor::Camera()
             camera->SetPosition(Vector3(pos));
             float near_plane = camera->Near(), far_plane = camera->Far();
             float _fov = camera->Fov(), _ar = camera->AspectRatio();
-            ImGui::SliderFloat("Near Plane", &near_plane, 0.005f, 2.0f);
-            ImGui::SliderFloat("Far Plane", &far_plane, 10.0f, 5000.0f);
+            ImGui::SliderFloat("Near Plane", &near_plane, 0.01f, 2.0f);
+            ImGui::SliderFloat("Far Plane", &far_plane, 10.0f, 500.0f);
             ImGui::SliderFloat("FOV", &_fov, 0.01f, 120.0f);
             camera->SetNearAndFar(near_plane, far_plane);
             camera->SetFov(_fov);

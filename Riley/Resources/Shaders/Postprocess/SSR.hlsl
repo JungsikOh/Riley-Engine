@@ -77,6 +77,7 @@ float4 SSRRayMarch(float3 dir, inout float3 hitCoord)
         if (diff > 0.0)
         {
             return SSRBinarySearch(dir, hitCoord);
+
         }
         
         dir *= postData.ssrRayStep;

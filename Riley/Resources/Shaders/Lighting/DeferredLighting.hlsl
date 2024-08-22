@@ -19,19 +19,17 @@ struct VSToPS
 
 float4 DeferredLightingPS(VSToPS input) : SV_Target
 {
-    float depth = DepthTex.Sample(LinearWrapSampler, input.texcoord);
+    float depth = DepthTex.Sample(LinearClampSampler, input.texcoord);
     float3 positionVS = GetViewSpacePosition(input.texcoord, depth);
     float3 viewDir = normalize(0.0f.xxx - positionVS);
     
-    float4 normalMetallic = NormalMetallicTex.Sample(LinearWrapSampler, input.texcoord);
+    float4 normalMetallic = NormalMetallicTex.Sample(LinearClampSampler, input.texcoord);
     float3 normalVS = normalMetallic.rgb * 2.0 - 1.0;
     float metallic = normalMetallic.a;
     
-    float4 diffuseRoughness = DiffuseRoughnessTex.Sample(LinearWrapSampler, input.texcoord);
+    float4 diffuseRoughness = DiffuseRoughnessTex.Sample(LinearClampSampler, input.texcoord);
     float3 albedo = diffuseRoughness.rgb;
     float roughness = diffuseRoughness.a;
-    
-    float4 emission = EmissiveTex.Sample(LinearWrapSampler, input.texcoord);
     
     LightingResult Lo;
     float3 LoPBR = float3(0, 0, 0);
@@ -41,20 +39,22 @@ float4 DeferredLightingPS(VSToPS input) : SV_Target
     switch (lightData.type)
     {
         case DIRECTIONAL_LIGHT:
-            Lo = DoDirectionalLight(lightData, 2.0, viewDir, normalVS);
+            //Lo = DoDirectionalLight(lightData, 2.0, viewDir, normalVS);
             LoPBR = DoDirectinoalLightPBR(lightData, positionVS, normalVS, viewDir, albedo, metallic, roughness);
             shadowFactor = lightData.useCascades ? CalcShadowCascadeMapFCF3x3(lightData, positionVS, ShadowCascadeMap) : CalcShadowMapPCF3x3(lightData, positionVS, ShadowMap);
             break;
         case POINT_LIGHT:
-            Lo = DoPointLight(lightData, 2.0, viewDir, positionVS, normalVS);
+            //Lo = DoPointLight(lightData, 2.0, viewDir, positionVS, normalVS);
             LoPBR = DoPointLightPBR(lightData, positionVS, normalVS, viewDir, albedo, metallic, roughness);
             shadowFactor = CalcShadowCubeMapPCF3x3x3(lightData, positionVS, ShadowCubeMap);
             break;
         case SPOT_LIGHT:
-            Lo = DoSpotLight(lightData, 2.0, viewDir, positionVS, normalVS);
+            //Lo = DoSpotLight(lightData, 2.0, viewDir, positionVS, normalVS);
             LoPBR = DoSpotLightPBR(lightData, positionVS, normalVS, viewDir, albedo, metallic, roughness);
             shadowFactor = CalcShadowMapPCF3x3(lightData, positionVS, ShadowMap);
             break;
+        default:
+            return float4(1, 0, 0, 1);
     }
     
     return float4(LoPBR * shadowFactor, 1.0);

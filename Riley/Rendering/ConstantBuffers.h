@@ -84,13 +84,13 @@ DECLSPEC_ALIGN(16) struct PostprocessConsts
     float ssaoRadius;
 
     float ssaoPower;
-    Vector3 _dummy;
+    Vector3 _dummy2;
 
     Vector4 samples[16];
 
     float ssrRayStep; // 한걸음에 얼마나 나아갈지에 대한 변수
     float ssrThickness;
-    Vector2 _dummy2;
+    Vector2 _dummy3;
 };
 
 DECLSPEC_ALIGN(16) struct ShadowConsts
@@ -112,7 +112,7 @@ DECLSPEC_ALIGN(16) struct ShadowConsts
 DECLSPEC_ALIGN(16) struct EntityIdConsts
 {
     uint32 entityID = uint32(-1);
-    Vector3 _dummy2;
+    Vector3 _dummy4;
 };
 
 } // namespace Riley

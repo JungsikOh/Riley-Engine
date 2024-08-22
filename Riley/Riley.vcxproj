@@ -125,6 +125,7 @@
     <FxCompile>
       <ShaderModel>4.0_level_9_3</ShaderModel>
       <AdditionalIncludeDirectories>$(SolutionDir)Riley\Resources\Shaders;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <EnableDebuggingInformation>false</EnableDebuggingInformation>
     </FxCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

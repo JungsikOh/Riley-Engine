@@ -46,6 +46,7 @@ Renderer::~Renderer()
     ShaderManager::Destroy();
 
     SAFE_DELETE(ssaoNoiseTex);
+    SAFE_DELETE(blurTextureIntermediate);
 
     SAFE_DELETE(frameBufferGPU);
     SAFE_DELETE(objectConstsGPU);
@@ -237,9 +238,9 @@ void Renderer::Tick(Camera* camera)
     frameBufferCPU.view = m_camera->GetView();
     frameBufferCPU.proj = m_camera->GetProj();
     frameBufferCPU.viewProj = m_camera->GetViewProj();
-    frameBufferCPU.invView = m_camera->GetView().Invert();
-    frameBufferCPU.invProj = m_camera->GetProj().Invert();
-    frameBufferCPU.invViewProj = m_camera->GetViewProj().Invert();
+    frameBufferCPU.invView = m_camera->GetView().Transpose().Invert().Transpose();
+    frameBufferCPU.invProj = m_camera->GetProj().Transpose().Invert().Transpose();
+    frameBufferCPU.invViewProj = m_camera->GetViewProj().Transpose().Invert().Transpose();
     frameBufferCPU.screenResolutionX = m_currentSceneViewport.GetWidth();
     frameBufferCPU.screenResolutionY = m_currentSceneViewport.GetHeight();
     frameBufferCPU.cameraFrustumX = m_camera->AspectRatio() * std::tan(m_camera->Fov() * 0.5f);
@@ -494,39 +495,49 @@ void Renderer::CreateRenderTargets(uint32 width, uint32 height)
 void Renderer::CreateOtherResources()
 {
     // AO random
-    std::vector<float> randomTextureData;
-    randomTextureData.reserve(AO_NOISE_DIM * AO_NOISE_DIM * 4);
-    std::uniform_real_distribution<float> randomFloats(0.0f, 1.0f);
-    std::default_random_engine generator;
-    for (uint32 i = 0; i < SSAO_KERNEL_SIZE; ++i)
     {
-        Vector4 offset(randomFloats(generator) * 2 - 1, randomFloats(generator) * 2 - 1, randomFloats(generator), 1.0f);
-        offset.Normalize();
-        offset *= randomFloats(generator);
-        float scale = static_cast<float>(i) / ssaoKernel.size();
-        scale = std::lerp(0.1f, 1.0f, scale * scale);
-        offset *= scale;
-        ssaoKernel[i] = offset;
-    }
-    for (int32 i = 0; i < AO_NOISE_DIM * AO_NOISE_DIM; ++i)
-    {
-        randomTextureData.push_back(randomFloats(generator));
-        randomTextureData.push_back(randomFloats(generator));
-        randomTextureData.push_back(0.0f);
-        randomTextureData.push_back(1.0f);
+        std::vector<float> randomTextureData;
+        randomTextureData.reserve(AO_NOISE_DIM * AO_NOISE_DIM * 4);
+        std::uniform_real_distribution<float> randomFloats(0.0f, 1.0f);
+        std::default_random_engine generator;
+        for (uint32 i = 0; i < SSAO_KERNEL_SIZE; ++i)
+        {
+            Vector4 offset(randomFloats(generator) * 2 - 1, randomFloats(generator) * 2 - 1, randomFloats(generator), 1.0f);
+            offset.Normalize();
+            offset *= randomFloats(generator);
+            float scale = static_cast<float>(i) / ssaoKernel.size();
+            scale = std::lerp(0.1f, 1.0f, scale * scale);
+            offset *= scale;
+            ssaoKernel[i] = offset;
+        }
+        for (int32 i = 0; i < AO_NOISE_DIM * AO_NOISE_DIM; ++i)
+        {
+            randomTextureData.push_back(randomFloats(generator));
+            randomTextureData.push_back(randomFloats(generator));
+            randomTextureData.push_back(0.0f);
+            randomTextureData.push_back(1.0f);
+        }
+
+        D3D11_SUBRESOURCE_DATA initData{};
+        initData.pSysMem = randomTextureData.data();
+        initData.SysMemPitch = AO_NOISE_DIM * 4 * sizeof(float);
+        ssaoNoiseTex = new DXResource();
+        ssaoNoiseTex->Initialize(m_device, AO_NOISE_DIM, AO_NOISE_DIM, DXFormat::R32G32B32A32_FLOAT, &initData);
+        D3D11_SHADER_RESOURCE_VIEW_DESC tex2dSRVDesc;
+        ZeroMemory(&tex2dSRVDesc, sizeof(tex2dSRVDesc));
+        tex2dSRVDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+        tex2dSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+        tex2dSRVDesc.Texture2D.MipLevels = 1;
+        ssaoNoiseTex->CreateSRV(m_device, &tex2dSRVDesc);
     }
 
-    D3D11_SUBRESOURCE_DATA initData{};
-    initData.pSysMem = randomTextureData.data();
-    initData.SysMemPitch = AO_NOISE_DIM * 4 * sizeof(float);
-    ssaoNoiseTex = new DXResource();
-    ssaoNoiseTex->Initialize(m_device, AO_NOISE_DIM, AO_NOISE_DIM, DXFormat::R32G32B32A32_FLOAT, &initData);
-    D3D11_SHADER_RESOURCE_VIEW_DESC tex2dSRVDesc;
-    ZeroMemory(&tex2dSRVDesc, sizeof(tex2dSRVDesc));
-    tex2dSRVDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-    tex2dSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-    tex2dSRVDesc.Texture2D.MipLevels = 1;
-    ssaoNoiseTex->CreateSRV(m_device, &tex2dSRVDesc);
+    // Blur
+    {
+        blurTextureIntermediate = new DXResource();
+        blurTextureIntermediate->Initialize(m_device, m_width, m_height, DXFormat::R16G16B16A16_FLOAT);
+        blurTextureIntermediate->CreateSRV(m_device, nullptr);
+        blurTextureIntermediate->CreateUAV(m_device, nullptr);
+    }
 }
 
 void Renderer::CreateRenderPasses(uint32 width, uint32 height)
@@ -701,7 +712,7 @@ void Renderer::PassForwardPhong()
             lightConstsCPU.type = static_cast<int32>(lightData.type);
             lightConstsCPU.innerCosine = lightData.inner_cosine;
             lightConstsCPU.outerCosine = lightData.outer_cosine;
-            lightConstsCPU.castShadows = 1;
+            lightConstsCPU.castShadows = true;
 
             Matrix cameraView = m_camera->GetView();
             lightConstsCPU.position = Vector4::Transform(lightConstsCPU.position, cameraView.Transpose());
@@ -916,8 +927,10 @@ void Renderer::PassDeferredLighting()
             shadowCascadeMapPass.attachmentDSVs->UnbindSRV(m_context, 6, DXShaderStage::PS);
         }
         deferredLightingPass.EndRenderPass(m_context);
+
         // Halo Pass
-        PassHalo();
+        if (lightData.type == LightType::Point || lightData.type == LightType::Spot)
+            PassHalo();
     }
     additiveBS->Unbind(m_context);
 }
@@ -1009,19 +1022,8 @@ void Renderer::PassSSAO()
     }
     ssaoPass.EndRenderPass(m_context);
 
-    ShaderManager::GetShaderProgram(ShaderProgram::BlurX)->Bind(m_context);
-    ssaoRTV->BindSRV(m_context, 0, DXShaderStage::CS);
-    ssaoBlurRTV->BindUAV(m_context, 0);
-    m_context->Dispatch((uint32)std::ceil(ssaoPass.width / 1024.0f), ssaoPass.height, 1);
-    ssaoRTV->UnbindSRV(m_context, 0, DXShaderStage::CS);
-    ssaoBlurRTV->UnbindUAV(m_context, 0);
-
-    ShaderManager::GetShaderProgram(ShaderProgram::BlurY)->Bind(m_context);
-    ssaoBlurRTV->BindSRV(m_context, 0, DXShaderStage::CS);
-    ssaoRTV->BindUAV(m_context, 0);
-    m_context->Dispatch(ssaoPass.width, (uint32)std::ceil(ssaoPass.height / 1024.0f), 1);
-    ssaoBlurRTV->UnbindSRV(m_context, 0, DXShaderStage::CS);
-    ssaoRTV->UnbindUAV(m_context, 0);
+    // SSAO Blur
+    BlurTexture(ssaoPass.attachmentRTVs);
 }
 
 void Renderer::PassSSR()
@@ -1370,6 +1372,25 @@ void Renderer::PassEntityID()
 
         mesh.Draw(m_context);
     }
+}
+
+void Renderer::BlurTexture(DXRenderTarget* src)
+{
+    // Horizontal
+    ShaderManager::GetShaderProgram(ShaderProgram::BlurX)->Bind(m_context);
+    src->BindSRV(m_context, 0, DXShaderStage::CS);
+    blurTextureIntermediate->BindUAV(m_context, 0);
+    m_context->Dispatch((uint32)std::ceil(ssaoPass.width / 1024.0f), ssaoPass.height, 1);
+    src->UnbindSRV(m_context, 0, DXShaderStage::CS);
+    blurTextureIntermediate->UnbindUAV(m_context, 0);
+
+    // Vectical
+    ShaderManager::GetShaderProgram(ShaderProgram::BlurY)->Bind(m_context);
+    blurTextureIntermediate->BindSRV(m_context, 0, DXShaderStage::CS);
+    src->BindUAV(m_context, 0);
+    m_context->Dispatch(ssaoPass.width, (uint32)std::ceil(ssaoPass.height / 1024.0f), 1);
+    blurTextureIntermediate->UnbindSRV(m_context, 0, DXShaderStage::CS);
+    src->UnbindUAV(m_context, 0);
 }
 
 } // namespace Riley
