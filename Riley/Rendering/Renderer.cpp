@@ -103,6 +103,7 @@ Renderer::~Renderer()
 void Renderer::Update(float dt)
 {
     m_currentDeltaTime = dt;
+    UpdateLights();
 }
 
 void Renderer::Render(RenderSetting& _setting)
@@ -132,6 +133,7 @@ void Renderer::OnResize(uint32 width, uint32 height)
         CreateDepthStencilBuffers(width, height);
         CreateRenderTargets(width, height);
         CreateRenderPasses(width, height);
+        CreateOtherResources();
     }
 }
 
@@ -521,6 +523,8 @@ void Renderer::CreateOtherResources()
         D3D11_SUBRESOURCE_DATA initData{};
         initData.pSysMem = randomTextureData.data();
         initData.SysMemPitch = AO_NOISE_DIM * 4 * sizeof(float);
+
+        SAFE_DELETE(ssaoNoiseTex);
         ssaoNoiseTex = new DXResource();
         ssaoNoiseTex->Initialize(m_device, AO_NOISE_DIM, AO_NOISE_DIM, DXFormat::R32G32B32A32_FLOAT, &initData);
         D3D11_SHADER_RESOURCE_VIEW_DESC tex2dSRVDesc;
@@ -531,12 +535,32 @@ void Renderer::CreateOtherResources()
         ssaoNoiseTex->CreateSRV(m_device, &tex2dSRVDesc);
     }
 
+    
     // Blur
     {
+        SAFE_DELETE(blurTextureIntermediate);
         blurTextureIntermediate = new DXResource();
         blurTextureIntermediate->Initialize(m_device, m_width, m_height, DXFormat::R16G16B16A16_FLOAT);
         blurTextureIntermediate->CreateSRV(m_device, nullptr);
         blurTextureIntermediate->CreateUAV(m_device, nullptr);
+    }
+
+    // uav
+    {
+        SAFE_DELETE(uavTarget);
+        uavTarget = new DXResource();
+        uavTarget->Initialize(m_device, m_width, m_height, DXFormat::R16G16B16A16_FLOAT);
+        uavTarget->CreateSRV(m_device, nullptr);
+        uavTarget->CreateUAV(m_device, nullptr);
+    }
+
+    // debug tile teuxture
+    {
+        SAFE_DELETE(debugTiledTexture);
+        debugTiledTexture = new DXResource();
+        debugTiledTexture->Initialize(m_device, m_width, m_height, DXFormat::R16G16B16A16_FLOAT);
+        debugTiledTexture->CreateSRV(m_device, nullptr);
+        debugTiledTexture->CreateUAV(m_device, nullptr);
     }
 }
 
@@ -687,6 +711,51 @@ void Renderer::LightFrustumCulling(const Light& light)
     }
 }
 
+void Renderer::UpdateLights()
+{
+    auto lightView = m_reg.view<Light>();
+    uint64 currentLightCount = lightView.size();
+    static uint64 s_lightCount = 0;
+
+    bool lightCountIsChanged = (s_lightCount != currentLightCount);
+    if (lightCountIsChanged)
+    {
+        s_lightCount = currentLightCount;
+        if (s_lightCount) return;
+
+        SAFE_DELETE(lights);
+
+        lights = new DXBuffer(m_device, StructuredBufferDesc<LightSBuffer>(s_lightCount, true, true));
+        lights->CreateSRV(m_device, nullptr);
+    }
+
+    std::vector<LightSBuffer> lightsData{};
+
+    for (auto e : lightView)
+    {
+        LightSBuffer l{};
+        auto& light = m_reg.get<Light>(e);
+
+        l.active = light.active;
+        l.type = static_cast<int32>(light.type);
+        l.castShadows = light.castShadows;
+        l.useCascades = light.useCascades;
+        l.direction = light.direction;
+        l.position = light.position;
+        l.lightColor = light.color;
+        l.range = light.range;
+        l.radius = light.radius;
+        l.haloStrength = light.haloStrength;
+        l.innerCosine = light.inner_cosine;
+        l.outerCosine = light.outer_cosine;
+        
+        lightsData.push_back(l);
+    }
+
+    if (lights != nullptr)
+        lights->Update(m_context, lightsData.data(), (uint64)lightsData.size());
+}
+
 void Renderer::PassForward()
 {
     forwardPass.BeginRenderPass(m_context);
@@ -813,7 +882,7 @@ void Renderer::PassGBuffer()
             materialConstsCPU.albedoFactor = material.albedoFactor;
             materialConstsCPU.useNormalMap = material.useNormalMap;
             materialConstsCPU.metallicFactor = material.metallicFactor;
-            materialConstsCPU.roughnessFactor = 0.3f;
+            materialConstsCPU.roughnessFactor = material.roughnessFactor;
             materialConstsCPU.emissiveFactor = material.emissiveFactor;
             materialConstsCPU.ambient = material.diffuse;
             materialConstsGPU->Update(m_context, materialConstsCPU, sizeof(materialConstsCPU));
@@ -933,6 +1002,25 @@ void Renderer::PassDeferredLighting()
             PassHalo();
     }
     additiveBS->Unbind(m_context);
+}
+
+void Renderer::PassTiledDeferredLighting()
+{
+    RILEY_SCOPED_ANNOTATION(m_annotation, "Tiled DeferredLighting Pass");
+
+    ShaderManager::GetShaderProgram(ShaderProgram::TiledDeferredLighting)->Bind(m_context);
+
+    gbufferPass.attachmentRTVs->BindSRV(m_context, 0, DXShaderStage::CS);
+    gbufferPass.attachmentDSVs->BindSRV(m_context, 3, DXShaderStage::CS);
+    lights->BindSRV(m_context, 4, DXShaderStage::CS);
+    uavTarget->BindUAV(m_context, 0);
+
+    m_context->Dispatch(std::ceil(m_width / 16.0f), std::ceil(m_height / 16.0f), 1);
+
+    gbufferPass.attachmentRTVs->UnbindSRV(m_context, 0, DXShaderStage::CS);
+    gbufferPass.attachmentDSVs->UnbindSRV(m_context, 3, DXShaderStage::CS);
+    lights->UnbindSRV(m_context, 4, DXShaderStage::CS);
+    uavTarget->UnbindUAV(m_context, 0);
 }
 
 void Renderer::PassHalo()
@@ -1360,17 +1448,27 @@ void Renderer::PassEntityID()
     auto entityView = m_reg.view<Mesh, Transform, AABB>();
     for (auto& e : entityView)
     {
-        auto [mesh, transform] = entityView.get<Mesh, Transform>(e);
-        ShaderManager::GetShaderProgram(ShaderProgram::Picking)->Bind(m_context);
+        auto [mesh, transform, aabb] = entityView.get<Mesh, Transform, AABB>(e);
+        if (m_camera->Frustum().Contains(aabb.boundingBox))
+        {
+            ShaderManager::GetShaderProgram(ShaderProgram::Picking)->Bind(m_context);
 
-        objectConstsCPU.world = transform.currentTransform.Transpose();
-        objectConstsCPU.worldInvTranspose = transform.currentTransform.Invert().Transpose();
-        objectConstsGPU->Update(m_context, objectConstsCPU, sizeof(objectConstsCPU));
+             Matrix parent = Matrix::Identity;
+            if (auto root = m_reg.try_get<Relationship>(e))
+            {
+                if (auto rootTransform = m_reg.try_get<Transform>(root->parent))
+                    parent = rootTransform->currentTransform;
+            }
 
-        entityIdConstsCPU.entityID = entt::to_entity(e);
-        entityIdConstsGPU->Update(m_context, entityIdConstsCPU, sizeof(entityIdConstsCPU));
+            objectConstsCPU.world = (transform.currentTransform * parent).Transpose();
+            objectConstsCPU.worldInvTranspose = transform.currentTransform.Invert().Transpose();
+            objectConstsGPU->Update(m_context, objectConstsCPU, sizeof(objectConstsCPU));
 
-        mesh.Draw(m_context);
+            entityIdConstsCPU.entityID = entt::to_entity(e);
+            entityIdConstsGPU->Update(m_context, entityIdConstsCPU, sizeof(entityIdConstsCPU));
+
+            mesh.Draw(m_context);
+        }
     }
 }
 

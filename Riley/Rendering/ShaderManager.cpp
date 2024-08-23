@@ -42,7 +42,7 @@ ID3D11Device* device;
 std::unordered_map<ShaderId, std::unique_ptr<DXVertexShader>> vsShaderMap;
 std::unordered_map<ShaderId, std::unique_ptr<DXGeometryShader>> gsShaderMap;
 std::unordered_map<ShaderId, std::unique_ptr<DXPixelShader>> psShaderMap;
-std::unordered_map < ShaderId, std::unique_ptr<DXComputeShader>> csShaderMap;
+std::unordered_map<ShaderId, std::unique_ptr<DXComputeShader>> csShaderMap;
 std::unordered_map<ShaderId, std::unique_ptr<DXInputLayout>> inputLayoutMap;
 
 // ¸¸µç ¼ÎÀÌ´õµéÀ» »ç¿ëÇÏ°í ½ÍÀº ¼³Á¤¿¡ ¸Â°Ô ´ãÀ» map
@@ -79,6 +79,7 @@ constexpr DXShaderStage GetStage(ShaderId shader)
     case GS_ShadowCascade:
     case GS_ShadowCube:
         return DXShaderStage::GS;
+    case CS_TiledDeferredLighting:
     case CS_BlurX:
     case CS_BlurY:
         return DXShaderStage::CS;
@@ -128,6 +129,8 @@ constexpr std::string GetShaderSource(ShaderId shader)
     case VS_Picking:
     case PS_Picking:
         return "Resources/Shaders/Util/Picking.hlsl";
+    case CS_TiledDeferredLighting:
+        return "Resources/Shaders/Lighting/TiledDeferredLightingCS.hlsl";
     case CS_BlurX:
         return "Resources/Shaders/Postprocess/BlurXCS.hlsl";
     case CS_BlurY:
@@ -187,6 +190,8 @@ constexpr std::string GetEntryPoint(ShaderId shader)
         return "PickingVS";
     case PS_Picking:
         return "PickingPS";
+    case CS_TiledDeferredLighting:
+        return "TiledDeferredLighting";
     case CS_BlurX:
         return "BlurX";
     case CS_BlurY:
@@ -238,8 +243,9 @@ void CompileShader(ShaderId shader, bool firstCompile = false)
             csShaderMap[shader] = std::make_unique<DXComputeShader>(device, output.shader_bytecode);
         else
             csShaderMap[shader]->Recreate(output.shader_bytecode);
+        break;
     default:
-        assert("Unsupported Shader Stage!");
+        assert(false && "Unsupported Shader Stage!");
     }
 }
 
@@ -313,6 +319,7 @@ void CreateAllPrograms()
     // Compute Shader Map
     ComputeShaderProgramMap[ShaderProgram::BlurX].SetComputeShader(csShaderMap[CS_BlurX].get());
     ComputeShaderProgramMap[ShaderProgram::BlurY].SetComputeShader(csShaderMap[CS_BlurY].get());
+    //ComputeShaderProgramMap[ShaderProgram::TiledDeferredLighting].SetComputeShader(csShaderMap[CS_TiledDeferredLighting].get());
 }
 
 void CompileAllShaders()
@@ -345,11 +352,13 @@ void ShaderManager::Destroy()
         T empty;
         std::swap(container, empty);
     };
+    FreeContainer(ComputeShaderProgramMap);
     FreeContainer(DXShaderProgramMap);
     FreeContainer(inputLayoutMap);
     FreeContainer(vsShaderMap);
     FreeContainer(psShaderMap);
     FreeContainer(gsShaderMap);
+    FreeContainer(csShaderMap);
 }
 
 DXShaderProgram* ShaderManager::GetShaderProgram(ShaderProgram shaderProgram)

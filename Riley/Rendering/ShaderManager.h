@@ -30,6 +30,7 @@ enum ShaderId : uint8
     PS_Picking,
     GS_ShadowCascade,
     GS_ShadowCube,
+    CS_TiledDeferredLighting,
     CS_BlurX,
     CS_BlurY,
     ShaderIdCount
@@ -50,6 +51,7 @@ enum class ShaderProgram : uint8
     ShadowCascadeMap,
     ShadowDepthCubeMap,
     Picking,
+    TiledDeferredLighting,
     BlurX,
     BlurY,
     UnKnown

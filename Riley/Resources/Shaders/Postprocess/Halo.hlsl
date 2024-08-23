@@ -69,7 +69,7 @@ float4 Halo(VSToPS input) : SV_TARGET
     {        
         float3 L = normalize(lightData.position.xyz - positionVS);
         float3 lightDir = normalize(lightData.direction.xyz);
-        float cosAngle = dot(-lightDir, L);
+        float cosAngle = saturate(dot(-lightDir, L));
         
         haloEmission *= cosAngle;
     }

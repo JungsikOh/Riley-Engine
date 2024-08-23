@@ -39,6 +39,20 @@ static DXBufferDesc IndexBufferDesc(uint64 index_count, bool small_indices) {
     return desc;
 }
 
+template<typename T>
+static DXBufferDesc StructuredBufferDesc(uint64 count, bool uav = true, bool dynamic = false)
+{
+    DXBufferDesc desc{};
+    desc.bindFlags = DXBindFlag::ShaderResource;
+    if(uav) desc.bindFlags |= DXBindFlag::UnorderedAccess;
+    desc.cpuAccess = !dynamic ? DXCpuAccess::None : DXCpuAccess::Write;
+    desc.resourceUsage = (uav || !dynamic) ? DXResourceUsage::Default : DXResourceUsage::Dynamic;
+    desc.size = sizeof(T) * count;
+    desc.stride = sizeof(T);
+    desc.miscFlags = DXBufferMiscFlag::BufferStructured;
+    return desc;
+}
+
 class DXBuffer : public DXResource {
   public:
     DXBuffer() = default;

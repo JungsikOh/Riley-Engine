@@ -86,6 +86,9 @@ class Renderer
     std::array<Vector4, SSAO_KERNEL_SIZE> ssaoKernel;
 
     // Resources
+    DXBuffer* lights = nullptr;
+    DXResource* uavTarget = nullptr;
+    DXResource* debugTiledTexture = nullptr;
     DXResource* ssaoNoiseTex = nullptr;
     DXResource* blurTextureIntermediate = nullptr;
 
@@ -177,11 +180,14 @@ class Renderer
     void BindGlobals();
     void LightFrustumCulling(const Light& light);
 
+    void UpdateLights();
+
     void PassForward();
     void PassForwardPhong();
     void PassGBuffer();
     void PassAmbient();
     void PassDeferredLighting();
+    void PassTiledDeferredLighting();
 
     // Postprocessing
     void PassPostprocessing();

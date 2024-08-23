@@ -156,7 +156,7 @@ static std::array<Matrix, CASCADE_COUNT> RecalcProjectionMatrices(Camera* camera
     for (uint32 i = 0; i < splitDistances.size(); ++i)
     {
         float fi = (i + 1) * f;
-        float l = nearZ * pow(farZ / nearZ, fi);
+        float l = nearZ * pow(nearZ / farZ, fi);
         float u = nearZ + (farZ - nearZ) * fi;
         splitDistances[i] = l * splitLambda + u * (1.0f - splitLambda);
     }

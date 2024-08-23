@@ -15,8 +15,8 @@ static const CameraParameters ParseCameraParam()
     CameraParameters cp;
     cp.fov = 90.0f;
     cp.aspectRatio = 16.0f / 9.0f;
-    cp.nearPlane = 0.1f;
-    cp.farPlane = 15.0f;
+    cp.nearPlane = 0.01f;
+    cp.farPlane = 30.0f;
     cp.position = Vector3(0.0f, 0.0f, -1.0f);
     cp.lootAt = Vector3(0.0f, 0.0f, 10.0f);
     cp.sensitivity = 0.3f;
@@ -59,7 +59,7 @@ Engine::Engine(EngineInit const& init) : window(init.window), vsync{init.vsync}
     light.type = LightType::Directional;
     modelImporter->LoadLight(light, LightMesh::Cube, 0.03f);
 
-    light.position = Vector4(0.0f, -0.5f, 0.0f, 1.0f);
+    light.position = Vector4(0.0f, -0.3f, 0.0f, 1.0f);
     light.direction = Vector4(0.0f, -1.0f, 0.0f, 0.0f);
     light.color = Vector4(0.7f, 0.7f, 0.7f, 0.0f);
     light.energy = 1.0f;

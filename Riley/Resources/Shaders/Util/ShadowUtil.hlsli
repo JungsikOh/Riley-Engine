@@ -75,38 +75,39 @@ float CalcShadowCascadeMapFCF3x3(LightData light, float3 viewPos, Texture2DArray
 float CalcShadowCubeMapPCF3x3x3(LightData light, float3 viewPos, TextureCube shadowCubeMap)
 {
     float shadowFactor = 0.0;
+    if (light.castShadows)
+    {
+        float3 lightToPixelVS = viewPos - light.position.xyz; // View Space
+        float3 lightToPixelWS = mul(float4(lightToPixelVS, 0.0), frameData.invView);
     
-    float3 lightToPixelVS = viewPos - light.position.xyz; // View Space
-    float3 lightToPixelWS = mul(float4(lightToPixelVS, 0.0), frameData.invView);
+        const float zf = light.range;
+        const float zn = 0.5;
+        const float c1 = zf / (zf - zn);
+        const float c0 = -zn * zf / (zf - zn);
     
-    const float zf = light.range;
-    const float zn = 0.5;
-    const float c1 = zf / (zf - zn);
-    const float c0 = -zn * zf / (zf - zn);
+        const float3 m = abs(lightToPixelWS).xyz;
+        const float major = max(m.x, max(m.y, m.z));
     
-    const float3 m = abs(lightToPixelWS).xyz;
-    const float major = max(m.x, max(m.y, m.z));
-    
-    float fragmentDepth = (c1 * major + c0) / major;
+        float fragmentDepth = (c1 * major + c0) / major;
     
     // Basic
     //shadow = shadowCubeMap.SampleCmpLevelZero(ShadowSampler, normalize(lightToPixelWS).xyz, fragmentDepth - 0.005).r;
     
     // PCF 3x3x3
-    const float dx = 1.0 / shadowData.shadowMapSize;
+        const float dx = 1.0 / shadowData.shadowMapSize;
         
-    for (int x = -1; x <= 1; ++x)
-    {
-        for (int y = -1; y <= 1; ++y)
+        for (int x = -1; x <= 1; ++x)
         {
-            for (int z = -1; z <= 1; ++z)
+            for (int y = -1; y <= 1; ++y)
             {
-                shadowFactor += shadowCubeMap.SampleCmpLevelZero(ShadowSampler, normalize(lightToPixelWS).xyz + float3(x * dx, y * dx, z * dx), fragmentDepth).r;
+                for (int z = -1; z <= 1; ++z)
+                {
+                    shadowFactor += shadowCubeMap.SampleCmpLevelZero(ShadowSampler, normalize(lightToPixelWS).xyz + float3(x * dx, y * dx, z * dx), fragmentDepth).r;
+                }
             }
         }
+        shadowFactor /= (3.0 * 3.0 * 3.0);
     }
-    shadowFactor /= (3.0 * 3.0 * 3.0);
-    
     return shadowFactor;
 }
 

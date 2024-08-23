@@ -3,6 +3,42 @@
 
 #include "../Common.hlsli"
 
+struct PackedLightData
+{
+    int active;
+    float4 position;
+    float4 direction;
+    float4 lightColor;
+
+    float range;
+    int type;
+    float outerCosine;
+    float innerCosine;
+
+    int castShadows;
+    int useCascades;
+    float radius;
+    float haloStrength;
+};
+
+LightData ConvertFromPackedLightData(in PackedLightData structured_light)
+{
+    LightData l = (LightData) 0;
+    l.castShadows = structured_light.castShadows;
+    l.lightColor = structured_light.lightColor;
+    l.direction = structured_light.direction;
+    l.innerCosine = structured_light.innerCosine;
+    l.outerCosine = structured_light.outerCosine;
+    l.position = structured_light.position;
+    l.range = structured_light.range;
+    l.type = structured_light.type;
+    l.useCascades = structured_light.useCascades;
+    
+    l.screenSpacePosition = 0;
+    
+    return l;
+}
+
 float DoAttenuation(float distance, float range)
 {
     // 1. Gihbud Source

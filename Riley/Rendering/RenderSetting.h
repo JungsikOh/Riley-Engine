@@ -10,7 +10,7 @@ static constexpr uint32 SHADOW_MAP_SIZE = 2048;
 static constexpr uint32 SHADOW_CASCADE_SIZE = 2048;
 static constexpr uint32 SHADOW_CUBE_SIZE = 512;
 static constexpr uint32 CASCADE_COUNT = 4;
-static constexpr float SPLIT_LAMBDA = 0.25f;
+static constexpr float SPLIT_LAMBDA = 0.75f;
 
 struct RenderSetting
 {

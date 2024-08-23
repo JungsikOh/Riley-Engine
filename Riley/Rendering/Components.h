@@ -40,7 +40,7 @@ struct COMPONENT Material
     TextureHandle emissiveTexture = INVALID_TEXTURE_HANDLE;
 
    float albedoFactor = 1.0f;
-   float metallicFactor = 0.001f;
+   float metallicFactor = 1.0f;
    float roughnessFactor = 1.0f;
    float emissiveFactor = 1.0f;
 

@@ -115,4 +115,26 @@ DECLSPEC_ALIGN(16) struct EntityIdConsts
     Vector3 _dummy4;
 };
 
+///////////////////////////////////
+// Structured Buffer    //
+///////////////////////////////////
+
+struct LightSBuffer
+{
+    int32 active;
+    Vector4 position;
+    Vector4 direction;
+    Vector4 lightColor;
+
+    float range;
+    int32 type;
+    float outerCosine;
+    float innerCosine;
+
+    int32 castShadows;
+    int32 useCascades;
+    float radius;
+    float haloStrength;
+};
+
 } // namespace Riley
