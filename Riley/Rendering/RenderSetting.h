@@ -14,6 +14,9 @@ static constexpr float SPLIT_LAMBDA = 0.75f;
 
 struct RenderSetting
 {
+	// Lighting
+    LightingType lighting = LightingType::Deferred;
+
    // ao
    AmbientOcclusion ao = AmbientOcclusion::SSAO;
    float ssaoPower = 2.0f;

@@ -17,6 +17,7 @@ Texture2DArray ShadowCascadeMap : register(t7);
 
 RWTexture2D<float4> OutputTex : register(u0);
 RWTexture2D<float4> DebugTex : register(u1);
+//RWStructuredBuffer<TiledLightListBuffer> OutputLightsList : register(u2);
 
 groupshared uint s_MinZ;
 groupshared uint s_MaxZ;
@@ -37,19 +38,19 @@ void TiledDeferredLighting(int3 gID : SV_GroupID,
     
     float2 texcoord = float2((dtID.x + 0.5) / frameData.screenResolutionX, (dtID.y + 0.5) / frameData.screenResolutionY);
     
-    float depth = DepthTex.Load(int3(dtID.xy, 0));
+    float depth = DepthTex.Load(int3(dtID.xy, 0)).r;
     float viewSpaceDepth = ConvertZToLinearDepth(depth);
     
     bool vaildPixel = viewSpaceDepth >= frameData.cameraNear && viewSpaceDepth < frameData.cameraFar;
     
     [flatten]
-    if(vaildPixel)
+    if (vaildPixel)
     {
         pixelMinZ = min(pixelMinZ, viewSpaceDepth);
         pixelMaxZ = max(pixelMaxZ, viewSpaceDepth);
     }
     
-    if(gIdx == 0)
+    if (gIdx == 0)
     {
         s_TileNumLights = 0;
         s_MinZ = 0x7F7FFFFF;
@@ -58,7 +59,7 @@ void TiledDeferredLighting(int3 gID : SV_GroupID,
     
     GroupMemoryBarrierWithGroupSync();
     
-    if(pixelMaxZ >= pixelMinZ)
+    if (pixelMaxZ >= pixelMinZ)
     {
         InterlockedMin(s_MinZ, asuint(pixelMinZ));
         InterlockedMax(s_MaxZ, asuint(pixelMaxZ));
@@ -97,22 +98,23 @@ void TiledDeferredLighting(int3 gID : SV_GroupID,
             continue;
         
         bool inFrustum = true;
-        if(light.type != DIRECTIONAL_LIGHT)
+        if (light.type != DIRECTIONAL_LIGHT)
         {
             [unroll]
             for (uint i = 0; i < 6; ++i)
             {
                 float d = dot(frustumPlanes[i], float4(light.position.xyz, 1.0f));
-                inFrustum = inFrustum && (d >= -light.range);
+                inFrustum = inFrustum && (d >= -light.range / 2.0f);
             }
         }
         
         [branch]
-        if(inFrustum)
+        if (inFrustum)
         {
             uint listIndex;
             InterlockedAdd(s_TileNumLights, 1, listIndex);
             s_TileLightIndices[listIndex] = lightIdx;
+            DebugTex[dtID.xy] = s_TileNumLights / 3.0f;
         }
     }
 
@@ -120,7 +122,7 @@ void TiledDeferredLighting(int3 gID : SV_GroupID,
     
     float3 viewSpacePosition = GetViewSpacePosition(texcoord, depth);
     float4 normalMetallic = NormalMetallicTex.Load(int3(dtID.xy, 0));
-    float3 normal = 2 * normalMetallic.rgb - 1.0;
+    float3 normal = 2.0 * normalMetallic.rgb - 1.0;
     float metallic = normalMetallic.a;
     
     float4 albedoRoughness = DiffuseRoughnessTex.Load(int3(dtID.xy, 0));
@@ -139,22 +141,40 @@ void TiledDeferredLighting(int3 gID : SV_GroupID,
             switch (light.type)
             {
                 case DIRECTIONAL_LIGHT:
-                    Lo = DoDirectinoalLightPBR(lightData, viewSpacePosition, normal, V, albedoRoughness.rgb, metallic, roughness);
-                    shadowFactor = lightData.useCascades ? 
-                        CalcShadowCascadeMapFCF3x3(lightData, viewSpacePosition, ShadowCascadeMap) : CalcShadowMapPCF3x3(lightData, viewSpacePosition, ShadowMap);
+                    shadowFactor = lightData.useCascades ? CalcShadowCascadeMapFCF3x3(light, viewSpacePosition, ShadowCascadeMap) : CalcShadowMapPCF3x3(light, viewSpacePosition, ShadowMap);
+                    Lo += DoDirectinoalLightPBR(light, viewSpacePosition, normal, V, albedoRoughness.rgb, metallic, roughness) * shadowFactor;
                     break;
                 case POINT_LIGHT:
-                    Lo = DoPointLightPBR(lightData, viewSpacePosition, normal, V, albedoRoughness.rgb, metallic, roughness);
-                    shadowFactor = CalcShadowCubeMapPCF3x3x3(lightData, viewSpacePosition, ShadowCubeMap);
+                    shadowFactor = CalcShadowCubeMapPCF3x3x3(light, viewSpacePosition, ShadowCubeMap);
+                    Lo += DoPointLightPBR(light, viewSpacePosition, normal, V, albedoRoughness.rgb, metallic, roughness) * shadowFactor;
                     break;
                 case SPOT_LIGHT:
-                    Lo = DoSpotLightPBR(lightData, viewSpacePosition, normal, V, albedoRoughness.rgb, metallic, roughness);
-                    shadowFactor = CalcShadowMapPCF3x3(lightData, viewSpacePosition, ShadowMap);
+                    shadowFactor = CalcShadowMapPCF3x3(light, viewSpacePosition, ShadowMap);
+                    Lo += DoSpotLightPBR(light, viewSpacePosition, normal, V, albedoRoughness.rgb, metallic, roughness) * shadowFactor;
                     break;
             }
         }
     }
     
-    float4 shadingColor = OutputTex.Load(int3(int2(dtID.xy), 0)) + float4(Lo * shadowFactor, 1.0f);
+    float4 shadingColor = OutputTex.Load(int3(int2(dtID.xy), 0)) + float4(Lo, 1.0f);
     OutputTex[dtID.xy] = shadingColor;
+    
+    // 히트맵 색상 범위
+    const float3 HeatMap[] =
+    {
+        float3(0, 0, 0), // Black
+        float3(0, 0, 1), // Blue
+        float3(0, 1, 1), // Cyan
+        float3(0, 1, 0), // Green
+        float3(1, 1, 0), // Yellow
+        float3(1, 0, 0), // Red
+    };
+    
+    float intensity = saturate(s_TileNumLights / 5.0f) * 3.0f;
+    float3 a = HeatMap[floor(intensity)];
+    float3 b = HeatMap[ceil(intensity)];
+    
+    float4 debugColor = float4(lerp(a, b, intensity - floor(intensity)), 0.5);
+    //DebugTex[dtID.xy] = debugColor;
+
 }

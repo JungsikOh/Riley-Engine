@@ -19,15 +19,15 @@ struct VSToPS
 
 float4 DeferredLightingPS(VSToPS input) : SV_Target
 {
-    float depth = DepthTex.Sample(LinearClampSampler, input.texcoord);
+    float depth = DepthTex.Sample(LinearWrapSampler, input.texcoord);
     float3 positionVS = GetViewSpacePosition(input.texcoord, depth);
     float3 viewDir = normalize(0.0f.xxx - positionVS);
     
-    float4 normalMetallic = NormalMetallicTex.Sample(LinearClampSampler, input.texcoord);
+    float4 normalMetallic = NormalMetallicTex.Sample(LinearWrapSampler, input.texcoord);
     float3 normalVS = normalMetallic.rgb * 2.0 - 1.0;
     float metallic = normalMetallic.a;
     
-    float4 diffuseRoughness = DiffuseRoughnessTex.Sample(LinearClampSampler, input.texcoord);
+    float4 diffuseRoughness = DiffuseRoughnessTex.Sample(LinearWrapSampler, input.texcoord);
     float3 albedo = diffuseRoughness.rgb;
     float roughness = diffuseRoughness.a;
     
@@ -53,8 +53,6 @@ float4 DeferredLightingPS(VSToPS input) : SV_Target
             LoPBR = DoSpotLightPBR(lightData, positionVS, normalVS, viewDir, albedo, metallic, roughness);
             shadowFactor = CalcShadowMapPCF3x3(lightData, positionVS, ShadowMap);
             break;
-        default:
-            return float4(1, 0, 0, 1);
     }
     
     return float4(LoPBR * shadowFactor, 1.0);

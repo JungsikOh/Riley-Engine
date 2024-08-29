@@ -4,6 +4,8 @@
 namespace Riley
 {
 
+#define MAX_LIGHTS 256
+
 struct FrameBufferConsts
 {
     Matrix view;
@@ -35,7 +37,6 @@ struct FrameBufferConsts
     float screenResolutionY;
     float mouseNormalizedCoordsX;
     float mouseNormalizedCoordsY;
-
 };
 
 struct LightConsts
@@ -54,6 +55,11 @@ struct LightConsts
     int32 useCascades;
     float radius;
     float haloStrength;
+
+    float godrayDenstiy;
+    float godrayWeight;
+    float godrayDecay;
+    float godrayExposure;
 };
 
 struct ObjectConsts
@@ -122,19 +128,28 @@ DECLSPEC_ALIGN(16) struct EntityIdConsts
 struct LightSBuffer
 {
     int32 active;
+    Vector3 _dummy;
+
     Vector4 position;
     Vector4 direction;
     Vector4 lightColor;
 
     float range;
     int32 type;
-    float outerCosine;
     float innerCosine;
+    float outerCosine;
 
     int32 castShadows;
     int32 useCascades;
     float radius;
     float haloStrength;
+};
+
+struct TiledLightListBuffer
+{
+    int32 tileNumLights;
+    int32 tileLightIndices[MAX_LIGHTS];
+    float _dummy2[2];
 };
 
 } // namespace Riley

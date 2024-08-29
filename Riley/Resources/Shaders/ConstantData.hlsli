@@ -53,6 +53,11 @@ struct LightData
     int useCascades;
     float radius;
     float haloStrength;
+    
+    float godrayDenstiy;
+    float godrayWeight;
+    float godrayDecay;
+    float godrayExposure;
 };
 
 struct MeshData

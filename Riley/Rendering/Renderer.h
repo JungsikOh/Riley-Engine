@@ -38,13 +38,16 @@ class Renderer
     void Tick(Camera*);
     void Update(float dt);
 
+    void UpdateLights();
+
+
     void SetSceneViewport(const float& width = 0.0f, const float& height = 0.0f, const float& minDepth = 0.0f,
                           const float& maxDepth = 1.0f, const float& topLeftX = 0.0f, const float& topLeftY = 0.0f);
 
     void SetSceneViewport(SceneViewport const& viewport);
     DXRenderTarget* GetOffScreenRTV()
     {
-        return pingPostprocessRTV;
+        return postprocessPasses[!postprocessIndex].attachmentRTVs;
     }
 
     void Render(RenderSetting& _setting);
@@ -87,10 +90,12 @@ class Renderer
 
     // Resources
     DXBuffer* lights = nullptr;
+    DXBuffer* outputTiledLights = nullptr;
     DXResource* uavTarget = nullptr;
     DXResource* debugTiledTexture = nullptr;
     DXResource* ssaoNoiseTex = nullptr;
     DXResource* blurTextureIntermediate = nullptr;
+    TextureHandle sunTex = INVALID_TEXTURE_HANDLE;
 
     // cbuffers
     FrameBufferConsts frameBufferCPU;
@@ -136,6 +141,7 @@ class Renderer
     DXRenderTarget* ambientLightingRTV;
     DXRenderTarget* ssaoRTV;
     DXRenderTarget* ssaoBlurRTV;
+    DXRenderTarget* sunRTV;
     DXRenderTarget* pingPostprocessRTV;
     DXRenderTarget* pongPostprocessRTV;
     DXRenderTarget* entityIdRTV;
@@ -180,8 +186,6 @@ class Renderer
     void BindGlobals();
     void LightFrustumCulling(const Light& light);
 
-    void UpdateLights();
-
     void PassForward();
     void PassForwardPhong();
     void PassGBuffer();
@@ -192,6 +196,7 @@ class Renderer
     // Postprocessing
     void PassPostprocessing();
     void PassHalo();
+    void PassGodsRay(const Light& light);
     void PassSSAO();
     void PassSSR();
 
@@ -204,7 +209,10 @@ class Renderer
     void PassLight();
     void PassEntityID();
 
+    void DrawSun(entt::entity light);
     void BlurTexture(DXRenderTarget* src);
+    void AddTexture(DXRenderTarget* dest, DXResource* src);
+    void CopyTexture(DXResource* src);
 };
 
 } // namespace Riley

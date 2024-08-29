@@ -7,6 +7,8 @@
 #include "../Graphics/DXStates.h"
 #include "../Math/CalcLightFrustum.h"
 #include "../Math/ComputeVectors.h"
+#include "../Utilities/FileUtil.h"
+#include "../Utilities/StringUtil.h"
 #include "Camera.h"
 #include "ModelImporter.h"
 #include <random>
@@ -115,12 +117,15 @@ void Renderer::Render(RenderSetting& _setting)
     PassSSAO();
 
     PassAmbient();
-    PassDeferredLighting();
+    if (renderSetting.lighting == LightingType::Deferred)
+        PassDeferredLighting();
+    if (renderSetting.lighting == LightingType::TiledDeferred || renderSetting.lighting == LightingType::TiledDeferred_DEBUG)
+        PassTiledDeferredLighting();
 
     PassPostprocessing();
 
     PassAABB();
-    PassLight();
+    //PassLight();
     PassEntityID();
 }
 
@@ -243,12 +248,12 @@ void Renderer::Tick(Camera* camera)
     frameBufferCPU.invView = m_camera->GetView().Transpose().Invert().Transpose();
     frameBufferCPU.invProj = m_camera->GetProj().Transpose().Invert().Transpose();
     frameBufferCPU.invViewProj = m_camera->GetViewProj().Transpose().Invert().Transpose();
-    frameBufferCPU.screenResolutionX = m_currentSceneViewport.GetWidth();
-    frameBufferCPU.screenResolutionY = m_currentSceneViewport.GetHeight();
+    frameBufferCPU.screenResolutionX = m_width;
+    frameBufferCPU.screenResolutionY = m_height;
     frameBufferCPU.cameraFrustumX = m_camera->AspectRatio() * std::tan(m_camera->Fov() * 0.5f);
     frameBufferCPU.cameraFrustumY = std::tan(m_camera->Fov() * 0.5f);
 
-    frameBufferGPU->Update(m_context, frameBufferCPU, sizeof(frameBufferCPU));
+    frameBufferGPU->Update(m_context, &frameBufferCPU, sizeof(frameBufferCPU));
 
     // Set for next frame
     frameBufferCPU.prevView = m_camera->GetView();
@@ -477,6 +482,13 @@ void Renderer::CreateRenderTargets(uint32 width, uint32 height)
         ssaoBlurRTV->CreateUAV(m_device, nullptr);
     }
 
+    // Sun
+    {
+        SAFE_DELETE(sunRTV);
+        sunRTV = new DXRenderTarget(m_device, width, height, DXFormat::R8G8B8A8_UNORM, gbufferDSV);
+        sunRTV->CreateSRV(m_device, nullptr);
+    }
+
     // Postprocess
     {
         SAFE_DELETE(pingPostprocessRTV);
@@ -535,7 +547,6 @@ void Renderer::CreateOtherResources()
         ssaoNoiseTex->CreateSRV(m_device, &tex2dSRVDesc);
     }
 
-    
     // Blur
     {
         SAFE_DELETE(blurTextureIntermediate);
@@ -543,6 +554,11 @@ void Renderer::CreateOtherResources()
         blurTextureIntermediate->Initialize(m_device, m_width, m_height, DXFormat::R16G16B16A16_FLOAT);
         blurTextureIntermediate->CreateSRV(m_device, nullptr);
         blurTextureIntermediate->CreateUAV(m_device, nullptr);
+    }
+
+    // Sun
+    {
+        sunTex = g_TextureManager.LoadTexture(ToWideString("Resources/Models/Sun/Sun.png"));
     }
 
     // uav
@@ -673,6 +689,13 @@ void Renderer::BindGlobals()
         // GS
         shadowConstsGPU->Bind(m_context, DXShaderStage::GS, 3);
 
+        // CS
+        frameBufferGPU->Bind(m_context, DXShaderStage::CS, 0);
+        materialConstsGPU->Bind(m_context, DXShaderStage::CS, 1);
+        lightConstsGPU->Bind(m_context, DXShaderStage::CS, 2);
+        shadowConstsGPU->Bind(m_context, DXShaderStage::CS, 3);
+        postProcessGPU->Bind(m_context, DXShaderStage::CS, 4);
+
         // Samplers
         linearWrapSS->Bind(m_context, 0, DXShaderStage::PS);
         linearClampSS->Bind(m_context, 1, DXShaderStage::PS);
@@ -681,6 +704,14 @@ void Renderer::BindGlobals()
         pointClampSS->Bind(m_context, 4, DXShaderStage::PS);
         anisotropyWrapSS->Bind(m_context, 5, DXShaderStage::PS);
         shadowLinearBorderSS->Bind(m_context, 6, DXShaderStage::PS);
+
+        linearWrapSS->Bind(m_context, 0, DXShaderStage::CS);
+        linearClampSS->Bind(m_context, 1, DXShaderStage::CS);
+        linearBorderSS->Bind(m_context, 2, DXShaderStage::CS);
+        pointWrapSS->Bind(m_context, 3, DXShaderStage::CS);
+        pointClampSS->Bind(m_context, 4, DXShaderStage::CS);
+        anisotropyWrapSS->Bind(m_context, 5, DXShaderStage::CS);
+        shadowLinearBorderSS->Bind(m_context, 6, DXShaderStage::CS);
 
         called = true;
     }
@@ -718,14 +749,16 @@ void Renderer::UpdateLights()
     static uint64 s_lightCount = 0;
 
     bool lightCountIsChanged = (s_lightCount != currentLightCount);
+
     if (lightCountIsChanged)
     {
         s_lightCount = currentLightCount;
-        if (s_lightCount) return;
+        if (!s_lightCount)
+            return;
 
         SAFE_DELETE(lights);
 
-        lights = new DXBuffer(m_device, StructuredBufferDesc<LightSBuffer>(s_lightCount, true, true));
+        lights = new DXBuffer(m_device, StructuredBufferDesc<LightSBuffer>(s_lightCount, false, true));
         lights->CreateSRV(m_device, nullptr);
     }
 
@@ -737,23 +770,45 @@ void Renderer::UpdateLights()
         auto& light = m_reg.get<Light>(e);
 
         l.active = light.active;
+        l._dummy = Vector3(0.0f);
         l.type = static_cast<int32>(light.type);
         l.castShadows = light.castShadows;
         l.useCascades = light.useCascades;
         l.direction = light.direction;
         l.position = light.position;
-        l.lightColor = light.color;
+        l.lightColor = light.color * light.energy;
         l.range = light.range;
         l.radius = light.radius;
         l.haloStrength = light.haloStrength;
         l.innerCosine = light.inner_cosine;
         l.outerCosine = light.outer_cosine;
-        
+
+        Matrix cameraView = m_camera->GetView().Transpose();
+        l.direction = Vector4::Transform(l.direction, cameraView);
+        l.position = Vector4::Transform(l.position, cameraView);
+
         lightsData.push_back(l);
+
+        // Shadow Mapping
+        if (!light.shadowMappingFlag)
+        {
+            if (light.type == LightType::Spot)
+            {
+                PassShadowMapSpot(light);
+            }
+            else if (light.type == LightType::Directional)
+            {
+                light.useCascades ? PassShadowMapCascade(light) : PassShadowMapDirectional(light);
+            }
+            else if (light.type == LightType::Point)
+            {
+                PassShadowMapPoint(light);
+            }
+            light.shadowMappingFlag = true;
+        }
     }
 
-    if (lights != nullptr)
-        lights->Update(m_context, lightsData.data(), (uint64)lightsData.size());
+    lights->Update(m_context, lightsData.data(), (uint64)(lightsData.size() * sizeof(LightSBuffer)));
 }
 
 void Renderer::PassForward()
@@ -786,20 +841,7 @@ void Renderer::PassForwardPhong()
             Matrix cameraView = m_camera->GetView();
             lightConstsCPU.position = Vector4::Transform(lightConstsCPU.position, cameraView.Transpose());
             lightConstsCPU.direction = Vector4::Transform(lightConstsCPU.direction, cameraView.Transpose());
-            lightConstsGPU->Update(m_context, lightConstsCPU, sizeof(lightConstsCPU));
-        }
-
-        if (lightData.type == LightType::Spot)
-        {
-            PassShadowMapSpot(lightData);
-        }
-        else if (lightData.type == LightType::Directional)
-        {
-            PassShadowMapDirectional(lightData);
-        }
-        else if (lightData.type == LightType::Point)
-        {
-            PassShadowMapPoint(lightData);
+            lightConstsGPU->Update(m_context, &lightConstsCPU, sizeof(lightConstsCPU));
         }
 
         additiveBS->Bind(m_context);
@@ -820,12 +862,12 @@ void Renderer::PassForwardPhong()
 
                 objectConstsCPU.world = transform.currentTransform.Transpose();
                 objectConstsCPU.worldInvTranspose = transform.currentTransform.Invert().Transpose();
-                objectConstsGPU->Update(m_context, objectConstsCPU, sizeof(objectConstsCPU));
+                objectConstsGPU->Update(m_context, &objectConstsCPU, sizeof(objectConstsCPU));
 
                 materialConstsCPU.diffuse = material.diffuse;
                 materialConstsCPU.albedoFactor = material.albedoFactor;
                 materialConstsCPU.ambient = material.diffuse;
-                materialConstsGPU->Update(m_context, materialConstsCPU, sizeof(materialConstsCPU));
+                materialConstsGPU->Update(m_context, &materialConstsCPU, sizeof(materialConstsCPU));
 
                 mesh.Draw(m_context);
             }
@@ -849,7 +891,6 @@ void Renderer::PassGBuffer()
     for (auto& entity : entityView)
     {
         auto [mesh, material, transform, aabb] = entityView.get<Mesh, Material, Transform, AABB>(entity);
-
         Matrix parent = Matrix::Identity;
         if (auto root = m_reg.try_get<Relationship>(entity))
         {
@@ -876,7 +917,7 @@ void Renderer::PassGBuffer()
 
             objectConstsCPU.world = (transform.currentTransform * parent).Transpose();
             objectConstsCPU.worldInvTranspose = objectConstsCPU.world.Invert();
-            objectConstsGPU->Update(m_context, objectConstsCPU, sizeof(objectConstsCPU));
+            objectConstsGPU->Update(m_context, &objectConstsCPU, sizeof(objectConstsCPU));
 
             materialConstsCPU.diffuse = material.diffuse;
             materialConstsCPU.albedoFactor = material.albedoFactor;
@@ -885,7 +926,7 @@ void Renderer::PassGBuffer()
             materialConstsCPU.roughnessFactor = material.roughnessFactor;
             materialConstsCPU.emissiveFactor = material.emissiveFactor;
             materialConstsCPU.ambient = material.diffuse;
-            materialConstsGPU->Update(m_context, materialConstsCPU, sizeof(materialConstsCPU));
+            materialConstsGPU->Update(m_context, &materialConstsCPU, sizeof(materialConstsCPU));
 
             mesh.Draw(m_context);
 
@@ -925,7 +966,6 @@ void Renderer::PassAmbient()
         gbufferPass.attachmentRTVs->UnbindSRV(m_context, 0, DXShaderStage::PS);
         ssaoRTV->UnbindSRV(m_context, 3, DXShaderStage::PS);
     }
-    deferredLightingPass.EndRenderPass(m_context);
 }
 
 void Renderer::PassDeferredLighting()
@@ -955,20 +995,7 @@ void Renderer::PassDeferredLighting()
             Matrix cameraView = m_camera->GetView();
             lightConstsCPU.position = Vector4::Transform(lightConstsCPU.position, cameraView.Transpose());
             lightConstsCPU.direction = Vector4::Transform(lightConstsCPU.direction, cameraView.Transpose());
-            lightConstsGPU->Update(m_context, lightConstsCPU, sizeof(lightConstsCPU));
-        }
-
-        if (lightData.type == LightType::Spot)
-        {
-            PassShadowMapSpot(lightData);
-        }
-        else if (lightData.type == LightType::Directional)
-        {
-            lightData.useCascades ? PassShadowMapCascade(lightData) : PassShadowMapDirectional(lightData);
-        }
-        else if (lightData.type == LightType::Point)
-        {
-            PassShadowMapPoint(lightData);
+            lightConstsGPU->Update(m_context, &lightConstsCPU, sizeof(lightConstsCPU));
         }
 
         additiveBS->Bind(m_context);
@@ -996,12 +1023,8 @@ void Renderer::PassDeferredLighting()
             shadowCascadeMapPass.attachmentDSVs->UnbindSRV(m_context, 6, DXShaderStage::PS);
         }
         deferredLightingPass.EndRenderPass(m_context);
-
-        // Halo Pass
-        if (lightData.type == LightType::Point || lightData.type == LightType::Spot)
-            PassHalo();
+        additiveBS->Unbind(m_context);
     }
-    additiveBS->Unbind(m_context);
 }
 
 void Renderer::PassTiledDeferredLighting()
@@ -1013,22 +1036,76 @@ void Renderer::PassTiledDeferredLighting()
     gbufferPass.attachmentRTVs->BindSRV(m_context, 0, DXShaderStage::CS);
     gbufferPass.attachmentDSVs->BindSRV(m_context, 3, DXShaderStage::CS);
     lights->BindSRV(m_context, 4, DXShaderStage::CS);
+    shadowMapPass.attachmentDSVs->BindSRV(m_context, 5, DXShaderStage::CS);
+    shadowCubeMapPass.attachmentDSVs->BindSRV(m_context, 6, DXShaderStage::CS);
+    shadowCascadeMapPass.attachmentDSVs->BindSRV(m_context, 7, DXShaderStage::CS);
     uavTarget->BindUAV(m_context, 0);
+    debugTiledTexture->BindUAV(m_context, 1);
+    // outputTiledLights->BindUAV(m_context, 2);
 
-    m_context->Dispatch(std::ceil(m_width / 16.0f), std::ceil(m_height / 16.0f), 1);
+    m_context->Dispatch(std::ceil(m_width * 1.0f / 16.0f), std::ceil(m_height * 1.0f / 16.0f), 1);
 
     gbufferPass.attachmentRTVs->UnbindSRV(m_context, 0, DXShaderStage::CS);
     gbufferPass.attachmentDSVs->UnbindSRV(m_context, 3, DXShaderStage::CS);
     lights->UnbindSRV(m_context, 4, DXShaderStage::CS);
+    shadowMapPass.attachmentDSVs->UnbindSRV(m_context, 5, DXShaderStage::CS);
+    shadowCubeMapPass.attachmentDSVs->UnbindSRV(m_context, 6, DXShaderStage::CS);
+    shadowCascadeMapPass.attachmentDSVs->UnbindSRV(m_context, 7, DXShaderStage::CS);
     uavTarget->UnbindUAV(m_context, 0);
+    debugTiledTexture->UnbindUAV(m_context, 1);
+    // outputTiledLights->UnbindUAV(m_context, 2);
+
+    SetSceneViewport(static_cast<float>(deferredLightingPass.width), static_cast<float>(deferredLightingPass.height));
+    deferredLightingPass.BeginRenderPass(m_context, false, false, 0);
+
+    if (renderSetting.lighting == LightingType::TiledDeferred)
+    {
+        additiveBS->Bind(m_context);
+        CopyTexture(uavTarget);
+        additiveBS->Unbind(m_context);
+    }
+    else if (renderSetting.lighting == LightingType::TiledDeferred_DEBUG)
+    {
+        CopyTexture(debugTiledTexture);
+    }
+    //// Render Mesh
+    //{
+    //    additiveBS->Bind(m_context);
+    //    gbufferPass.attachmentRTVs->BindSRV(m_context, 0, DXShaderStage::PS);
+    //    gbufferPass.attachmentDSVs->BindSRV(m_context, 3, DXShaderStage::PS);
+    //    lights->BindSRV(m_context, 4, DXShaderStage::PS);
+    //    outputTiledLights->BindSRV(m_context, 5, DXShaderStage::PS);
+    //    shadowMapPass.attachmentDSVs->BindSRV(m_context, 6, DXShaderStage::PS);
+    //    shadowCubeMapPass.attachmentDSVs->BindSRV(m_context, 7, DXShaderStage::PS);
+    //    shadowCascadeMapPass.attachmentDSVs->BindSRV(m_context, 8, DXShaderStage::PS);
+
+    //    ShaderManager::GetShaderProgram(ShaderProgram::DeferredLighting)->Bind(m_context);
+
+    //    m_context->IASetInputLayout(nullptr);
+    //    m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+    //    m_context->Draw(4, 0);
+
+    //    gbufferPass.attachmentRTVs->UnbindSRV(m_context, 0, DXShaderStage::PS);
+    //    gbufferPass.attachmentDSVs->UnbindSRV(m_context, 3, DXShaderStage::PS);
+    //    lights->BindSRV(m_context, 4, DXShaderStage::PS);
+    //    outputTiledLights->UnbindSRV(m_context, 5, DXShaderStage::PS);
+    //    shadowMapPass.attachmentDSVs->UnbindSRV(m_context, 4, DXShaderStage::PS);
+    //    shadowCubeMapPass.attachmentDSVs->UnbindSRV(m_context, 5, DXShaderStage::PS);
+    //    shadowCascadeMapPass.attachmentDSVs->UnbindSRV(m_context, 6, DXShaderStage::PS);
+    //}
+    // deferredLightingPass.EndRenderPass(m_context);
+    // additiveBS->Unbind(m_context);
+
+    deferredLightingPass.EndRenderPass(m_context);
+
+    static float black[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    m_context->ClearUnorderedAccessViewFloat(uavTarget->UAV(), black);
+    m_context->ClearUnorderedAccessViewFloat(debugTiledTexture->UAV(), black);
 }
 
 void Renderer::PassHalo()
 {
     RILEY_SCOPED_ANNOTATION(m_annotation, "Halo Pass");
-
-    SetSceneViewport(static_cast<float>(deferredLightingPass.width), static_cast<float>(deferredLightingPass.height));
-    deferredLightingPass.BeginRenderPass(m_context, false, false, 0);
     additiveBS->Bind(m_context);
     {
         gbufferPass.attachmentDSVs->BindSRV(m_context, 0, DXShaderStage::PS);
@@ -1041,7 +1118,42 @@ void Renderer::PassHalo()
 
         gbufferPass.attachmentDSVs->UnbindSRV(m_context, 0, DXShaderStage::PS);
     }
-    deferredLightingPass.EndRenderPass(m_context);
+    additiveBS->Unbind(m_context);
+}
+
+void Renderer::PassGodsRay(const Light& light)
+{
+    RILEY_SCOPED_ANNOTATION(m_annotation, "GodsRay Pass");
+ 
+    // Update Cbuffer
+    {
+        Vector4 lightScreenSpace = Vector4::Transform(light.position, frameBufferCPU.viewProj.Transpose());
+        lightScreenSpace.x = 0.5f * lightScreenSpace.x / lightScreenSpace.w + 0.5f;
+        lightScreenSpace.y = -0.5f * lightScreenSpace.y / lightScreenSpace.w + 0.5f;
+        lightScreenSpace.z = lightScreenSpace.z / lightScreenSpace.w;
+        lightScreenSpace.w = 1.0f;
+
+        lightConstsCPU.screenSpacePosition = lightScreenSpace;
+        lightConstsCPU.godrayDecay = light.godrayDecay;
+        lightConstsCPU.godrayDenstiy = light.godrayDensity;
+        lightConstsCPU.godrayExposure = light.godrayExposure;
+        lightConstsCPU.godrayWeight = light.godrayWeight;
+
+        lightConstsGPU->Update(m_context, &lightConstsCPU, sizeof(lightConstsCPU));
+    }
+
+    additiveBS->Bind(m_context);
+    {
+        ShaderManager::GetShaderProgram(ShaderProgram::GodsRay)->Bind(m_context);
+
+        sunRTV->BindSRV(m_context, 0, DXShaderStage::PS);
+
+        m_context->IASetInputLayout(nullptr);
+        m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+        m_context->Draw(4, 0);
+
+        sunRTV->UnbindSRV(m_context, 0, DXShaderStage::PS);
+    }
     additiveBS->Unbind(m_context);
 }
 
@@ -1053,6 +1165,50 @@ void Renderer::PassPostprocessing()
     {
         postprocessPasses[postprocessIndex].BeginRenderPass(m_context);
         PassSSR();
+        postprocessPasses[postprocessIndex].EndRenderPass(m_context);
+
+        //postprocessIndex = !postprocessIndex;
+    }
+
+    {
+        postprocessPasses[postprocessIndex].BeginRenderPass(m_context, false, false);
+        auto lightView = m_reg.view<Light>();
+        for (auto& e : lightView)
+        {
+            auto lightData = lightView.get<Light>(e);
+            if (!lightData.active)
+                continue;
+
+            // Update Cbuffer
+            {
+                lightConstsCPU.position = lightData.position;
+                lightConstsCPU.direction = lightData.direction;
+                lightConstsCPU.range = lightData.range;
+                lightConstsCPU.lightColor = lightData.color * lightData.energy;
+                lightConstsCPU.type = static_cast<int32>(lightData.type);
+                lightConstsCPU.innerCosine = lightData.inner_cosine;
+                lightConstsCPU.outerCosine = lightData.outer_cosine;
+                lightConstsCPU.castShadows = lightData.castShadows;
+                lightConstsCPU.useCascades = lightData.useCascades;
+                lightConstsCPU.radius = lightData.radius;
+                lightConstsCPU.haloStrength = lightData.haloStrength;
+
+                Matrix cameraView = m_camera->GetView();
+                lightConstsCPU.position = Vector4::Transform(lightConstsCPU.position, cameraView.Transpose());
+                lightConstsCPU.direction = Vector4::Transform(lightConstsCPU.direction, cameraView.Transpose());
+                lightConstsGPU->Update(m_context, &lightConstsCPU, sizeof(lightConstsCPU));
+            }
+            // Halo Pass
+            if (lightData.type == LightType::Point || lightData.type == LightType::Spot)
+                PassHalo();
+
+            if (lightData.type == LightType::Directional)
+            {
+                DrawSun(e);
+                postprocessPasses[postprocessIndex].BeginRenderPass(m_context, false, false);
+                PassGodsRay(lightData);
+            }
+        }
         postprocessPasses[postprocessIndex].EndRenderPass(m_context);
 
         postprocessIndex = !postprocessIndex;
@@ -1080,7 +1236,7 @@ void Renderer::PassSSAO()
         postProcessCPU.noiseScale = Vector2(m_width / 8.0f, m_height / 8.0f);
         postProcessCPU.ssaoPower = renderSetting.ssaoPower;
         postProcessCPU.ssaoRadius = renderSetting.ssaoRadius;
-        postProcessGPU->Update(m_context, postProcessCPU, sizeof(postProcessCPU));
+        postProcessGPU->Update(m_context, &postProcessCPU, sizeof(postProcessCPU));
 
         m_context->IASetInputLayout(nullptr);
         m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
@@ -1089,24 +1245,6 @@ void Renderer::PassSSAO()
         gbufferPass.attachmentRTVs->UnbindSRV(m_context, 0, DXShaderStage::PS);
         gbufferPass.attachmentDSVs->UnbindSRV(m_context, 3, DXShaderStage::PS);
         ssaoNoiseTex->UnbindSRV(m_context, 4, DXShaderStage::PS);
-    }
-
-    // 2. SSAO Blur
-    {
-        // static float clearColor[4] = {0.0f, 0.0f, 0.0f, 0.0f};
-        // ssaoBlurDSV->Clear(m_context, 1.0f, 0);
-        // ssaoBlurRTV->Clear(m_context, clearColor);
-        // ssaoBlurRTV->BindRenderTargets(m_context);
-
-        // ssaoPass.attachmentRTVs->BindSRV(m_context, 0, DXShaderStage::PS);
-
-        // ShaderManager::GetShaderProgram(ShaderProgram::SSAOBlur)->Bind(m_context);
-
-        // m_context->IASetInputLayout(nullptr);
-        // m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-        // m_context->Draw(4, 0);
-
-        // ssaoPass.attachmentRTVs->UnbindSRV(m_context, 0, DXShaderStage::PS);
     }
     ssaoPass.EndRenderPass(m_context);
 
@@ -1128,7 +1266,7 @@ void Renderer::PassSSR()
         // cbuffer update
         postProcessCPU.ssrRayStep = renderSetting.ssrRayStep;
         postProcessCPU.ssrThickness = renderSetting.ssrThickness;
-        postProcessGPU->Update(m_context, postProcessCPU, sizeof(postProcessCPU));
+        postProcessGPU->Update(m_context, &postProcessCPU, sizeof(postProcessCPU));
 
         m_context->IASetInputLayout(nullptr);
         m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
@@ -1154,7 +1292,7 @@ void Renderer::PassShadowMapDirectional(const Light& light)
         shadowConstsCPU.lightView = V.Transpose();
         shadowConstsCPU.shadowMapSize = SHADOW_MAP_SIZE;
         shadowConstsCPU.shadowMatrices[0] = shadowConstsCPU.lightViewProj * m_camera->GetView().Invert();
-        shadowConstsGPU->Update(m_context, shadowConstsCPU, sizeof(shadowConstsCPU));
+        shadowConstsGPU->Update(m_context, &shadowConstsCPU, sizeof(shadowConstsCPU));
     }
 
     SetSceneViewport(static_cast<float>(shadowMapPass.width), static_cast<float>(shadowMapPass.height));
@@ -1178,7 +1316,7 @@ void Renderer::PassShadowMapDirectional(const Light& light)
 
             objectConstsCPU.world = (transform.currentTransform * parent).Transpose();
             objectConstsCPU.worldInvTranspose = transform.currentTransform.Invert();
-            objectConstsGPU->Update(m_context, objectConstsCPU, sizeof(objectConstsCPU));
+            objectConstsGPU->Update(m_context, &objectConstsCPU, sizeof(objectConstsCPU));
 
             mesh.Draw(m_context);
             aabb.isLightVisible = false;
@@ -1208,7 +1346,7 @@ void Renderer::PassShadowMapCascade(const Light& light)
         shadowConstsCPU.splits[i] = splitDistances[i];
         LightFrustumCulling(light);
     }
-    shadowConstsGPU->Update(m_context, shadowConstsCPU, sizeof(shadowConstsCPU));
+    shadowConstsGPU->Update(m_context, &shadowConstsCPU, sizeof(shadowConstsCPU));
 
     // Mesh Render Part
     SetSceneViewport(static_cast<float>(shadowCascadeMapPass.width), static_cast<float>(shadowCascadeMapPass.height));
@@ -1232,7 +1370,7 @@ void Renderer::PassShadowMapCascade(const Light& light)
 
             objectConstsCPU.world = (transform.currentTransform * parent).Transpose();
             objectConstsCPU.worldInvTranspose = transform.currentTransform.Invert().Transpose();
-            objectConstsGPU->Update(m_context, objectConstsCPU, sizeof(objectConstsCPU));
+            objectConstsGPU->Update(m_context, &objectConstsCPU, sizeof(objectConstsCPU));
 
             mesh.Draw(m_context);
             aabb.isLightVisible = false;
@@ -1265,7 +1403,7 @@ void Renderer::PassShadowMapSpot(const Light& light)
         shadowConstsCPU.lightView = lightViewRow.Transpose();
         shadowConstsCPU.shadowMapSize = SHADOW_MAP_SIZE;
         shadowConstsCPU.shadowMatrices[0] = shadowConstsCPU.lightViewProj * m_camera->GetView().Invert();
-        shadowConstsGPU->Update(m_context, shadowConstsCPU, sizeof(shadowConstsCPU));
+        shadowConstsGPU->Update(m_context, &shadowConstsCPU, sizeof(shadowConstsCPU));
 
         lightBoundingFrustum = BoundingFrustum(lightProjRow);
         lightBoundingFrustum.Transform(lightBoundingFrustum, lightViewRow.Invert());
@@ -1294,7 +1432,7 @@ void Renderer::PassShadowMapSpot(const Light& light)
 
             objectConstsCPU.world = (transform.currentTransform * parent).Transpose();
             objectConstsCPU.worldInvTranspose = transform.currentTransform.Invert().Transpose();
-            objectConstsGPU->Update(m_context, objectConstsCPU, sizeof(objectConstsCPU));
+            objectConstsGPU->Update(m_context, &objectConstsCPU, sizeof(objectConstsCPU));
 
             mesh.Draw(m_context);
             aabb.isLightVisible = false;
@@ -1333,7 +1471,7 @@ void Renderer::PassShadowMapPoint(const Light& light)
             LightFrustumCulling(light);
         }
         shadowConstsCPU.shadowMapSize = SHADOW_CUBE_SIZE;
-        shadowConstsGPU->Update(m_context, shadowConstsCPU, sizeof(shadowConstsCPU));
+        shadowConstsGPU->Update(m_context, &shadowConstsCPU, sizeof(shadowConstsCPU));
     }
 
     SetSceneViewport(static_cast<float>(shadowCubeMapPass.width), static_cast<float>(shadowCubeMapPass.height));
@@ -1358,7 +1496,7 @@ void Renderer::PassShadowMapPoint(const Light& light)
 
             objectConstsCPU.world = (transform.currentTransform * parent).Transpose();
             objectConstsCPU.worldInvTranspose = transform.currentTransform.Invert().Transpose();
-            objectConstsGPU->Update(m_context, objectConstsCPU, sizeof(objectConstsCPU));
+            objectConstsGPU->Update(m_context, &objectConstsCPU, sizeof(objectConstsCPU));
 
             mesh.Draw(m_context);
             aabb.isLightVisible = false;
@@ -1388,10 +1526,10 @@ void Renderer::PassAABB()
 
             objectConstsCPU.world = Matrix::Identity;
             objectConstsCPU.worldInvTranspose = Matrix::Identity;
-            objectConstsGPU->Update(m_context, objectConstsCPU, sizeof(objectConstsCPU));
+            objectConstsGPU->Update(m_context, &objectConstsCPU, sizeof(objectConstsCPU));
 
             materialConstsCPU.diffuse = Vector3(0.0f, 1.0f, 0.0f);
-            materialConstsGPU->Update(m_context, materialConstsCPU, sizeof(materialConstsCPU));
+            materialConstsGPU->Update(m_context, &materialConstsCPU, sizeof(materialConstsCPU));
 
             m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
             BindVertexBuffer(m_context, aabb->aabbVertexBuffer.get());
@@ -1420,10 +1558,10 @@ void Renderer::PassLight()
 
             objectConstsCPU.world = transform.currentTransform.Transpose();
             objectConstsCPU.worldInvTranspose = transform.currentTransform.Invert().Transpose();
-            objectConstsGPU->Update(m_context, objectConstsCPU, sizeof(objectConstsCPU));
+            objectConstsGPU->Update(m_context, &objectConstsCPU, sizeof(objectConstsCPU));
 
             materialConstsCPU.diffuse = Vector3(light.color);
-            materialConstsGPU->Update(m_context, materialConstsCPU, sizeof(materialConstsCPU));
+            materialConstsGPU->Update(m_context, &materialConstsCPU, sizeof(materialConstsCPU));
 
             mesh.Draw(m_context);
         }
@@ -1453,7 +1591,7 @@ void Renderer::PassEntityID()
         {
             ShaderManager::GetShaderProgram(ShaderProgram::Picking)->Bind(m_context);
 
-             Matrix parent = Matrix::Identity;
+            Matrix parent = Matrix::Identity;
             if (auto root = m_reg.try_get<Relationship>(e))
             {
                 if (auto rootTransform = m_reg.try_get<Transform>(root->parent))
@@ -1462,14 +1600,49 @@ void Renderer::PassEntityID()
 
             objectConstsCPU.world = (transform.currentTransform * parent).Transpose();
             objectConstsCPU.worldInvTranspose = transform.currentTransform.Invert().Transpose();
-            objectConstsGPU->Update(m_context, objectConstsCPU, sizeof(objectConstsCPU));
+            objectConstsGPU->Update(m_context, &objectConstsCPU, sizeof(objectConstsCPU));
 
             entityIdConstsCPU.entityID = entt::to_entity(e);
-            entityIdConstsGPU->Update(m_context, entityIdConstsCPU, sizeof(entityIdConstsCPU));
+            entityIdConstsGPU->Update(m_context, &entityIdConstsCPU, sizeof(entityIdConstsCPU));
 
             mesh.Draw(m_context);
         }
     }
+}
+
+void Renderer::DrawSun(entt::entity light)
+{
+    RILEY_SCOPED_ANNOTATION(m_annotation, "Draw Sun Pass");
+    ShaderManager::GetShaderProgram(ShaderProgram::Sun)->Bind(m_context);
+
+    static float black[4] = {0.0f};
+    solidRS->Bind(m_context);
+    solidDSS->Bind(m_context, 0);
+    sunRTV->Clear(m_context, black);
+    sunRTV->BindRenderTargets(m_context);
+    alphaBS->Bind(m_context);
+
+    {
+        auto [mesh, material, tr] = m_reg.get<Mesh, Material, Transform>(light);
+
+        objectConstsCPU.world = tr.currentTransform.Transpose();
+        objectConstsCPU.worldInvTranspose = tr.currentTransform.Invert().Transpose();
+        objectConstsGPU->Update(m_context, &objectConstsCPU, sizeof(objectConstsCPU));
+
+        materialConstsCPU.albedoFactor = material.albedoFactor;
+        materialConstsCPU.diffuse = material.diffuse;
+        materialConstsGPU->Update(m_context, &materialConstsCPU, sizeof(materialConstsCPU));
+
+        g_TextureManager.GetTextureView(sunTex)->BindSRV(m_context, 0, DXShaderStage::PS);
+
+        mesh.Draw(m_context);
+
+        g_TextureManager.GetTextureView(sunTex)->UnbindSRV(m_context, 0, DXShaderStage::PS);
+    }
+
+    ID3D11RenderTargetView* nullRTV[1] = {nullptr};
+    m_context->OMSetRenderTargets(0, nullRTV, nullptr);
+    alphaBS->Unbind(m_context);
 }
 
 void Renderer::BlurTexture(DXRenderTarget* src)
@@ -1489,6 +1662,34 @@ void Renderer::BlurTexture(DXRenderTarget* src)
     m_context->Dispatch(ssaoPass.width, (uint32)std::ceil(ssaoPass.height / 1024.0f), 1);
     blurTextureIntermediate->UnbindSRV(m_context, 0, DXShaderStage::CS);
     src->UnbindUAV(m_context, 0);
+}
+
+void Renderer::AddTexture(DXRenderTarget* dest, DXResource* src)
+{
+    ShaderManager::GetShaderProgram(ShaderProgram::Add)->Bind(m_context);
+    dest->BindSRV(m_context, 0, DXShaderStage::PS);
+    src->BindSRV(m_context, 1, DXShaderStage::PS);
+
+    m_context->IASetInputLayout(nullptr);
+    m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+    m_context->Draw(4, 0);
+
+    dest->UnbindSRV(m_context, 0, DXShaderStage::PS);
+    src->UnbindSRV(m_context, 1, DXShaderStage::PS);
+    ShaderManager::GetShaderProgram(ShaderProgram::Add)->Unbind(m_context);
+}
+
+void Renderer::CopyTexture(DXResource* src)
+{
+    ShaderManager::GetShaderProgram(ShaderProgram::Copy)->Bind(m_context);
+    src->BindSRV(m_context, 0, DXShaderStage::PS);
+
+    m_context->IASetInputLayout(nullptr);
+    m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+    m_context->Draw(4, 0);
+
+    src->UnbindSRV(m_context, 0, DXShaderStage::PS);
+    ShaderManager::GetShaderProgram(ShaderProgram::Copy)->Unbind(m_context);
 }
 
 } // namespace Riley

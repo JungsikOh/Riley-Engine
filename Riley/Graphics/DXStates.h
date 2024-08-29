@@ -326,6 +326,9 @@ class DXSampler
          case DXShaderStage::PS:
             context->PSSetSamplers(slot, 1, &sampler);
             break;
+         case DXShaderStage::CS:
+             context->CSSetSamplers(slot, 1, &sampler);
+             break;
          default:
             assert(false && "Unsupported Blend Shader Stage!");
          }

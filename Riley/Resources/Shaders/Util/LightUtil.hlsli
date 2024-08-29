@@ -6,14 +6,16 @@
 struct PackedLightData
 {
     int active;
+    float3 _dummy;
+    
     float4 position;
     float4 direction;
     float4 lightColor;
 
     float range;
     int type;
-    float outerCosine;
     float innerCosine;
+    float outerCosine;
 
     int castShadows;
     int useCascades;
@@ -31,6 +33,8 @@ LightData ConvertFromPackedLightData(in PackedLightData structured_light)
     l.outerCosine = structured_light.outerCosine;
     l.position = structured_light.position;
     l.range = structured_light.range;
+    l.radius = structured_light.radius;
+    l.haloStrength = structured_light.haloStrength;
     l.type = structured_light.type;
     l.useCascades = structured_light.useCascades;
     

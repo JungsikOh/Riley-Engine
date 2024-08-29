@@ -8,7 +8,7 @@ float CalcShadowMapPCF3x3(LightData light, float3 viewPos, Texture2D shadowMap)
     float shadowFactor = 0.0;
     if (light.castShadows)
     {
-        float4 shadowMapCoords = mul(float4(viewPos, 1.0), shadowData.shadowMatrices[0]);
+        float4 shadowMapCoords = mul(mul(float4(viewPos, 1.0), frameData.invView), shadowData.lightViewProj);
         float3 UVD = shadowMapCoords.xyz / shadowMapCoords.w;
         UVD.xy = 0.5 * UVD.xy + 0.5;
         UVD.y = 1.0 - UVD.y;
@@ -42,7 +42,7 @@ float CalcShadowCascadeMapFCF3x3(LightData light, float3 viewPos, Texture2DArray
             if (viewPos.z < shadowData.splits[idx])
             {
             
-                float4 shadowCascadeMapCoords = mul(float4(viewPos, 1.0), shadowData.shadowMatrices[idx]);
+                float4 shadowCascadeMapCoords = mul(mul(float4(viewPos, 1.0), frameData.invView), shadowData.shadowCascadeMapViewProj[idx]);
                 float3 UVD = shadowCascadeMapCoords.xyz / shadowCascadeMapCoords.w;
                 UVD.xy = 0.5 * UVD.xy + 0.5;
                 UVD.y = 1.0 - UVD.y;
@@ -64,6 +64,48 @@ float CalcShadowCascadeMapFCF3x3(LightData light, float3 viewPos, Texture2DArray
                     shadowFactor += shadowCascadeMap.SampleCmpLevelZero(ShadowSampler, float3(UVD.xy + offsets[j], idx), UVD.z).r;
                 }
                 shadowFactor /= (3.0 * 3.0);
+                
+                return shadowFactor;
+            }
+        }
+    }
+    return shadowFactor;
+}
+
+float CalcShadowCascadeMapFCF3x3(LightData light, float3 viewPos, Texture2DArray<float4> shadowCascadeMap, int2 dtID)
+{
+    float shadowFactor = 0.0;
+    if (light.castShadows)
+    {
+        for (uint idx = 0; idx < CASCADE_COUNT; ++idx)
+        {
+            if (viewPos.z < shadowData.splits[idx])
+            {
+            
+                float4 shadowCascadeMapCoords = mul(mul(float4(viewPos, 1.0), frameData.invView), shadowData.shadowCascadeMapViewProj[idx]);
+                float3 UVD = shadowCascadeMapCoords.xyz / shadowCascadeMapCoords.w;
+                UVD.xy = 0.5 * UVD.xy + 0.5;
+                UVD.y = 1.0 - UVD.y;
+            
+            // Basic
+            //shadowFactor += shadowCascadeMap.SampleCmpLevelZero(ShadowSampler, float3(UVD.xy, idx), UVD.z).r;
+                float shadowDepth = shadowCascadeMap.Load(int4(UVD.xy, idx, 0)).r;
+                shadowFactor = UVD.z <= shadowDepth ? 1.0 : 0.0;
+            // PCF 3x3
+              //  const float dx = 1.0f / shadowData.shadowMapSize;
+              //  const float2 offsets[9] =
+              //  {
+              //      float2(-dx, -dx), float2(0.0f, -dx), float2(dx, -dx),
+		            //float2(-dx, 0.0f), float2(0.0f, 0.0f), float2(dx, 0.0f),
+		            //float2(-dx, +dx), float2(0.0f, +dx), float2(dx, +dx)
+              //  };
+        
+              //  for (int j = 0; j < 9; ++j)
+              //  {
+              //      //shadowFactor += shadowCascadeMap.SampleCmp(ShadowSampler, float3(UVD.xy + offsets[j], idx), UVD.z).r;
+              //      shadowFactor += UVD.z <= shadowCascadeMap.Load(int4(UVD.xy, idx, 0)).r;
+              //  }
+              //  shadowFactor /= (3.0 * 3.0);
                 
                 return shadowFactor;
             }

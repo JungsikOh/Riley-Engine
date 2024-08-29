@@ -15,6 +15,13 @@ enum class AmbientOcclusion : int32
 	SSAO
 };
 
+enum class LightingType : int32
+{
+	Deferred,
+	TiledDeferred,
+    TiledDeferred_DEBUG,
+};
+
 enum class MaterialAlphaMode : int8
 {
 	Opaque,

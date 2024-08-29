@@ -61,6 +61,7 @@ constexpr DXShaderStage GetStage(ShaderId shader)
     case VS_ShadowCascade:
     case VS_ShadowCube:
     case VS_Picking:
+    case VS_Sun:
         return DXShaderStage::VS;
     case PS_Solid:
     case PS_Phong:
@@ -68,13 +69,18 @@ constexpr DXShaderStage GetStage(ShaderId shader)
     case PS_Ambient:
     case PS_DeferredLighting:
     case PS_Halo:
+    case PS_Sun:
+    case PS_GodsRay:
     case PS_SSAO:
     case PS_SSAOBlur:
     case PS_SSR:
     case PS_Shadow:
     case PS_ShadowCascade:
     case PS_ShadowCube:
-    case PS_Picking:
+    case PS_Picking:    
+    case PS_AddTexture:
+    case PS_CopyTexture:
+    case PS_TiledDeferredLightingPS:
         return DXShaderStage::PS;
     case GS_ShadowCascade:
     case GS_ShadowCube:
@@ -107,8 +113,15 @@ constexpr std::string GetShaderSource(ShaderId shader)
         return "Resources/Shaders/Lighting/Ambient.hlsl";
     case PS_DeferredLighting:
         return "Resources/Shaders/Lighting/DeferredLighting.hlsl";
+    case PS_TiledDeferredLightingPS:
+        return "Resources/Shaders/Lighting/TiledDeferredLightingPS.hlsl";
     case PS_Halo:
         return "Resources/Shaders/Postprocess/Halo.hlsl";
+    case VS_Sun:
+    case PS_Sun:
+        return "Resources/Shaders/Misc/Sun.hlsl";
+    case PS_GodsRay:
+        return "Resources/Shaders/Postprocess/GodsRay.hlsl";
     case PS_SSAO:
         return "Resources/Shaders/Postprocess/SSAO.hlsl";
     case PS_SSAOBlur:
@@ -129,6 +142,10 @@ constexpr std::string GetShaderSource(ShaderId shader)
     case VS_Picking:
     case PS_Picking:
         return "Resources/Shaders/Util/Picking.hlsl";
+    case PS_AddTexture:
+        return "Resources/Shaders/Postprocess/AddTexture.hlsl";
+    case PS_CopyTexture:
+        return "Resources/Shaders/Postprocess/CopyTexture.hlsl";
     case CS_TiledDeferredLighting:
         return "Resources/Shaders/Lighting/TiledDeferredLightingCS.hlsl";
     case CS_BlurX:
@@ -162,6 +179,14 @@ constexpr std::string GetEntryPoint(ShaderId shader)
         return "AmbientPS";
     case PS_DeferredLighting:
         return "DeferredLightingPS";
+    case PS_TiledDeferredLightingPS:
+        return "TiledDeferredLightingPS";
+    case VS_Sun:
+        return "SunVS";
+    case PS_Sun:
+        return "SunPS";
+    case PS_GodsRay:
+        return "GodsRay";
     case PS_Halo:
         return "Halo";
     case PS_SSAO:
@@ -190,6 +215,10 @@ constexpr std::string GetEntryPoint(ShaderId shader)
         return "PickingVS";
     case PS_Picking:
         return "PickingPS";
+    case PS_AddTexture:
+        return "AddTexture";
+    case PS_CopyTexture:
+        return "CopyTexture";
     case CS_TiledDeferredLighting:
         return "TiledDeferredLighting";
     case CS_BlurX:
@@ -281,9 +310,21 @@ void CreateAllPrograms()
         .SetVertexShader(vsShaderMap[VS_ScreenQuad].get())
         .SetPixelShader(psShaderMap[PS_DeferredLighting].get())
         .SetInputLayout(inputLayoutMap[VS_ScreenQuad].get());
+    DXShaderProgramMap[ShaderProgram::TiledDeferredLightingPS]
+        .SetVertexShader(vsShaderMap[VS_ScreenQuad].get())
+        .SetPixelShader(psShaderMap[PS_TiledDeferredLightingPS].get())
+        .SetInputLayout(inputLayoutMap[VS_ScreenQuad].get());
     DXShaderProgramMap[ShaderProgram::Halo]
         .SetVertexShader(vsShaderMap[VS_ScreenQuad].get())
         .SetPixelShader(psShaderMap[PS_Halo].get())
+        .SetInputLayout(inputLayoutMap[VS_ScreenQuad].get());
+    DXShaderProgramMap[ShaderProgram::Sun]
+        .SetVertexShader(vsShaderMap[VS_Sun].get())
+        .SetPixelShader(psShaderMap[PS_Sun].get())
+        .SetInputLayout(inputLayoutMap[VS_Sun].get());
+    DXShaderProgramMap[ShaderProgram::GodsRay]
+        .SetVertexShader(vsShaderMap[VS_ScreenQuad].get())
+        .SetPixelShader(psShaderMap[PS_GodsRay].get())
         .SetInputLayout(inputLayoutMap[VS_ScreenQuad].get());
     DXShaderProgramMap[ShaderProgram::SSAO]
         .SetVertexShader(vsShaderMap[VS_ScreenQuad].get())
@@ -315,11 +356,19 @@ void CreateAllPrograms()
         .SetVertexShader(vsShaderMap[VS_Picking].get())
         .SetPixelShader(psShaderMap[PS_Picking].get())
         .SetInputLayout(inputLayoutMap[VS_Picking].get());
+    DXShaderProgramMap[ShaderProgram::Add]
+        .SetVertexShader(vsShaderMap[VS_ScreenQuad].get())
+        .SetPixelShader(psShaderMap[PS_AddTexture].get())
+        .SetInputLayout(inputLayoutMap[VS_ScreenQuad].get());
+    DXShaderProgramMap[ShaderProgram::Copy]
+        .SetVertexShader(vsShaderMap[VS_ScreenQuad].get())
+        .SetPixelShader(psShaderMap[PS_CopyTexture].get())
+        .SetInputLayout(inputLayoutMap[VS_ScreenQuad].get());
 
     // Compute Shader Map
     ComputeShaderProgramMap[ShaderProgram::BlurX].SetComputeShader(csShaderMap[CS_BlurX].get());
     ComputeShaderProgramMap[ShaderProgram::BlurY].SetComputeShader(csShaderMap[CS_BlurY].get());
-    //ComputeShaderProgramMap[ShaderProgram::TiledDeferredLighting].SetComputeShader(csShaderMap[CS_TiledDeferredLighting].get());
+    ComputeShaderProgramMap[ShaderProgram::TiledDeferredLighting].SetComputeShader(csShaderMap[CS_TiledDeferredLighting].get());
 }
 
 void CompileAllShaders()

@@ -35,10 +35,10 @@ void Editor::OnWindowEvent(WindowEventData const& msg_data)
     gui->HandleWindowMessage(msg_data);
 }
 
-void Editor::SetSelectedEntity ()
+void Editor::SetSelectedEntity()
 {
     selected_entity = engine->renderer->GetSelectedEntity();
-    //std::cout << (uint64)selected_entity << std::endl;
+    // std::cout << (uint64)selected_entity << std::endl;
 }
 
 void Editor::Run()
@@ -144,8 +144,30 @@ void Editor::Scene()
 
 void Editor::RenderSetting()
 {
-    ImGui::Begin("Postprocessing");
+    ImGui::Begin("Render Setting");
     {
+        if (ImGui::TreeNode("Lighting"))
+        {
+            const char* lightingTypes[] = {"Deferred", "Tiled Deferred", "Tiled Deferred(Debug)"};
+            static int currentLightingType = 0;
+            const char* comboLabel = lightingTypes[currentLightingType];
+            if (ImGui::BeginCombo("Lighting", comboLabel, 0))
+            {
+                for (int n = 0; n < IM_ARRAYSIZE(lightingTypes); ++n)
+                {
+                    const bool isSelected = (currentLightingType == n);
+                    if (ImGui::Selectable(lightingTypes[n], isSelected))
+                        currentLightingType = n;
+                    if (isSelected)
+                        ImGui::SetItemDefaultFocus();
+                }
+                ImGui::EndCombo();
+                renderSetting.lighting = static_cast<LightingType>(currentLightingType);
+            }
+
+            ImGui::TreePop();
+        }
+
         if (ImGui::TreeNode("AO"))
         {
             const char* aoTypes[] = {"None", "SSAO"};
@@ -247,10 +269,11 @@ void Editor::Properties()
                 if (ImGui::InputText("##Tag", buffer, sizeof(buffer)))
                     tag->name = std::string(buffer);
             }
-
+            int shadowMappingFlag = 0;
             auto light = engine->m_registry.try_get<Light>(selected_entity);
             if (light && ImGui::CollapsingHeader("Light", 1))
             {
+
                 if (light->type == LightType::Directional)
                     ImGui::Text("Directional Light");
                 else if (light->type == LightType::Spot)
@@ -268,7 +291,7 @@ void Editor::Properties()
                 if (light->type == LightType::Directional || light->type == LightType::Spot)
                 {
                     float direction[3] = {lightDirection.x, lightDirection.y, lightDirection.z};
-                    ImGui::SliderFloat3("Light Direction", direction, -1.0f, 1.0f);
+                    shadowMappingFlag += ImGui::SliderFloat3("Light Direction", direction, -1.0f, 1.0f);
                     light->direction = Vector4(direction[0], direction[1], direction[2], 0.0f);
                     if (light->type == LightType::Directional)
                     {
@@ -279,22 +302,38 @@ void Editor::Properties()
                 if (light->type == LightType::Spot || light->type == LightType::Point)
                 {
                     float position[3] = {lightPosition.x, lightPosition.y, lightPosition.z};
-                    ImGui::SliderFloat3("Light Position", position, -10.0f, 10.0f);
+                    shadowMappingFlag += ImGui::SliderFloat3("Light Position", position, -10.0f, 10.0f);
                     light->position = Vector4(position[0], position[1], position[2], 1.0f);
                     ImGui::SliderFloat("Light Radius", &light->radius, 0.01f, 0.5f);
                     ImGui::SliderFloat("Light Range", &light->range, 1.0f, 100.0f);
                     ImGui::SliderFloat("Light Halo Strength", &light->haloStrength, 0.0f, 1.0f);
                 }
 
+                ImGui::Checkbox("active", &light->active);
                 ImGui::Checkbox("Casts Shadows", &light->castShadows);
                 if (light->type == LightType::Directional && light->castShadows)
                 {
                     ImGui::Checkbox("Use Cascades", &light->useCascades);
                 }
+                ImGui::Checkbox("Gods Ray", &light->godray);
+                if ( light->type == LightType::Directional && light->godray )
+                {
+                    ImGui::SliderFloat("Gods Ray Density", &light->godrayDensity, 0.1f, 3.0f);
+                    ImGui::SliderFloat("Gods Ray Decay", &light->godrayDecay, 0.0f, 1.0f);
+                    ImGui::SliderFloat("Gods Ray Weight", &light->godrayWeight, 0.0f, 0.5f);
+                    ImGui::SliderFloat("Gods Ray Exposure", &light->godrayExposure, 0.1f, 10.0f);
+                }
+
+                if (shadowMappingFlag)
+                {
+                    light->shadowMappingFlag = false;
+                    shadowMappingFlag = 0;
+                }
             }
 
             auto transform = engine->m_registry.try_get<Transform>(selected_entity);
-            if(light) transform->currentTransform = Matrix::CreateTranslation(Vector3(light->position));
+            if (light)
+                transform->currentTransform = Matrix::CreateTranslation(Vector3(light->position));
 
             if (!light && transform && ImGui::CollapsingHeader("Transform"))
             {
@@ -311,9 +350,9 @@ void Editor::Properties()
                 Vector3 rotation = q.ToEuler();
                 Vector3 scale = ExtractScaleFromMatrix(tr);
 
-                ImGui::SliderFloat3("Position", &translation.x, -5.0f, 5.0f);
-                ImGui::SliderFloat3("Rotate", &rotation.x, -1.0f, 1.0f);
-                ImGui::SliderFloat3("Scale", &scale.x, 0.1f, 10.0f);
+                shadowMappingFlag += ImGui::SliderFloat3("Position", &translation.x, -5.0f, 5.0f);
+                shadowMappingFlag += ImGui::SliderFloat3("Rotate", &rotation.x, -1.0f, 1.0f);
+                shadowMappingFlag += ImGui::SliderFloat3("Scale", &scale.x, 0.1f, 10.0f);
 
                 tr = Matrix::CreateScale(scale) * Matrix::CreateFromQuaternion(Quaternion::CreateFromYawPitchRoll(rotation)) *
                      Matrix::CreateTranslation(translation);
@@ -334,6 +373,17 @@ void Editor::Properties()
                 ImGui::SliderFloat("Metallic", &material->metallicFactor, 0.0f, 1.0f);
                 ImGui::SliderFloat("Roughness", &material->roughnessFactor, 0.0f, 1.0f);
                 ImGui::Checkbox("Use NormalMap", &material->useNormalMap);
+            }
+
+            if (shadowMappingFlag)
+            {
+                auto lightView = engine->m_registry.view<Light>();
+                for ( auto& e : lightView )
+                {
+                    auto& light = lightView.get<Light>(e);
+
+                    light.shadowMappingFlag = false;
+                }
             }
         }
         ImGui::End();
