@@ -18,6 +18,7 @@ $vcpkg install spdlog:X64-windows
 - Point Shadow Mapping
 - Cascade Shadow Mapping
 - Unreal Sphere Light
+- Unreal Tube Light
 - Deferred Lighting
 - Tiled Deferred Lighting ([ref](https://www.intel.com/content/www/us/en/developer/articles/technical/deferred-rendering-for-current-and-future-rendering-pipelines.html))
 - Halo Light Effect
