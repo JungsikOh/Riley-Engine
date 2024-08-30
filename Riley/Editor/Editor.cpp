@@ -146,6 +146,8 @@ void Editor::RenderSetting()
 {
     ImGui::Begin("Render Setting");
     {
+        ImGui::Checkbox("FXAA", &renderSetting.fxaa);
+
         if (ImGui::TreeNode("Lighting"))
         {
             const char* lightingTypes[] = {"Deferred", "Tiled Deferred", "Tiled Deferred(Debug)"};
@@ -299,7 +301,7 @@ void Editor::Properties()
                     }
                 }
 
-                if (light->type == LightType::Spot || light->type == LightType::Point)
+                if (light->type == LightType::Spot || light->type == LightType::Point || light->type == LightType::Tube)
                 {
                     float position[3] = {lightPosition.x, lightPosition.y, lightPosition.z};
                     shadowMappingFlag += ImGui::SliderFloat3("Light Position", position, -10.0f, 10.0f);
@@ -309,19 +311,30 @@ void Editor::Properties()
                     ImGui::SliderFloat("Light Halo Strength", &light->haloStrength, 0.0f, 1.0f);
                 }
 
+                if (light->type == LightType::Tube)
+                {
+                    ImGui::SliderFloat("Tube Length", &light->tubeLength, 0.01f, 1.0f);
+                }
+
                 ImGui::Checkbox("active", &light->active);
                 ImGui::Checkbox("Casts Shadows", &light->castShadows);
-                if (light->type == LightType::Directional && light->castShadows)
+
+                if (light->type == LightType::Directional)
                 {
-                    ImGui::Checkbox("Use Cascades", &light->useCascades);
-                }
-                ImGui::Checkbox("Gods Ray", &light->godray);
-                if ( light->type == LightType::Directional && light->godray )
-                {
-                    ImGui::SliderFloat("Gods Ray Density", &light->godrayDensity, 0.1f, 3.0f);
-                    ImGui::SliderFloat("Gods Ray Decay", &light->godrayDecay, 0.0f, 1.0f);
-                    ImGui::SliderFloat("Gods Ray Weight", &light->godrayWeight, 0.0f, 0.5f);
-                    ImGui::SliderFloat("Gods Ray Exposure", &light->godrayExposure, 0.1f, 10.0f);
+                    if (light->castShadows)
+                    {
+                        ImGui::Checkbox("Use Cascades", &light->useCascades);
+                    }
+
+                    ImGui::Checkbox("Gods Ray", &light->godray);
+
+                    if (light->godray)
+                    {
+                        ImGui::SliderFloat("Gods Ray Density", &light->godrayDensity, 0.1f, 3.0f);
+                        ImGui::SliderFloat("Gods Ray Decay", &light->godrayDecay, 0.0f, 1.0f);
+                        ImGui::SliderFloat("Gods Ray Weight", &light->godrayWeight, 0.0f, 0.5f);
+                        ImGui::SliderFloat("Gods Ray Exposure", &light->godrayExposure, 0.1f, 10.0f);
+                    }
                 }
 
                 if (shadowMappingFlag)
@@ -378,7 +391,7 @@ void Editor::Properties()
             if (shadowMappingFlag)
             {
                 auto lightView = engine->m_registry.view<Light>();
-                for ( auto& e : lightView )
+                for (auto& e : lightView)
                 {
                     auto& light = lightView.get<Light>(e);
 

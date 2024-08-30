@@ -60,6 +60,9 @@ struct LightConsts
     float godrayWeight;
     float godrayDecay;
     float godrayExposure;
+
+    float tubeLength;
+    Vector3 _dummy4;
 };
 
 struct ObjectConsts
@@ -128,7 +131,8 @@ DECLSPEC_ALIGN(16) struct EntityIdConsts
 struct LightSBuffer
 {
     int32 active;
-    Vector3 _dummy;
+    float tubeLength;
+    Vector2 _dummy;
 
     Vector4 position;
     Vector4 direction;

@@ -81,6 +81,7 @@ constexpr DXShaderStage GetStage(ShaderId shader)
     case PS_AddTexture:
     case PS_CopyTexture:
     case PS_TiledDeferredLightingPS:
+    case PS_FXAA:
         return DXShaderStage::PS;
     case GS_ShadowCascade:
     case GS_ShadowCube:
@@ -146,6 +147,8 @@ constexpr std::string GetShaderSource(ShaderId shader)
         return "Resources/Shaders/Postprocess/AddTexture.hlsl";
     case PS_CopyTexture:
         return "Resources/Shaders/Postprocess/CopyTexture.hlsl";
+    case PS_FXAA:
+        return "Resources/Shaders/Postprocess/FXAA.hlsl";
     case CS_TiledDeferredLighting:
         return "Resources/Shaders/Lighting/TiledDeferredLightingCS.hlsl";
     case CS_BlurX:
@@ -219,6 +222,8 @@ constexpr std::string GetEntryPoint(ShaderId shader)
         return "AddTexture";
     case PS_CopyTexture:
         return "CopyTexture";
+    case PS_FXAA:
+        return "FXAA";
     case CS_TiledDeferredLighting:
         return "TiledDeferredLighting";
     case CS_BlurX:
@@ -337,6 +342,10 @@ void CreateAllPrograms()
     DXShaderProgramMap[ShaderProgram::SSR]
         .SetVertexShader(vsShaderMap[VS_ScreenQuad].get())
         .SetPixelShader(psShaderMap[PS_SSR].get())
+        .SetInputLayout(inputLayoutMap[VS_ScreenQuad].get());
+    DXShaderProgramMap[ShaderProgram::FXAA]
+        .SetVertexShader(vsShaderMap[VS_ScreenQuad].get())
+        .SetPixelShader(psShaderMap[PS_FXAA].get())
         .SetInputLayout(inputLayoutMap[VS_ScreenQuad].get());
     DXShaderProgramMap[ShaderProgram::ShadowDepthMap]
         .SetVertexShader(vsShaderMap[VS_Shadow].get())

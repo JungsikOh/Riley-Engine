@@ -770,7 +770,8 @@ void Renderer::UpdateLights()
         auto& light = m_reg.get<Light>(e);
 
         l.active = light.active;
-        l._dummy = Vector3(0.0f);
+        l.tubeLength = light.tubeLength;
+        l._dummy = Vector2(0.0f);
         l.type = static_cast<int32>(light.type);
         l.castShadows = light.castShadows;
         l.useCascades = light.useCascades;
@@ -991,6 +992,7 @@ void Renderer::PassDeferredLighting()
             lightConstsCPU.useCascades = lightData.useCascades;
             lightConstsCPU.radius = lightData.radius;
             lightConstsCPU.haloStrength = lightData.haloStrength;
+            lightConstsCPU.tubeLength = lightData.tubeLength;
 
             Matrix cameraView = m_camera->GetView();
             lightConstsCPU.position = Vector4::Transform(lightConstsCPU.position, cameraView.Transpose());
@@ -1209,6 +1211,26 @@ void Renderer::PassPostprocessing()
                 PassGodsRay(lightData);
             }
         }
+
+        postprocessPasses[postprocessIndex].EndRenderPass(m_context);
+
+        postprocessIndex = !postprocessIndex;
+    }
+
+    if (renderSetting.fxaa)
+    {
+        postprocessPasses[postprocessIndex].BeginRenderPass(m_context);
+
+        ShaderManager::GetShaderProgram(ShaderProgram::FXAA)->Bind(m_context);
+
+        postprocessPasses[!postprocessIndex].attachmentRTVs->BindSRV(m_context, 0, DXShaderStage::PS);
+
+        m_context->IASetInputLayout(nullptr);
+        m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+        m_context->Draw(4, 0);
+
+        postprocessPasses[!postprocessIndex].attachmentRTVs->UnbindSRV(m_context, 0, DXShaderStage::PS);
+
         postprocessPasses[postprocessIndex].EndRenderPass(m_context);
 
         postprocessIndex = !postprocessIndex;
@@ -1510,8 +1532,8 @@ void Renderer::PassAABB()
 {
     RILEY_SCOPED_ANNOTATION(m_annotation, "AABB Pass");
 
-    SetSceneViewport(static_cast<float>(deferredLightingPass.width), static_cast<float>(deferredLightingPass.height));
-    postprocessPasses[0].BeginRenderPass(m_context, false, false);
+    SetSceneViewport(static_cast<float>(m_width), static_cast<float>(m_height));
+    postprocessPasses[!postprocessIndex].BeginRenderPass(m_context, false, false);
     wireframeRS->Bind(m_context);
     noneDepthDSS->Bind(m_context, 0);
     // Mesh Render
@@ -1537,7 +1559,7 @@ void Renderer::PassAABB()
             m_context->DrawIndexed(aabb->aabbIndexBuffer->GetCount(), 0, 0);
         }
     }
-    postprocessPasses[0].EndRenderPass(m_context);
+    postprocessPasses[!postprocessIndex].EndRenderPass(m_context);
 }
 
 void Renderer::PassLight()
@@ -1639,10 +1661,12 @@ void Renderer::DrawSun(entt::entity light)
 
         g_TextureManager.GetTextureView(sunTex)->UnbindSRV(m_context, 0, DXShaderStage::PS);
     }
+    alphaBS->Unbind(m_context);
+
+    BlurTexture(sunRTV);
 
     ID3D11RenderTargetView* nullRTV[1] = {nullptr};
     m_context->OMSetRenderTargets(0, nullRTV, nullptr);
-    alphaBS->Unbind(m_context);
 }
 
 void Renderer::BlurTexture(DXRenderTarget* src)

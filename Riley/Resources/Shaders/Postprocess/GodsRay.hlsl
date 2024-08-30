@@ -19,6 +19,7 @@ float4 GodsRay(VSToPS input) : SV_TARGET
     float3 color = SunTex.Sample(LinearClampSampler, texcoord);
     float illuminationDecay = 1.0f;
     
+    [unroll(NUM_SAMPLES)]
     for (int i = 0; i < NUM_SAMPLES; ++i)
     {
         texcoord -= deltaTexcoord;

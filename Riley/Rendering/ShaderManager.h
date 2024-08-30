@@ -34,6 +34,7 @@ enum ShaderId : uint8
     PS_AddTexture,
     PS_CopyTexture,
     PS_Picking,
+    PS_FXAA,
     GS_ShadowCascade,
     GS_ShadowCube,
     CS_TiledDeferredLighting,
@@ -65,6 +66,7 @@ enum class ShaderProgram : uint8
     TiledDeferredLightingPS,
     BlurX,
     BlurY,
+    FXAA,
     UnKnown
 };
 

@@ -480,6 +480,9 @@ std::vector<entt::entity> ModelImporter::LoadLight(Light& lightData, LightMesh m
     case LightType::Point:
         m_registry.emplace<Tag>(light, "Point Light");
         break;
+    case LightType::Tube:
+        m_registry.emplace<Tag>(light, "Tube Light");
+        break;
     default:
         spdlog::error("Don't exist Light Type.");
         break;

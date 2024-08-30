@@ -6,7 +6,8 @@
 struct PackedLightData
 {
     int active;
-    float3 _dummy;
+    float tubeLength;
+    float2 _dummy;
     
     float4 position;
     float4 direction;
@@ -50,6 +51,9 @@ float DoAttenuation(float distance, float range)
     
     // 2. LearnOpenGL
     //float att = 1.0 / (distance * distance);
+    
+    // 3. Unreal Att
+    //float att = saturate(1.0f - pow(pow(distance - lightData.radius, 4), 2)) / (distance * distance + 1);
     
     return att * att;
 }
@@ -186,7 +190,7 @@ float3 DoPointLightPBR(LightData light, float3 positionVS, float3 normalVS, floa
     float3 reflectionDir = reflect(V, normalVS);
     float3 centerToRay = dot(pixelToLight, reflectionDir) * reflectionDir - pixelToLight;
     float R = saturate(light.radius / length(centerToRay));
-    float3 represnetativePoint = pixelToLight + centerToRay * R;
+    float3 represnetativePoint = normalize(pixelToLight + centerToRay * R);
     represnetativePoint += positionVS;
     
     light.position.xyz = represnetativePoint;
@@ -248,11 +252,12 @@ float3 DoSpotLightPBR(LightData light, float3 positionVS, float3 normalVS, float
     F0 = lerp(F0, albedo, metallic);
     
     // Unreal Sphere Light
+    // Spot Light has a small error that is 
     float3 pixelToLight = light.position.xyz - positionVS;
     float3 reflectionDir = normalize(reflect(V, normalVS));
     float3 centerToRay = dot(pixelToLight, reflectionDir) * reflectionDir - pixelToLight;
     float R = saturate(light.radius / length(centerToRay));
-    float3 represnetativePoint = pixelToLight + centerToRay * R;
+    float3 represnetativePoint = normalize(pixelToLight + centerToRay * R);
     represnetativePoint += positionVS;
     
     light.position.xyz = represnetativePoint;
@@ -284,6 +289,58 @@ float3 DoSpotLightPBR(LightData light, float3 positionVS, float3 normalVS, float
     float3 kD = float3(1.0f, 1.0f, 1.0f) - kS;
     kD *= 1.0f - metallic;
     float NdotL = max(0.0f, dot(normalVS, L));
+    float3 Lo = (kD * albedo / PI + (numerator / denominator)) * radiance * NdotL;
+    
+    return Lo;
+}
+
+float3 DoTubeLightPBR(LightData light, float3 positionVS, float3 normalVS, float3 V, float3 albedo, float metallic, float roughness)
+{
+    //https://cdn2.unrealengine.com/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf
+    float3 F0 = float3(0.04f, 0.04f, 0.04f);
+    F0 = lerp(F0, albedo, metallic);
+    
+    float3 L0 = float3(light.position.x - light.tubeLength, light.position.yz) - positionVS;
+    float3 L1 = float3(light.position.x + light.tubeLength, light.position.yz) - positionVS;
+    float distanceL0 = length(L0);
+    float distanceL1 = length(L1);
+    
+    float NdotL0 = dot(L0, normalVS) / (2.0 * distanceL0);
+    float NdotL1 = dot(L1, normalVS) / (2.0 * distanceL1);
+    float NdotL = (2.0 * saturate(NdotL0 + NdotL1)) / (distanceL0 * distanceL1 + dot(L0, L1) + 2.0);
+    
+    float3 Ld = L1 - L0;
+    float3 reflectionDir = normalize(reflect(V, normalVS));
+    float distLd = length(Ld);
+    float t = (dot(reflectionDir, L0) * dot(reflectionDir, Ld) - dot(L0, Ld))
+                / (distLd * distLd - dot(reflectionDir, Ld) * dot(reflectionDir, Ld));
+    
+    float3 closestPoint = L0 + saturate(t) * Ld;
+    float3 centerToRay = dot(closestPoint, reflectionDir) * reflectionDir - closestPoint;
+    closestPoint = closestPoint + centerToRay * saturate(light.radius / length(centerToRay));
+    light.position.xyz = normalize(closestPoint) + positionVS;
+    float3 L = normalize(light.position.xyz - positionVS);
+    float3 H = normalize(L + V);
+    
+    float distance = length(light.position.xyz - positionVS);
+    float attenuation = DoAttenuation(distance, light.range);
+    
+    float3 radiance = light.lightColor * attenuation;
+    
+    float a = roughness * roughness;
+    float ap = saturate(light.radius / (2.0 + distance) + a);
+    
+    float NDF = DistributionGGX(normalVS, H, roughness) * (ap * ap) / (a * a);
+    float G = GeometrySmith(normalVS, V, L, roughness);
+    float3 F = FresnelSchlick(clamp(dot(H, V), 0.0f, 1.0f), F0);
+    
+    float3 numerator = NDF * F * G;
+    float denominator = 4.0f * max(0.0f, dot(normalVS, V)) * max(0.0f, NdotL) + 1e-5;
+    
+    float3 kS = F;
+    float3 kD = float3(1.0f, 1.0f, 1.0f) - kS;
+    kD *= 1.0f - metallic;
+
     float3 Lo = (kD * albedo / PI + (numerator / denominator)) * radiance * NdotL;
     
     return Lo;

@@ -58,6 +58,9 @@ struct LightData
     float godrayWeight;
     float godrayDecay;
     float godrayExposure;
+    
+    float tubeLength;
+    float3 _dummy2;
 };
 
 struct MeshData
@@ -88,13 +91,13 @@ struct PostprocessData
     float ssaoRadius;
     
     float ssaoPower;
-    float3 _dummy2;
+    float3 _dummy3;
     
     float4 samples[16];
     
     float ssrRayStep; // 한걸음에 얼마나 나아갈지에 대한 변수
     float ssrThickness;
-    float2 _dummy3;
+    float2 _dummy4;
 };
 
 struct ShadowData

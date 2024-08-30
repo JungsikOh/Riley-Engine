@@ -6,6 +6,7 @@
 #define DIRECTIONAL_LIGHT 0
 #define POINT_LIGHT 1
 #define SPOT_LIGHT 2
+#define TUBE_LIGHT 3
 
 #define NONE_AO 0
 #define SSAO_AO 1

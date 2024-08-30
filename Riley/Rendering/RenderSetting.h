@@ -27,5 +27,8 @@ struct RenderSetting
    float ssrRayStep = 1.60f;
    float ssrThickness = 2.00f;
 
+   // fxaa
+   bool fxaa = true;
+
 };
 } // namespace Riley

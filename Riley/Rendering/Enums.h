@@ -6,7 +6,8 @@ enum class LightType : int32
 {
    Directional,
    Point,
-   Spot
+   Spot,
+   Tube
 };
 
 enum class AmbientOcclusion : int32

@@ -74,6 +74,14 @@ Engine::Engine(EngineInit const& init) : window(init.window), vsync{init.vsync}
     light.range = 100.0f;
     light.type = LightType::Point;
     modelImporter->LoadLight(light, LightMesh::Cube, 0.03f);
+
+    light.position = Vector4(-2.4f, 0.5f, -0.65f, 1.0f);
+    light.direction = Vector4(0.0f, -1.0f, 0.0f, 0.0f);
+    light.color = Vector4(0.7f, 0.7f, 0.7f, 0.0f);
+    light.energy = 1.0f;
+    light.range = 100.0f;
+    light.type = LightType::Tube;
+    modelImporter->LoadLight(light, LightMesh::Cube, 0.03f);
 }
 
 Engine::~Engine()

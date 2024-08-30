@@ -53,6 +53,10 @@ float4 DeferredLightingPS(VSToPS input) : SV_Target
             LoPBR = DoSpotLightPBR(lightData, positionVS, normalVS, viewDir, albedo, metallic, roughness);
             shadowFactor = CalcShadowMapPCF3x3(lightData, positionVS, ShadowMap);
             break;
+        case TUBE_LIGHT:
+            LoPBR = DoTubeLightPBR(lightData, positionVS, normalVS, viewDir, albedo, metallic, roughness);
+            shadowFactor = 1.0;
+            break;
     }
     
     return float4(LoPBR * shadowFactor, 1.0);
