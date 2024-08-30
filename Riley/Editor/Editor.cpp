@@ -306,8 +306,8 @@ void Editor::Properties()
                     float position[3] = {lightPosition.x, lightPosition.y, lightPosition.z};
                     shadowMappingFlag += ImGui::SliderFloat3("Light Position", position, -10.0f, 10.0f);
                     light->position = Vector4(position[0], position[1], position[2], 1.0f);
-                    ImGui::SliderFloat("Light Radius", &light->radius, 0.01f, 0.5f);
-                    ImGui::SliderFloat("Light Range", &light->range, 1.0f, 100.0f);
+                    ImGui::SliderFloat("Light Radius", &light->radius, 0.01f, 1.0f);
+                    ImGui::SliderFloat("Light Range", &light->range, 0.0f, 100.0f);
                     ImGui::SliderFloat("Light Halo Strength", &light->haloStrength, 0.0f, 1.0f);
                 }
 

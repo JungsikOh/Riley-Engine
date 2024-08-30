@@ -27,6 +27,7 @@ struct PackedLightData
 LightData ConvertFromPackedLightData(in PackedLightData structured_light)
 {
     LightData l = (LightData) 0;
+    l.tubeLength = structured_light.tubeLength;
     l.castShadows = structured_light.castShadows;
     l.lightColor = structured_light.lightColor;
     l.direction = structured_light.direction;
@@ -44,7 +45,7 @@ LightData ConvertFromPackedLightData(in PackedLightData structured_light)
     return l;
 }
 
-float DoAttenuation(float distance, float range)
+float DoAttenuation(float distance, float range ,float radius)
 {
     // 1. Gihbud Source
     float att = saturate(1.0f - (distance * distance / (range * range)));
@@ -53,7 +54,7 @@ float DoAttenuation(float distance, float range)
     //float att = 1.0 / (distance * distance);
     
     // 3. Unreal Att
-    //float att = saturate(1.0f - pow(pow(distance - lightData.radius, 4), 2)) / (distance * distance + 1);
+    //float att = saturate(1.0f - pow(pow(distance - radius, 4), 2)) / (distance * distance + 1);
     
     return att * att;
 }
@@ -88,7 +89,7 @@ LightingResult DoPointLight(LightData light, float shininess, float3 V, float3 P
     L = L / distance;
     
     N = normalize(N);
-    float attenuation = DoAttenuation(distance, light.range);
+    float attenuation = DoAttenuation(distance, light.range, light.radius);
     
     LightingResult result;
     result.diffuse = DoDiffuse(light, L, N) * attenuation;
@@ -118,7 +119,7 @@ LightingResult DoSpotLight(LightData light, float shininess, float3 V, float3 P,
     L = L / distance;
     
     N = normalize(N);
-    float attenuation = DoAttenuation(distance, light.range);
+    float attenuation = DoAttenuation(distance, light.range, light.radius);
     float3 lightDir = normalize(light.direction.xyz);
     
     // https://learnopengl.com/Lighting/Light-casters
@@ -198,7 +199,7 @@ float3 DoPointLightPBR(LightData light, float3 positionVS, float3 normalVS, floa
     float3 L = normalize(light.position.xyz - positionVS);
     float3 H = normalize(L + V);
     float distance = length(light.position.xyz - positionVS);
-    float attenuation = DoAttenuation(distance, light.range);
+    float attenuation = DoAttenuation(distance, light.range, light.radius);
     float3 radiance = light.lightColor * attenuation;
     
     float a = roughness * roughness;
@@ -265,7 +266,7 @@ float3 DoSpotLightPBR(LightData light, float3 positionVS, float3 normalVS, float
     float3 L = normalize(light.position.xyz - positionVS);
     float3 H = normalize(L + V);
     float distance = length(light.position.xyz - positionVS);
-    float attenuation = DoAttenuation(distance, light.range);
+    float attenuation = DoAttenuation(distance, light.range, light.radius);
     
     float a = roughness * roughness;
     float ap = saturate(a + light.radius / (2.0 + distance));
@@ -323,7 +324,7 @@ float3 DoTubeLightPBR(LightData light, float3 positionVS, float3 normalVS, float
     float3 H = normalize(L + V);
     
     float distance = length(light.position.xyz - positionVS);
-    float attenuation = DoAttenuation(distance, light.range);
+    float attenuation = DoAttenuation(distance, light.range, light.radius);
     
     float3 radiance = light.lightColor * attenuation;
     

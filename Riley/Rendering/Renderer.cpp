@@ -1070,33 +1070,6 @@ void Renderer::PassTiledDeferredLighting()
     {
         CopyTexture(debugTiledTexture);
     }
-    //// Render Mesh
-    //{
-    //    additiveBS->Bind(m_context);
-    //    gbufferPass.attachmentRTVs->BindSRV(m_context, 0, DXShaderStage::PS);
-    //    gbufferPass.attachmentDSVs->BindSRV(m_context, 3, DXShaderStage::PS);
-    //    lights->BindSRV(m_context, 4, DXShaderStage::PS);
-    //    outputTiledLights->BindSRV(m_context, 5, DXShaderStage::PS);
-    //    shadowMapPass.attachmentDSVs->BindSRV(m_context, 6, DXShaderStage::PS);
-    //    shadowCubeMapPass.attachmentDSVs->BindSRV(m_context, 7, DXShaderStage::PS);
-    //    shadowCascadeMapPass.attachmentDSVs->BindSRV(m_context, 8, DXShaderStage::PS);
-
-    //    ShaderManager::GetShaderProgram(ShaderProgram::DeferredLighting)->Bind(m_context);
-
-    //    m_context->IASetInputLayout(nullptr);
-    //    m_context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-    //    m_context->Draw(4, 0);
-
-    //    gbufferPass.attachmentRTVs->UnbindSRV(m_context, 0, DXShaderStage::PS);
-    //    gbufferPass.attachmentDSVs->UnbindSRV(m_context, 3, DXShaderStage::PS);
-    //    lights->BindSRV(m_context, 4, DXShaderStage::PS);
-    //    outputTiledLights->UnbindSRV(m_context, 5, DXShaderStage::PS);
-    //    shadowMapPass.attachmentDSVs->UnbindSRV(m_context, 4, DXShaderStage::PS);
-    //    shadowCubeMapPass.attachmentDSVs->UnbindSRV(m_context, 5, DXShaderStage::PS);
-    //    shadowCascadeMapPass.attachmentDSVs->UnbindSRV(m_context, 6, DXShaderStage::PS);
-    //}
-    // deferredLightingPass.EndRenderPass(m_context);
-    // additiveBS->Unbind(m_context);
 
     deferredLightingPass.EndRenderPass(m_context);
 

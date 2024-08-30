@@ -49,6 +49,15 @@ cbuffer PostprocessConsts : register(b4)
     PostprocessData postData;
 }
 
+static float3 UnprojectScreenSpaceToViewSpace(in float4 screenPoint)
+{
+    float4 clipSpace = float4(float2(screenPoint.x, 1 - screenPoint.y) * 2 - 1, screenPoint.z, screenPoint.w);
+    float4 viewSpace = mul(clipSpace, frameData.invProj);
+    viewSpace /= viewSpace.w;
+	
+    return viewSpace.xyz;
+}
+
 static float3 GetViewSpacePosition(float2 texcoord, float depth)
 {
     float4 clipSpaceLocation;

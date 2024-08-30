@@ -90,7 +90,7 @@ struct COMPONENT Light
     LightType type = LightType::Directional;
     float outer_cosine = cos(pie / 4);
     float inner_cosine = cos(pie / 8);
-    float radius = 0.0f;
+    float radius = 0.25f;
     float tubeLength = 0.3f;
     float haloStrength = 1.0f;
     bool castShadows = true;

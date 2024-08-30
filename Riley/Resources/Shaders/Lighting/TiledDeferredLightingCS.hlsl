@@ -23,6 +23,7 @@ groupshared uint s_MinZ;
 groupshared uint s_MaxZ;
 groupshared uint s_TileNumLights;
 groupshared uint s_TileLightIndices[MAX_TILE_LIGHTS];
+groupshared uint s_TileDepthMask;
 
 [numthreads(TILED_GROUP_SIZE, TILED_GROUP_SIZE, 1)]
 void TiledDeferredLighting(int3 gID : SV_GroupID,
@@ -34,7 +35,7 @@ void TiledDeferredLighting(int3 gID : SV_GroupID,
     LightsBuffer.GetDimensions(totalLights, unused);
     
     float pixelMinZ = frameData.cameraFar;
-    float pixelMaxZ = frameData.cameraNear;
+    float pixelMaxZ = 0.0f;
     
     float2 texcoord = float2((dtID.x + 0.5) / frameData.screenResolutionX, (dtID.y + 0.5) / frameData.screenResolutionY);
     
@@ -44,14 +45,15 @@ void TiledDeferredLighting(int3 gID : SV_GroupID,
     bool vaildPixel = viewSpaceDepth >= frameData.cameraNear && viewSpaceDepth < frameData.cameraFar;
     
     [flatten]
-    if (vaildPixel)
+    if (true)
     {
-        pixelMinZ = min(pixelMinZ, viewSpaceDepth);
-        pixelMaxZ = max(pixelMaxZ, viewSpaceDepth);
+        pixelMinZ = min(pixelMinZ, depth);
+        pixelMaxZ = max(pixelMaxZ, depth);
     }
     
     if (gIdx == 0)
     {
+        s_TileDepthMask = 0;
         s_TileNumLights = 0;
         s_MinZ = 0x7F7FFFFF;
         s_MaxZ = 0;
@@ -67,57 +69,103 @@ void TiledDeferredLighting(int3 gID : SV_GroupID,
     
     GroupMemoryBarrierWithGroupSync();
     
-    float tileMinZ = asfloat(s_MinZ);
-    float tileMaxZ = asfloat(s_MaxZ);
     
-    float2 tileScale = float2(frameData.screenResolutionX, frameData.screenResolutionY) * rcp(float(2 * TILED_GROUP_SIZE));
-    float2 tileBias = tileScale - float2(gID.xy);
+    //// Basic 2D Intersect
+    //float tileMinZ = asfloat(s_MinZ);
+    //float tileMaxZ = asfloat(s_MaxZ);
     
-    float4 c1 = float4(frameData.proj._11 * tileScale.x, 0.0f, tileBias.x, 0.0f);
-    float4 c2 = float4(0.0f, -frameData.proj._22 * tileScale.y, tileBias.y, 0.0f);
-    float4 c4 = float4(0.0f, 0.0f, 1.0f, 0.0f);
+    //float2 tileScale = float2(frameData.screenResolutionX, frameData.screenResolutionY) * rcp(float(2 * TILED_GROUP_SIZE));
+    //float2 tileBias = tileScale - float2(gID.xy);
     
-    float4 frustumPlanes[6];
-    frustumPlanes[0] = c4 - c1;
-    frustumPlanes[1] = c4 + c1;
-    frustumPlanes[2] = c4 - c2;
-    frustumPlanes[3] = c4 + c2;
-    frustumPlanes[4] = float4(0.0f, 0.0f, 1.0f, -tileMinZ);
-    frustumPlanes[5] = float4(0.0f, 0.0f, -1.0f, tileMaxZ);
+    //float4 c1 = float4(frameData.proj._11 * tileScale.x, 0.0f, tileBias.x, 0.0f);
+    //float4 c2 = float4(0.0f, -frameData.proj._22 * tileScale.y, tileBias.y, 0.0f);
+    //float4 c4 = float4(0.0f, 0.0f, 1.0f, 0.0f);
     
-    [unroll]
-    for (uint i = 0; i < 4; ++i)
-    {
-        frustumPlanes[i] *= rcp(length(frustumPlanes[i].xyz));
-    }
+    //float4 frustumPlanes[6];
+    //frustumPlanes[0] = c4 - c1;
+    //frustumPlanes[1] = c4 + c1;
+    //frustumPlanes[2] = c4 - c2;
+    //frustumPlanes[3] = c4 + c2;
+    //frustumPlanes[4] = float4(0.0f, 0.0f, 1.0f, -tileMinZ);
+    //frustumPlanes[5] = float4(0.0f, 0.0f, -1.0f, tileMaxZ);
+    
+    //[unroll]
+    //for (uint i = 0; i < 4; ++i)
+    //{
+    //    frustumPlanes[i] *= rcp(length(frustumPlanes[i].xyz));
+    //}
+    
+    //for (uint lightIdx = gIdx; lightIdx < totalLights; lightIdx += TILED_GROUP_SIZE * TILED_GROUP_SIZE)
+    //{
+    //    PackedLightData light = LightsBuffer[lightIdx];
+    //    if (!light.active)
+    //        continue;
+        
+    //    bool inFrustum = true;
+    //    if (light.type != DIRECTIONAL_LIGHT)
+    //    {
+    //        [unroll]
+    //        for (uint i = 0; i < 6; ++i)
+    //        {
+    //            float d = dot(frustumPlanes[i], float4(light.position.xyz, 1.0f));
+    //            inFrustum = inFrustum && (d >= -light.range);
+    //        }
+    //    }
+        
+    //    [branch]
+    //    if (inFrustum)
+    //    {
+    //        uint listIndex;
+    //        InterlockedAdd(s_TileNumLights, 1, listIndex);
+    //        s_TileLightIndices[listIndex] = lightIdx;
+    //    }
+    //}
+    
+    //GroupMemoryBarrierWithGroupSync();
+    
+    //2.5D Intersect
+    
+    float minDepthVS = UnprojectScreenSpaceToViewSpace(float4(0, 0, asfloat(s_MinZ), 1)).z;
+    float maxDepthVS = UnprojectScreenSpaceToViewSpace(float4(0, 0, asfloat(s_MaxZ), 1)).z;
+    float realDepthVS = UnprojectScreenSpaceToViewSpace(float4(0, 0, depth, 1)).z;
+    float depthRangeRecip = 31.0f / (maxDepthVS - minDepthVS);
+    uint depthmaskcellindex = max(0, min(31u, floor((viewSpaceDepth - minDepthVS) * depthRangeRecip)));
+    InterlockedOr(s_TileDepthMask, 1u << depthmaskcellindex);
+    
+    GroupMemoryBarrierWithGroupSync();
     
     for (uint lightIdx = gIdx; lightIdx < totalLights; lightIdx += TILED_GROUP_SIZE * TILED_GROUP_SIZE)
     {
         PackedLightData light = LightsBuffer[lightIdx];
+        
         if (!light.active)
             continue;
         
-        bool inFrustum = true;
+        bool intersect = true;
+        
         if (light.type != DIRECTIONAL_LIGHT)
         {
-            [unroll]
-            for (uint i = 0; i < 6; ++i)
-            {
-                float d = dot(frustumPlanes[i], float4(light.position.xyz, 1.0f));
-                inFrustum = inFrustum && (d >= -light.range / 2.0f);
-            }
+            float fMin = light.position.z - light.range / 45.0f;
+            float fMax = light.position.z + light.range / 45.0f;
+        
+            uint lightMaskcellindexSTART = max(0, min(31u, floor((fMin - minDepthVS) * depthRangeRecip)));
+            uint lightMaskcellindexEND = max(0, min(31u, floor((fMax - minDepthVS) * depthRangeRecip)));
+            uint lightMask = 0xFFFFFFFF;
+            lightMask >>= 31u - (lightMaskcellindexEND - lightMaskcellindexSTART);
+            lightMask <<= lightMaskcellindexSTART;
+        
+            intersect = lightMask & s_TileDepthMask;
         }
         
         [branch]
-        if (inFrustum)
+        if (intersect)
         {
             uint listIndex;
             InterlockedAdd(s_TileNumLights, 1, listIndex);
             s_TileLightIndices[listIndex] = lightIdx;
-            DebugTex[dtID.xy] = s_TileNumLights / 3.0f;
         }
     }
-
+    
     GroupMemoryBarrierWithGroupSync();
     
     float3 viewSpacePosition = GetViewSpacePosition(texcoord, depth);
@@ -152,11 +200,15 @@ void TiledDeferredLighting(int3 gID : SV_GroupID,
                     shadowFactor = CalcShadowMapPCF3x3(light, viewSpacePosition, ShadowMap);
                     Lo += DoSpotLightPBR(light, viewSpacePosition, normal, V, albedoRoughness.rgb, metallic, roughness) * shadowFactor;
                     break;
+                case TUBE_LIGHT:
+                    Lo += DoTubeLightPBR(light, viewSpacePosition, normal, V, albedoRoughness.rgb, metallic, roughness);
+                    shadowFactor = 1.0;
+                    break;
             }
         }
     }
     
-    float4 shadingColor = OutputTex.Load(int3(int2(dtID.xy), 0)) + float4(Lo, 1.0f);
+    float4 shadingColor = OutputTex[dtID.xy] + float4(Lo, 1.0f);
     OutputTex[dtID.xy] = shadingColor;
     
     // 히트맵 색상 범위
@@ -175,6 +227,6 @@ void TiledDeferredLighting(int3 gID : SV_GroupID,
     float3 b = HeatMap[ceil(intensity)];
     
     float4 debugColor = float4(lerp(a, b, intensity - floor(intensity)), 0.5);
-    //DebugTex[dtID.xy] = debugColor;
+    DebugTex[dtID.xy] = debugColor;
 
 }
